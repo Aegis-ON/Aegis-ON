@@ -1,0 +1,79 @@
+{
+  "events": [
+    {
+      "System": {
+        "Provider": "Microsoft-Windows-Sysmon",
+        "EventID": 3,
+        "TimeCreated": "2026-11-09T10:02:00.0000000Z",
+        "Computer": "LAB-01",
+        "EventRecordID": 3,
+        "Channel": "Microsoft-Windows-Sysmon/Operational"
+      },
+      "EventData": {
+        "UtcTime": "2026-11-09 10:02:00.000",
+        "Image": "C:\\Windows\\System32\\cmd.exe",
+        "CommandLine": "",
+        "ParentImage": "",
+        "ParentCommandLine": "",
+        "User": "LAB\\analyst",
+        "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+        "ProcessId": "1234",
+        "SourceIp": "192.0.2.10",
+        "SourcePort": "50000",
+        "DestinationIp": "198.51.100.10",
+        "DestinationPort": "443",
+        "Initiated": "true"
+      }
+    },
+    {
+      "System": {
+        "Provider": "Microsoft-Windows-Sysmon",
+        "EventID": 3,
+        "TimeCreated": "2026-11-09T10:03:00.0000000Z",
+        "Computer": "LAB-01",
+        "EventRecordID": 4,
+        "Channel": "Microsoft-Windows-Sysmon/Operational"
+      },
+      "EventData": {
+        "UtcTime": "2026-11-09 10:03:00.000",
+        "Image": "C:\\Windows\\System32\\cmd.exe",
+        "CommandLine": "",
+        "ParentImage": "",
+        "ParentCommandLine": "",
+        "User": "LAB\\analyst",
+        "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+        "ProcessId": "1234",
+        "SourceIp": "192.0.2.10",
+        "SourcePort": "50001",
+        "DestinationIp": "198.51.100.11",
+        "DestinationPort": "443",
+        "Initiated": "true"
+      }
+    },
+    {
+      "System": {
+        "Provider": "Microsoft-Windows-Sysmon",
+        "EventID": 3,
+        "TimeCreated": "2026-11-09T10:04:00.0000000Z",
+        "Computer": "LAB-01",
+        "EventRecordID": 5,
+        "Channel": "Microsoft-Windows-Sysmon/Operational"
+      },
+      "EventData": {
+        "UtcTime": "2026-11-09 10:04:00.000",
+        "Image": "C:\\Windows\\System32\\cmd.exe",
+        "CommandLine": "",
+        "ParentImage": "",
+        "ParentCommandLine": "",
+        "User": "LAB\\analyst",
+        "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+        "ProcessId": "1234",
+        "SourceIp": "192.0.2.10",
+        "SourcePort": "50002",
+        "DestinationIp": "198.51.100.12",
+        "DestinationPort": "443",
+        "Initiated": "true"
+      }
+    }
+  ]
+}

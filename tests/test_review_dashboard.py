@@ -22,7 +22,7 @@ class Element {
   replaceChildren(...children) { this._text=''; this.children=children; }
   addEventListener(name, fn) { this.handlers[name]=fn; }
 }
-const elements=Object.fromEntries(['#summary','#results','#sysmon-file','#run-demo','#run-sysmon'].map(id=>[id,new Element()]));
+const elements=Object.fromEntries(['#summary','#results','#sysmon-file','#run-demo','#run-sysmon','#scenario-a','#scenario-b','#scenario-c','#stat-total','#stat-processed','#stat-excluded','#stat-detections'].map(id=>[id,new Element()]));
 const document={querySelector:id=>elements[id],createElement:()=>new Element()};
 let token='test-token';
 const window={prompt:()=>token};

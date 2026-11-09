@@ -2,41 +2,54 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Aegis-ON</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aegis-ON · 보안 이벤트 분석</title>
     <style>
-      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #09111f; color: #eef4ff; }
-      body { margin: 0 auto; padding: 2.5rem; max-width: 1080px; }
-      header { border-bottom: 1px solid #293a59; padding-bottom: 1.25rem; }
-      h1 { margin: 0; font-size: 2rem; } .tag, .meta, .hint { color: #9fb0cd; }
-      .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1.5rem 0; }
-      button { background: #36d399; color: #052018; border: 0; border-radius: 8px; padding: .7rem 1rem; font-weight: 700; cursor: pointer; }
-      input { max-width: 100%; }
-      #summary, .card, .batch { padding: 1rem; border: 1px solid #293a59; border-radius: 10px; background: #101c30; margin: .75rem 0; }
-      .card { border-left: 5px solid #fbbf24; } .high { border-left-color: #fb7185; }
-      .meta, .hint { font-size: .9rem; } .source-event { border-top: 1px solid #293a59; margin-top: .65rem; padding-top: .65rem; overflow-wrap: anywhere; }
-      .source-event p { margin: .35rem 0; } .items { padding-left: 1.5rem; overflow-wrap: anywhere; }
-      code { color: #99f6e4; }
+      :root{color-scheme:dark;--ink:#edf0f4;--sub:#b7bfcb;--line:#3b424d;--surface:#24282e;--muted:#20242a;--accent:#b9cffb;--radius:14px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      *{box-sizing:border-box}body{margin:0;background:#171a1e;color:var(--ink);font-size:14px}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #b9cffb;outline-offset:2px}
+      .app{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh}.sidebar{padding:25px 16px;background:#202329;border-right:1px solid var(--line)}.brand{font-weight:760;font-size:18px;letter-spacing:-.04em;padding:0 10px 24px}.brand-mark{display:inline-grid;place-items:center;width:29px;height:29px;border-radius:9px;background:#3c4a61;color:#f1f4f9;font-size:15px;margin-right:8px}.nav-label{padding:16px 10px 8px;color:#b5bdc8;font-size:11px;font-weight:700}.nav-link{display:block;text-decoration:none;color:#c6cdd7;padding:11px 12px;border-radius:9px;font-weight:600}.nav-link.active{background:#343b46;color:#f2f5fa}.nav-link span{display:inline-block;width:23px}.side-note{margin:22px 10px;color:#b5bdc8;font-size:12px;line-height:1.6}
+      .main{min-width:0}.topbar{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;color:#b9c0ca}.topbar strong{color:#e0e6ee}.tag{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:5px 10px}.content{padding:28px 32px 44px;max-width:1600px;margin:auto}.heading{display:flex;justify-content:space-between;align-items:end;gap:16px}.eyebrow{color:#b9cae7;font-size:11px;font-weight:750;letter-spacing:.1em}.heading h1{font-size:26px;letter-spacing:-.04em;margin:7px 0 6px}.hint,.meta{color:var(--sub);line-height:1.55}.hint{font-size:12px}.heading p{margin:0}.notice{background:#252d39;border:1px solid #3a4658;border-radius:10px;padding:12px 14px;color:#c8d4e5;font-size:12px;line-height:1.5;margin:20px 0}
+      .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat,.panel,.card,.batch,.event-list{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius)}.stat{padding:17px 18px;min-height:96px}.stat-label{color:#b7bfcb;font-size:12px}.stat-value{font-size:26px;font-weight:750;letter-spacing:-.04em;margin-top:10px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start;margin-top:20px}.panel{padding:18px}.panel-title{margin:0 0 5px;font-size:15px;font-weight:750}.panel-desc{margin:0;color:#b7bfcb;font-size:12px;line-height:1.5}.scenarios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:15px}.scenario{min-height:76px;text-align:left;background:#2c3139;border:1px solid #49515f;border-radius:10px;padding:12px;color:#edf0f4}.scenario:hover,.action:hover{border-color:#8c9fbe;background:#39414d}.scenario strong{display:block;font-size:12px;margin-bottom:6px}.scenario small{color:#c1c9d5;line-height:1.4}.secondary{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.action,.file-button{border:1px solid #4d5664;border-radius:8px;padding:9px 12px;background:#30353d;color:#eef2f7;font-weight:650;font-size:12px}.primary{background:#3e526f;color:#fff;border-color:#667d9e}.primary:hover{background:#506789;color:white}.file-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}.file-row input{font-size:12px;min-width:0;max-width:100%;color:#dce2ea}.divider{height:1px;background:var(--line);margin:17px 0}.note-line{font-size:12px;line-height:1.65;color:#c1c8d2}.note-line strong{color:#e3e8ef}
+      #summary{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);background:#292e35;border-radius:10px;color:#d0d7e1;font-size:12px;line-height:1.55}.results-head{display:flex;align-items:baseline;justify-content:space-between;margin:27px 0 10px}.results-head h2{margin:0;font-size:16px}.results-head small{color:var(--sub)}.batch,.event-list,.card{margin:10px 0;padding:15px}.batch strong,.event-list strong{font-size:13px}.items{margin:10px 0 0;padding-left:20px;color:#c1c8d2;font-size:12px;line-height:1.8;overflow-wrap:anywhere}.card{border-left:4px solid #91a8c7;overflow-wrap:anywhere}.card.high{border-left-color:#f29989}.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.badge{font-size:11px;font-weight:700;border-radius:99px;padding:3px 8px;background:#354356;color:#d6e4fa}.badge.high{background:#4b3432;color:#ffc2b5}.score{margin-left:auto;color:#bbc4d1;font-size:12px}.card p{font-size:12px;line-height:1.6}.source-event{border-top:1px solid #3b424d;margin-top:10px;padding-top:10px;overflow-wrap:anywhere}.source-event p{margin:4px 0}.source-event strong{font-size:12px}.approval-line{color:#c1c8d2;font-size:12px;margin:8px 0}.approval-button:disabled{opacity:1;cursor:not-allowed;background:#2a2e34;color:#9ea6b1;border-color:#454b55}.event-list summary{cursor:pointer;font-weight:700}.empty{padding:30px 16px;text-align:center;border:1px dashed #535b68;border-radius:12px;color:#b8c1cd;font-size:13px}.foot{margin-top:26px;color:#b1bac7;font-size:11px;line-height:1.6}
+      @media(max-width:1000px){.layout{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.app{display:block}.sidebar{border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}.brand{padding:0 0 10px}.nav-label,.side-note{display:none}.nav-links{display:flex;gap:5px;overflow:auto}.nav-link{white-space:nowrap;padding:8px}.topbar{padding:0 18px;height:50px}.content{padding:22px 16px}.heading{align-items:start}.heading h1{font-size:22px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.scenarios{grid-template-columns:1fr}.scenario{min-height:auto}.score{margin-left:0}}
     </style>
   </head>
   <body>
-    <header>
-      <h1>Aegis-ON</h1>
-      <div class="tag">개인정보 무반출 · 사람 승인형 AI 보안관제</div>
-    </header>
-    <div class="controls">
-      <button id="run-demo" type="button">데모 이벤트 분석</button>
-      <label for="sysmon-file">Sysmon JSON 파일</label>
-      <input id="sysmon-file" type="file" accept=".json,application/json" />
-      <button id="run-sysmon" type="button">Sysmon 분석</button>
+    <div class="app">
+      <aside class="sidebar" aria-label="주 메뉴">
+        <div class="brand"><span class="brand-mark">A</span>Aegis-ON</div>
+        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>시나리오 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a></nav>
+        <p class="side-note">로컬 분석 데모<br />자동 차단은 수행하지 않습니다.</p>
+      </aside>
+      <div class="main">
+        <div class="topbar"><strong>보안 이벤트 분석</strong><span class="tag">로컬 데모 · 수동 분석</span></div>
+        <main class="content" id="overview">
+          <div class="heading"><div><div class="eyebrow">SECURITY EVENT OVERVIEW</div><h1>분석 개요</h1><p class="hint">Sysmon 이벤트와 탐지 근거를 한눈에 확인합니다.</p></div></div>
+          <div class="notice">샘플은 합성 데이터이며 버튼을 누르면 실제 탐지 API로 분석합니다. 현재 점수는 규칙과 휴리스틱 기준선의 결과이며 AI 모델 성능이나 공격 확정을 의미하지 않습니다.</div>
+          <section class="stats" aria-label="마지막 분석 요약">
+            <div class="stat"><div class="stat-label">전체 입력</div><div class="stat-value" id="stat-total">—</div></div>
+            <div class="stat"><div class="stat-label">처리한 이벤트</div><div class="stat-value" id="stat-processed">—</div></div>
+            <div class="stat"><div class="stat-label">오류 · 미지원</div><div class="stat-value" id="stat-excluded">—</div></div>
+            <div class="stat"><div class="stat-label">탐지 결과</div><div class="stat-value" id="stat-detections">—</div></div>
+          </section>
+          <div class="layout" id="analysis">
+            <section class="panel"><h2 class="panel-title">분석 시작</h2><p class="panel-desc">시나리오를 누르면 인증 후 즉시 샘플을 불러와 분석합니다.</p>
+              <div class="scenarios"><button class="scenario" id="scenario-a" type="button"><strong>A · 정상 프로세스</strong><small>메모장 실행 이벤트</small></button><button class="scenario" id="scenario-b" type="button"><strong>B · 의심 다운로드 명령</strong><small>curl 명령 문자열 탐지</small></button><button class="scenario" id="scenario-c" type="button"><strong>C · 다수 목적지 연결</strong><small>발신 연결 3건 상관분석</small></button></div>
+              <div class="divider"></div><p class="panel-desc">직접 수집한 Sysmon Event ID 1·3 JSON 파일 (최대 2 MiB, 1,000건)</p><div class="file-row"><label for="sysmon-file" class="hint">파일 선택</label><input id="sysmon-file" type="file" accept=".json,application/json" /><button class="action primary" id="run-sysmon" type="button">파일 분석</button></div><div class="secondary"><button class="action" id="run-demo" type="button">기존 JSON 데모 분석</button></div>
+              <section id="summary" aria-live="polite">준비됨 — 분석할 시나리오나 파일을 선택하세요.</section>
+            </section>
+            <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />규칙과 임시 휴리스틱 기준선을 사용합니다. BERT 모델은 연결되지 않았습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
+          </div>
+          <section id="result-section"><div class="results-head"><h2>탐지 및 이벤트</h2><small>현재 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
+          <p class="foot">표시되는 IP 등은 가명처리됩니다. 원본 이벤트는 레코드 ID·출처 등 식별 정보만 표시하며, 실제 명령줄과 사용자명은 표시하지 않습니다. 분석 결과와 연결 정보는 서버에 영구 저장되지 않습니다.</p>
+        </main>
+      </div>
     </div>
-    <p class="hint">Windows의 <code>scripts/export_sysmon.ps1</code>로 내보낸 Sysmon Event ID 1·3 JSON 파일을 선택하세요 (최대 2 MiB, 1,000건). 잘못된 이벤트와 미지원 이벤트는 따로 표시하고 유효한 이벤트만 분석합니다. 분석은 연결된 Aegis-ON API에서 수행하며 승인은 시뮬레이션이고 실제 차단은 수행하지 않습니다.</p>
-    <section id="summary" aria-live="polite">준비됨 — 현재 모델 상태: <code>semantic-baseline</code></section>
-    <main id="results"></main>
     <script>
       const summary = document.querySelector('#summary');
       const results = document.querySelector('#results');
       const sysmonFile = document.querySelector('#sysmon-file');
+      const stats = {total:document.querySelector('#stat-total'), processed:document.querySelector('#stat-processed'), excluded:document.querySelector('#stat-excluded'), detections:document.querySelector('#stat-detections')};
       const MAX_FILE_BYTES = 2 * 1024 * 1024;
       let activeRequest = null;
 
@@ -44,152 +57,182 @@
         if (activeRequest) activeRequest.abort();
         activeRequest = new AbortController();
         results.replaceChildren();
+        summary.textContent = '분석 준비 중…';
+        for (const stat of Object.values(stats)) stat.textContent = '—';
         return activeRequest;
       }
-
-      function isCurrent(request) {
-        return activeRequest === request && !request.signal.aborted;
-      }
-
+      function isCurrent(request) { return activeRequest === request && !request.signal.aborted; }
       function createText(tag, value, className = '') {
         const element = document.createElement(tag);
         if (className) element.className = className;
         element.textContent = String(value);
         return element;
       }
-
-      function displayValue(value) {
-        return value === null || value === undefined || value === '' ? '없음' : String(value);
+      function displayValue(value) { return value === null || value === undefined || value === '' ? '없음' : String(value); }
+      function directionLabel(initiated) { return initiated === true ? '발신' : initiated === false ? '수신' : '미상'; }
+      function setStats(counts, detections) {
+        stats.total.textContent = String(counts.total);
+        stats.processed.textContent = String(counts.processed);
+        stats.excluded.textContent = String(counts.invalid + counts.unsupported);
+        stats.detections.textContent = String(detections);
       }
-
-      function directionLabel(initiated) {
-        return initiated === true ? '발신' : initiated === false ? '수신' : '미상';
+      function sourceDetail(event) {
+        const detail = document.createElement('div');
+        detail.className = 'source-event';
+        detail.append(createText('strong', `입력 ${displayValue(event.input_index)} · Sysmon 이벤트 ${displayValue(event.sysmon_event_id)}`));
+        detail.append(createText('p', `레코드 ID: ${displayValue(event.record_id)} · 출처: ${displayValue(event.log_source)} · 시각: ${displayValue(event.timestamp)}`));
+        detail.append(createText('p', `호스트: ${displayValue(event.host)} · PID: ${displayValue(event.process_id)} · 프로세스 GUID: ${displayValue(event.process_guid)}`));
+        if (event.sysmon_event_id === 3) detail.append(createText('p', `연결 방향: ${directionLabel(event.initiated)}`));
+        detail.append(createText('p', `출발지: ${displayValue(event.source_ip)}:${displayValue(event.source_port)} · 목적지: ${displayValue(event.destination_ip)}:${displayValue(event.destination_port)}`));
+        return detail;
       }
-
-      function renderDetections(detections, sourceEvents = []) {
-        if (!detections.length) {
-          results.append(createText('p', '탐지 결과가 없습니다.'));
-          return;
+      async function readResponse(response, operation) {
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('인증 실패: API 토큰을 확인해 주세요.');
+          if (response.status === 403) throw new Error('권한 또는 분석가 이름을 확인해 주세요.');
+          if (response.status === 409) throw new Error('이미 처리된 요청입니다. 현재 상태를 확인해 주세요.');
+          if (response.status === 503) throw new Error('API 인증이 설정되지 않았습니다.');
+          throw new Error(`${operation} 실패 (HTTP ${response.status})`);
         }
+        return response.json();
+      }
+      function askToken() {
+        const token = window.prompt('설정한 Aegis-ON API 토큰을 입력하세요.');
+        if (!token || !token.trim()) { summary.textContent = 'API 토큰이 입력되지 않아 분석하지 않았습니다.'; return null; }
+        return token;
+      }
+      function severity(score) {
+        if (score >= 70) return {text:'높음', css:'high'};
+        if (score >= 40) return {text:'중간', css:''};
+        return {text:'낮음', css:''};
+      }
+      function renderDetections(detections, sourceEvents = [], request = activeRequest) {
+        if (!detections.length) { results.append(createText('p', '탐지 결과가 없습니다.', 'empty')); return; }
         const eventsById = new Map();
         for (const event of sourceEvents) {
           const key = event.event_id;
           if (!eventsById.has(key)) eventsById.set(key, []);
           eventsById.get(key).push(event);
         }
+        results.append(createText('p', '표시 등급은 점수 기반 임시 분류입니다. 높음 ≥70, 중간 ≥40, 낮음 <40.', 'hint'));
         for (const detection of detections) {
           const card = document.createElement('article');
-          card.className = `card ${detection.score >= 70 ? 'high' : ''}`;
-          card.append(createText('strong', `${displayValue(detection.technique)} · ${displayValue(detection.title)}`));
-          card.append(createText('div', `위험 점수 ${displayValue(detection.score)} · ${displayValue(detection.source)} · ${displayValue(detection.host)}`, 'meta'));
+          const level = severity(Number(detection.score));
+          card.className = `card ${level.css}`;
+          const heading = document.createElement('div'); heading.className = 'card-head';
+          heading.append(createText('span', level.text, `badge ${level.css}`));
+          heading.append(createText('strong', `${displayValue(detection.technique)} · ${displayValue(detection.title)}`));
+          heading.append(createText('span', `위험 점수 ${displayValue(detection.score)} · ${displayValue(detection.source)}`, 'score'));
+          card.append(heading);
+          card.append(createText('div', `호스트: ${displayValue(detection.host)}`, 'meta'));
           card.append(createText('p', `탐지 근거: ${(detection.evidence || []).join(' · ') || '없음'}`));
           if (sourceEvents.length) {
             const ids = detection.event_ids || [];
             const linked = ids.flatMap(id => eventsById.get(id) || []);
             if (!linked.length) card.append(createText('p', '연결된 원본 이벤트 정보를 찾을 수 없습니다.', 'hint'));
-            for (const event of linked) {
-              const detail = document.createElement('div');
-              detail.className = 'source-event';
-              detail.append(createText('strong', `입력 ${displayValue(event.input_index)} · Sysmon 이벤트 ${displayValue(event.sysmon_event_id)}`));
-              detail.append(createText('p', `레코드 ID: ${displayValue(event.record_id)} · 출처: ${displayValue(event.log_source)} · 시각: ${displayValue(event.timestamp)}`));
-              detail.append(createText('p', `호스트: ${displayValue(event.host)} · PID: ${displayValue(event.process_id)} · 프로세스 GUID: ${displayValue(event.process_guid)}`));
-              if (event.sysmon_event_id === 3) {
-                detail.append(createText('p', `연결 방향: ${directionLabel(event.initiated)}`));
-              }
-              detail.append(createText('p', `출발지: ${displayValue(event.source_ip)}:${displayValue(event.source_port)} · 목적지: ${displayValue(event.destination_ip)}:${displayValue(event.destination_port)}`));
-              card.append(detail);
-            }
+            for (const event of linked) card.append(sourceDetail(event));
           }
+          const approvalStatus = createText('p', `승인 상태: ${displayValue(detection.status)} · 실제 차단 없음`, 'approval-line');
+          const approvalButton = createText('button', '시뮬레이션 승인', 'action approval-button');
+          approvalButton.type = 'button';
+          approvalButton.disabled = !detection.detection_id || detection.status === 'approved_for_simulated_response';
+          let pending = false;
+          approvalButton.addEventListener('click', async () => {
+            if (pending || approvalButton.disabled) return;
+            const token = window.prompt('설정한 Aegis-ON API 토큰을 입력하세요.');
+            if (!token || !token.trim()) { approvalStatus.textContent = '토큰이 입력되지 않아 승인하지 않았습니다.'; return; }
+            const analyst = window.prompt('설정한 분석가 이름을 입력하세요.');
+            if (!analyst || !analyst.trim()) { approvalStatus.textContent = '분석가 이름이 입력되지 않아 승인하지 않았습니다.'; return; }
+            const rationale = window.prompt('승인 사유를 입력하세요. (선택)');
+            if (rationale === null) { approvalStatus.textContent = '승인이 취소되었습니다.'; return; }
+            pending = true; approvalButton.disabled = true; approvalStatus.textContent = '승인 상태를 기록하고 있습니다…';
+            try {
+              const response = await fetch(`/api/v1/detections/${encodeURIComponent(detection.detection_id)}/approval`, {method:'POST', headers:{'Authorization':`Bearer ${token}`, 'Content-Type':'application/json'}, body:JSON.stringify({analyst:analyst.trim(),rationale})});
+              const approved = await readResponse(response, '승인 요청');
+              if (!isCurrent(request)) return;
+              if (approved.simulation_only !== true || !approved.detection || approved.detection.status !== 'approved_for_simulated_response') {
+                approvalStatus.textContent = '승인 결과를 확인하지 못했습니다. 서버 상태를 확인해 주세요.';
+                return;
+              }
+              detection.status = approved.detection.status;
+              approvalStatus.textContent = `승인 상태: ${approved.detection.status} · 시뮬레이션만 기록됨 · 실제 차단 없음`;
+            } catch (error) {
+              if (isCurrent(request)) approvalStatus.textContent = error.message;
+            } finally {
+              pending = false;
+              if (isCurrent(request)) approvalButton.disabled = detection.status === 'approved_for_simulated_response';
+            }
+          });
+          card.append(approvalStatus, approvalButton);
           results.append(card);
         }
       }
-
-      async function readResponse(response, operation) {
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) throw new Error('인증 실패: API 토큰을 확인해 주세요.');
-          if (response.status === 503) throw new Error('API 인증이 설정되지 않았습니다.');
-          throw new Error(`${operation} 실패 (HTTP ${response.status})`);
+      function renderSysmon(data, request, inputLabel) {
+        const counts = data.summary;
+        setStats(counts, data.detections.length);
+        summary.textContent = `${inputLabel} · 전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
+        const batch = document.createElement('section'); batch.className = 'batch';
+        batch.append(createText('strong', '입력 이벤트 처리 결과'));
+        const items = document.createElement('ul'); items.className = 'items';
+        const sourcesByInputIndex = new Map(data.source_events.map(event => [event.input_index, event]));
+        for (const item of data.items) {
+          const status = {processed:'처리됨',invalid:'유효하지 않음',unsupported:'미지원'}[item.status] || displayValue(item.status);
+          const eventType = item.sysmon_event_id == null ? '' : ` · Event ID ${item.sysmon_event_id}`;
+          const source = sourcesByInputIndex.get(item.input_index);
+          const direction = source && source.sysmon_event_id === 3 ? ` · 연결 방향: ${directionLabel(source.initiated)}` : '';
+          items.append(createText('li', `입력 ${displayValue(item.input_index)}: ${status}${eventType}${direction}${item.reason ? ` · ${item.reason}` : ''}`));
         }
-        return response.json();
-      }
-
-      function askToken() {
-        const token = window.prompt('설정한 Aegis-ON API 토큰을 입력하세요.');
-        if (!token || !token.trim()) {
-          summary.textContent = 'API 토큰이 입력되지 않아 분석하지 않았습니다.';
-          return null;
+        batch.append(items); results.append(batch);
+        if (data.source_events.length) {
+          const list = document.createElement('details'); list.className = 'event-list'; list.open = true;
+          list.append(createText('summary', `처리된 원본 이벤트 ${data.source_events.length}건`));
+          for (const event of data.source_events) list.append(sourceDetail(event));
+          results.append(list);
         }
-        return token;
+        renderDetections(data.detections, data.source_events, request);
       }
-
+      async function analyzeSysmon(body, token, request, inputLabel) {
+        const response = await fetch('/api/v1/sysmon/analyze', {method:'POST', headers:{'Authorization':`Bearer ${token}`, 'Content-Type':'application/json'}, body, signal:request.signal});
+        const data = await readResponse(response, 'Sysmon 분석 요청');
+        if (isCurrent(request)) renderSysmon(data, request, inputLabel);
+      }
       document.querySelector('#run-demo').addEventListener('click', async () => {
-        const request = beginAnalysis();
-        const token = askToken();
-        if (!token) return;
+        const request = beginAnalysis(); const token = askToken(); if (!token) return;
         try {
           summary.textContent = '샘플 이벤트를 분석하고 있습니다…';
-          const headers = {'Authorization': `Bearer ${token}`};
-          const sample = await readResponse(await fetch('/data/demo_events.json', {headers, signal: request.signal}), '샘플 이벤트 읽기');
+          const headers = {'Authorization':`Bearer ${token}`};
+          const sample = await readResponse(await fetch('/data/demo_events.json', {headers, signal:request.signal}), '샘플 이벤트 읽기');
           if (!isCurrent(request)) return;
-          const response = await fetch('/api/v1/analyze', {method:'POST', headers:{...headers, 'Content-Type':'application/json'}, body:JSON.stringify(sample), signal: request.signal});
+          const response = await fetch('/api/v1/analyze', {method:'POST', headers:{...headers,'Content-Type':'application/json'}, body:JSON.stringify(sample), signal:request.signal});
           const data = await readResponse(response, '분석 요청');
           if (!isCurrent(request)) return;
-          summary.textContent = `${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
-          renderDetections(data.detections);
-        } catch (error) {
-          if (isCurrent(request)) summary.textContent = error.message;
-        }
+          const total = sample.events.length;
+          setStats({total,processed:total,invalid:0,unsupported:0},data.detections.length);
+          summary.textContent = `기존 JSON 데모 · ${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
+          renderDetections(data.detections, [], request);
+        } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
-
       document.querySelector('#run-sysmon').addEventListener('click', async () => {
-        const request = beginAnalysis();
-        const file = sysmonFile.files[0];
-        if (!file) {
-          summary.textContent = '분석할 Sysmon JSON 파일을 선택해 주세요.';
-          return;
-        }
-        if (!file.name.toLowerCase().endsWith('.json')) {
-          summary.textContent = '.json 파일을 선택해 주세요.';
-          return;
-        }
-        if (file.size > MAX_FILE_BYTES) {
-          summary.textContent = '파일이 2 MiB를 초과해 전송하지 않았습니다.';
-          return;
-        }
-        const token = askToken();
-        if (!token) return;
-        try {
-          summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…';
-          const response = await fetch('/api/v1/sysmon/analyze', {
-            method: 'POST',
-            headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
-            body: file,
-            signal: request.signal
-          });
-          const data = await readResponse(response, 'Sysmon 분석 요청');
-          if (!isCurrent(request)) return;
-          const counts = data.summary;
-          summary.textContent = `전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
-          const batch = document.createElement('section');
-          batch.className = 'batch';
-          batch.append(createText('strong', '입력 이벤트 처리 결과'));
-          const items = document.createElement('ul');
-          items.className = 'items';
-          const sourcesByInputIndex = new Map(data.source_events.map(event => [event.input_index, event]));
-          for (const item of data.items) {
-            const status = {processed: '처리됨', invalid: '유효하지 않음', unsupported: '미지원'}[item.status] || displayValue(item.status);
-            const eventType = item.sysmon_event_id == null ? '' : ` · Event ID ${item.sysmon_event_id}`;
-            const source = sourcesByInputIndex.get(item.input_index);
-            const direction = source && source.sysmon_event_id === 3 ? ` · 연결 방향: ${directionLabel(source.initiated)}` : '';
-            items.append(createText('li', `입력 ${displayValue(item.input_index)}: ${status}${eventType}${direction}${item.reason ? ` · ${item.reason}` : ''}`));
-          }
-          batch.append(items);
-          results.append(batch);
-          renderDetections(data.detections, data.source_events);
-        } catch (error) {
-          if (isCurrent(request)) summary.textContent = error.message;
-        }
+        const request = beginAnalysis(); const file = sysmonFile.files[0];
+        if (!file) { summary.textContent = '분석할 Sysmon JSON 파일을 선택해 주세요.'; return; }
+        if (!file.name.toLowerCase().endsWith('.json')) { summary.textContent = '.json 파일을 선택해 주세요.'; return; }
+        if (file.size > MAX_FILE_BYTES) { summary.textContent = '파일이 2 MiB를 초과해 전송하지 않았습니다.'; return; }
+        const token = askToken(); if (!token) return;
+        try { summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…'; await analyzeSysmon(file, token, request, `파일: ${file.name}`); }
+        catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
+      const scenarioLabels = {a:'시나리오 A · 정상 프로세스', b:'시나리오 B · 의심 다운로드 명령', c:'시나리오 C · 다수 목적지 연결'};
+      for (const name of ['a','b','c']) {
+        document.querySelector(`#scenario-${name}`).addEventListener('click', async () => {
+          const request = beginAnalysis(); const token = askToken(); if (!token) return;
+          try {
+            summary.textContent = `시나리오 ${name.toUpperCase()}를 불러와 분석하고 있습니다…`;
+            const sample = await readResponse(await fetch(`/api/v1/demo/scenarios/${name}`, {headers:{'Authorization':`Bearer ${token}`}, signal:request.signal}), '시나리오 읽기');
+            if (!isCurrent(request)) return;
+            await analyzeSysmon(JSON.stringify(sample), token, request, scenarioLabels[name]);
+          } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
+        });
+      }
     </script>
   </body>
 </html>

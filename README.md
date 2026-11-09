@@ -80,6 +80,31 @@ flowchart LR
   F --> G["Human approval queue"]
 ```
 
+## 합성 시나리오 데모
+
+서버에는 개인정보와 실제 공격 실행이 포함되지 않은 합성 Sysmon 시나리오 세 개가 있습니다. 각 파일은 기존 Sysmon 분석 API의 입력 형식을 그대로 사용합니다.
+
+- **A — 일반 프로세스:** `notepad.exe` 실행 이벤트 한 건을 처리하며, 현재 기준선에서 탐지가 없습니다. 실제 환경의 모든 정상 활동이 탐지되지 않는다는 뜻은 아닙니다.
+- **B — 의심 다운로드 명령:** `curl https://example.org/tool.exe`라는 합성 명령줄에 대해 T1105 규칙이 탐지됩니다. 시스템은 기록을 분석할 뿐 해당 주소에 접속하거나 파일을 다운로드하지 않습니다. 규칙과 임시 기준선에서 각각 탐지가 나올 수 있습니다.
+- **C — 발신 연결 팬아웃:** 같은 호스트의 10분 이내 세 발신 연결이 서로 다른 세 목적지를 향할 때 상관 결과가 표시됩니다. 이것만으로 스캔이나 공격이라고 확정할 수 없습니다.
+
+대시보드에서 **A · 정상 프로세스**, **B · 의심 다운로드 명령**, **C · 다수 목적지 연결**을 누르고 API 토큰을 입력하면 선택한 샘플을 즉시 분석합니다. 각 결과에서 탐지 근거와 연결된 원본 이벤트의 식별 정보를 확인할 수 있습니다. 탐지 카드의 **시뮬레이션 승인**을 누른 후 API 토큰과 설정된 분석가 이름을 입력하면 승인 상태가 기록됩니다. 실제 차단은 수행되지 않습니다. A에는 탐지가 없지만 처리된 이벤트의 식별 정보를 확인할 수 있습니다.
+
+대시보드의 왼쪽 내비게이션, 요약 카드와 탐지 등급 표시는 [ARTEX Global 대시보드](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/dashboard.png)와 [탐지 목록](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/findings.png)의 실제 화면 구성을 참고해 Aegis-ON에 맞게 구현했습니다. 기본 화면은 다크 테마이며 ARTEX의 브랜드와 코드는 사용하지 않았습니다.
+
+토큰을 설정하고 서버를 시작한 뒤 시나리오 이름을 `a`, `b`, `c` 중 하나로 바꾸어 실행할 수 있습니다. 두 요청 모두 Bearer 인증이 필요합니다.
+
+```bash
+SCENARIO=a
+curl -fsS -H "Authorization: Bearer $AEGIS_API_TOKEN" \
+  "http://127.0.0.1:8000/api/v1/demo/scenarios/$SCENARIO" | \
+  curl -fsS -X POST http://127.0.0.1:8000/api/v1/sysmon/analyze \
+    -H "Authorization: Bearer $AEGIS_API_TOKEN" \
+    -H 'Content-Type: application/json' --data-binary @-
+```
+
+탐지 ID를 이용한 승인 API는 시뮬레이션 상태만 기록하며, 실제 단말 격리나 네트워크 차단을 수행하지 않습니다. 같은 탐지에 승인 요청을 다시 보내면 최초 승인 결과를 반환하고 기존 사유를 유지합니다. 탐지와 승인은 단일 서버 프로세스의 메모리에만 보관되어 서버를 재시작하면 사라지며 여러 워커 사이에 공유되지 않습니다.
+
 ## Sysmon 로그 분석
 
 Windows Sysmon의 **Event ID 1(프로세스 생성)**과 **Event ID 3(네트워크 연결)**을 지원합니다. Event ID 3은 Sysmon 설정에서 네트워크 이벤트 수집을 활성화해야 생성됩니다. 지원 입력은 이 저장소의 PowerShell 스크립트가 만드는 UTF-8 JSON입니다. Windows 이벤트 뷰어 XML이나 EVTX 파일은 직접 읽지 않습니다.
@@ -95,7 +120,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 사용자의 실제 로그가 JSON에 들어가므로 파일을 신뢰하는 장소에서만 보관·전송하세요. 위 경로는 저장소 밖에 두기 위한 예시입니다. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 이유를 표시합니다.
 
 1. 빠른 시작의 API 토큰과 분석가 이름을 설정하고 서버를 시작합니다.
-2. 대시보드에서 JSON 파일을 선택하고 **Sysmon 분석**을 눌러 토큰을 입력합니다.
+2. 대시보드에서 JSON 파일을 선택하고 **파일 분석**을 눌러 토큰을 입력합니다.
 3. 처리·오류·미지원 개수와 항목별 상태를 확인하고, 탐지 카드에서 원본 이벤트의 레코드 ID·출처·시각 및 관련 연결 정보를 확인합니다. `data/demo_sysmon.json`은 개인정보가 없는 합성 예제입니다.
 
 API로도 같은 파일을 전송할 수 있습니다.
@@ -117,7 +142,7 @@ Sysmon 팬아웃 결과는 **같은 호스트가 10분 이내 서로 다른 목�
 
 ## 다음 구현 우선순위
 
-1. Sysmon·웹 프록시 로그 정규화 커넥터
+1. 웹 프록시 등 추가 로그 정규화 커넥터
 2. `SemanticRiskAdapter`를 다중 라벨 ATT&CK 분류 모델로 교체
 3. PostgreSQL 영속화와 조직별 자산 중요도
 4. 승인된 격리 요청을 EDR/SOAR에 전달하는 어댑터
