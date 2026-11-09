@@ -1,19 +1,36 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from .service import DetectionService
+from .privacy import redact_for_display
+from .sysmon import parse_sysmon
 
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService()
 bearer = HTTPBearer(auto_error=False)
+MAX_SYSMON_BYTES = 2 * 1024 * 1024
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite(value: str) -> None:
+    raise ValueError("non-finite JSON value")
 
 
 def authenticated_analyst(
@@ -61,6 +78,60 @@ def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analys
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs}
+
+
+@app.post("/api/v1/sysmon/analyze")
+async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+        raise HTTPException(status_code=415, detail="application/json is required")
+    if request.headers.get("content-encoding", "identity").lower() != "identity":
+        raise HTTPException(status_code=415, detail="content encoding is not supported")
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        if not content_length.isdecimal():
+            raise HTTPException(status_code=400, detail="invalid content length")
+        if int(content_length) > MAX_SYSMON_BYTES:
+            raise HTTPException(status_code=413, detail="Sysmon file exceeds 2 MiB")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > MAX_SYSMON_BYTES:
+            raise HTTPException(status_code=413, detail="Sysmon file exceeds 2 MiB")
+        body.extend(chunk)
+    try:
+        payload = json.loads(body.decode("utf-8-sig"), object_pairs_hook=_unique_object, parse_constant=_reject_nonfinite)
+        raw_events, items = parse_sysmon(payload)
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        raise HTTPException(status_code=422, detail="invalid Sysmon JSON batch") from None
+
+    if raw_events:
+        detections, _ = service.analyze_with_event_refs(raw_events, allow_empty_command_line=True)
+    else:
+        detections = []
+    # Return only identifiers and connection details needed to trace detections;
+    # paths, commands, user names, and the original raw event are never returned.
+    source_events = []
+    by_id = {event["event_id"]: event for event in raw_events}
+    for item in items:
+        if item["status"] != "processed":
+            continue
+        event = by_id[item["event_id"]]
+        metadata = event["source_metadata"]
+        source_events.append({
+            "input_index": item["input_index"], "event_id": event["event_id"],
+            "host": event["host"], "timestamp": event["timestamp"],
+            **{key: metadata.get(key) for key in (
+                "sysmon_event_id", "record_id", "log_source", "process_guid", "process_id",
+                "source_ip", "source_port", "destination_ip", "destination_port"
+            )},
+        })
+    summary = {"total": len(items)}
+    for status in ("processed", "invalid", "unsupported"):
+        summary[status] = sum(item["status"] == status for item in items)
+    return {
+        "model_state": "semantic-baseline", "summary": summary,
+        "items": redact_for_display(items), "source_events": redact_for_display(source_events),
+        "detections": detections,
+    }
 
 
 @app.get("/api/v1/detections")

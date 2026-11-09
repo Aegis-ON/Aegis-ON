@@ -19,9 +19,9 @@ class DetectionService:
         return detections
 
     def analyze_with_event_refs(
-        self, raw_events: list[dict[str, Any]]
+        self, raw_events: list[dict[str, Any]], *, allow_empty_command_line: bool = False
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        events = [SecurityEvent.from_mapping(event) for event in raw_events]
+        events = [SecurityEvent.from_mapping(event, allow_empty_command_line=allow_empty_command_line) for event in raw_events]
         event_ids = [event.event_id for event in events]
         if len(event_ids) != len(set(event_ids)):
             raise ValueError("duplicate event_id in request")
