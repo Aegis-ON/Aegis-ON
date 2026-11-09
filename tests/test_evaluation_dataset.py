@@ -4,9 +4,10 @@ import ipaddress
 import json
 import unittest
 from collections import Counter, defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from aegis_on.evaluation import evaluate_dataset
 from aegis_on.sysmon import parse_sysmon
 
 DATASET = Path('evaluation/synthetic_v1.json')
@@ -17,6 +18,22 @@ TECHNIQUES = {'T1105', 'T1485', 'T1489', 'T1059'}
 def destination_key(value):
     address = ipaddress.ip_address(value)
     return str(address.ipv4_mapped or address) if isinstance(address, ipaddress.IPv6Address) else str(address)
+
+
+def observed_fanout(events):
+    """Independent inclusive time-window oracle, scoped to each source host."""
+    by_host = defaultdict(list)
+    for event in events:
+        if event['source_metadata']['initiated'] is True:
+            by_host[event['host'].casefold()].append(event)
+    for outgoing in by_host.values():
+        outgoing.sort(key=lambda e: e['timestamp'])
+        times = [datetime.fromisoformat(e['timestamp']) for e in outgoing]
+        if any(len({destination_key(outgoing[j]['destination']) for j in range(len(outgoing))
+                    if times[i] <= times[j] <= times[i] + timedelta(minutes=10)}) >= 3
+               for i in range(len(outgoing))):
+            return True
+    return False
 
 
 class EvaluationDatasetTests(unittest.TestCase):
@@ -69,6 +86,19 @@ class EvaluationDatasetTests(unittest.TestCase):
                 with self.subTest(category=label, key=key):
                     self.assertLessEqual(len(splits), 1)
 
+    def test_related_scenario_variants_share_group_and_split(self):
+        by_id = {case['case_id']: case for case in self.cases}
+        families = [
+            ('eval-curl-tool', 'eval-curl-maint', 'eval-wget-tool', 'eval-wget-info'),
+            ('eval-sc-stop', 'eval-sc-query', 'eval-stop-service', 'eval-service-get'),
+            ('eval-normal-three', 'eval-suspicious-three'),
+            ('dev-exact-boundary', 'dev-outside-boundary'),
+        ]
+        for family in families:
+            with self.subTest(family=family):
+                self.assertEqual(len({by_id[case_id]['group_id'] for case_id in family}), 1)
+                self.assertEqual(len({by_id[case_id]['split'] for case_id in family}), 1)
+
     def test_documented_rejects_and_labeled_balance(self):
         by_id = {case['case_id']: case for case in self.cases}
         expected = {'dev-invalid-image': 'invalid', 'eval-invalid-time': 'invalid',
@@ -88,6 +118,7 @@ class EvaluationDatasetTests(unittest.TestCase):
                 for truth in TRUTHS:
                     self.assertGreater(counts[split, task, truth], 0, (split, task, truth))
         self.assertEqual(by_id['dev-empty-command']['truth'], 'unknown')
+        self.assertEqual(by_id['dev-empty-command']['technique_truth']['T1059'], 'positive')
         self.assertEqual(by_id['dev-cert-hash']['technique_truth']['T1105'], 'negative')
         self.assertEqual(by_id['eval-rmdir']['technique_truth']['T1485'], 'positive')
         self.assertEqual(by_id['eval-python-rmtree']['truth'], 'positive')
@@ -101,15 +132,38 @@ class EvaluationDatasetTests(unittest.TestCase):
                 events, items = parse_sysmon({'events': case['events']})
                 self.assertTrue(all(i['status'] == 'processed' for i in items))
                 self.assertTrue(all(e['source_metadata']['initiated'] in (True, False) for e in events))
-                outgoing = sorted((e for e in events if e['source_metadata']['initiated'] is True),
-                                  key=lambda e: e['timestamp'])
-                # Independent brute-force definition: any anchor and all events in its inclusive 10-minute interval.
-                from datetime import datetime
-                times = [datetime.fromisoformat(e['timestamp']) for e in outgoing]
-                qualifies = any(len({destination_key(outgoing[j]['destination']) for j in range(len(outgoing))
-                                      if times[i] <= times[j] <= times[i] + timedelta(minutes=10)}) >= 3
-                                for i in range(len(outgoing)))
+                qualifies = observed_fanout(events)
                 self.assertEqual(qualifies, case['truth'] == 'positive')
+
+    def test_fanout_oracle_does_not_combine_hosts(self):
+        case = next(c for c in self.cases if c['case_id'] == 'eval-suspicious-three')
+        events, _ = parse_sysmon({'events': case['events']})
+        self.assertTrue(observed_fanout(events))
+        events[2]['host'] = 'SECOND-HOST'
+        self.assertFalse(observed_fanout(events))
+        events[2]['host'] = events[0]['host'].lower()
+        self.assertTrue(observed_fanout(events))
+
+    def test_missing_command_keeps_observed_interpreter_and_exposes_miss(self):
+        report = evaluate_dataset(self.dataset, split='dev')
+        row = next(row for row in report['cases'] if row['case_id'] == 'dev-empty-command')
+        self.assertEqual(row['status'], 'excluded_unknown_truth')
+        self.assertEqual(row['technique_truth']['T1059'], 'positive')
+        self.assertIn('dev-empty-command', report['techniques']['T1059']['overall']['case_ids']['fn'])
+
+    def test_report_distinguishes_triage_errors_from_technique_misses(self):
+        report = evaluate_dataset(self.dataset, split='eval')
+        triage = report['tasks']['command_behavior']['overall']['case_ids']
+        self.assertIn('eval-service-get', triage['fp'])
+        self.assertIn('eval-wget-info', triage['fp'])
+        self.assertIn('eval-python-rmtree', triage['fn'])
+        self.assertIn('eval-rmdir', triage['tp'])
+        destructive = report['techniques']['T1485']['overall']['case_ids']['fn']
+        self.assertIn('eval-rmdir', destructive)
+        self.assertIn('eval-python-rmtree', destructive)
+        row = next(row for row in report['cases'] if row['case_id'] == 'eval-rmdir')
+        self.assertTrue(any(prediction['technique'] == 'T1059' for prediction in row['predictions']))
+        self.assertFalse(any(prediction['technique'] == 'T1485' for prediction in row['predictions']))
 
     def test_synthetic_reserved_network_addresses(self):
         allowed = [ipaddress.ip_network('192.0.2.0/24'), ipaddress.ip_network('198.51.100.0/24'),

@@ -106,6 +106,32 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(report['tasks']['command_behavior']['overall']['fn'], 0)
         self.assertEqual([c['input_errors'][0]['status'] for c in report['cases'] if c['input_errors']], ['invalid','unsupported'])
 
+    def test_wrong_supported_event_type_is_excluded_for_each_task(self):
+        wrong_command = case('network-in-command', 'negative', '')
+        wrong_command['events'] = [event('', destination='192.0.2.1')]
+        wrong_batch = {'case_id': 'process-in-fanout', 'group_id': 'mixed-types', 'split': 'eval',
+                       'unit': 'batch', 'task': 'fanout_condition', 'truth': 'positive',
+                       'truth_reason': 'synthetic condition', 'context': 'unknown',
+                       'expected_engine_behavior': 'reject wrong event type', 'technique_truth': {},
+                       'synthetic': True,
+                       'events': [event('', record=1, destination='192.0.2.1'),
+                                  event('', record=2, destination='192.0.2.2'),
+                                  event('', record=3)]}
+        mixed_errors = copy.deepcopy(wrong_batch)
+        mixed_errors.update(case_id='mixed-errors', group_id='mixed-errors')
+        mixed_errors['events'][0]['EventData']['DestinationIp'] = 'invalid-ip'
+        report = evaluate_dataset(dataset(wrong_command, wrong_batch, mixed_errors), split='eval')
+        for task in ('command_behavior', 'fanout_condition'):
+            expected = 1 if task == 'command_behavior' else 2
+            self.assertEqual(report['tasks'][task]['excluded_invalid_input'], expected)
+            self.assertEqual(report['tasks'][task]['overall']['support'], 0)
+        for row in report['cases']:
+            self.assertEqual(row['status'], 'excluded_invalid_input')
+            self.assertTrue(any('Event ID' in error['reason'] for error in row['input_errors']))
+            self.assertEqual(row['predictions'], [])
+        mixed_row = next(row for row in report['cases'] if row['case_id'] == 'mixed-errors')
+        self.assertEqual([error['input_index'] for error in mixed_row['input_errors']], [0, 2])
+
     def test_real_engine_cases_and_benign_fanout(self):
         benign = case('benign-rule-fp', 'negative', 'certutil -hashfile report.pdf SHA256',
                       technique_truth={'T1105':'negative'})

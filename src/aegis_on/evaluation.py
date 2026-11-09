@@ -193,6 +193,13 @@ def evaluate_dataset(dataset: Any, *, split: str, adapter: EvaluationAdapter | N
         raw, items = parse_sysmon({"events": case["events"]})
         invalid_items = [{"input_index": item["input_index"], "status": item["status"], "reason": item.get("reason", "")}
                          for item in items if item["status"] != "processed"]
+        expected_event_id = 1 if case["task"] == "command_behavior" else 3
+        processed_items = (item for item in items if item["status"] == "processed")
+        for event, item in zip(raw, processed_items):
+            if event["source_metadata"]["sysmon_event_id"] != expected_event_id:
+                invalid_items.append({"input_index": item["input_index"], "status": "invalid",
+                                      "reason": f"{case['task']} requires Sysmon Event ID {expected_event_id}"})
+        invalid_items.sort(key=lambda item: item["input_index"])
         row: dict[str, Any] = {
             "case_id": case["case_id"], "group_id": case["group_id"], "unit": case["unit"],
             "task": case["task"], "context": case["context"], "truth": case["truth"],

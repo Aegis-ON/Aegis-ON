@@ -42,9 +42,9 @@
       ]
     },
     {
-      "case_id": "dev-curl-tool",
-      "group_id": "curl-transfer",
-      "split": "dev",
+      "case_id": "eval-curl-tool",
+      "group_id": "http-download-document",
+      "split": "eval",
       "unit": "event",
       "task": "command_behavior",
       "truth": "positive",
@@ -78,9 +78,9 @@
       ]
     },
     {
-      "case_id": "dev-curl-maint",
-      "group_id": "curl-transfer",
-      "split": "dev",
+      "case_id": "eval-curl-maint",
+      "group_id": "http-download-document",
+      "split": "eval",
       "unit": "event",
       "task": "command_behavior",
       "truth": "negative",
@@ -258,9 +258,9 @@
       ]
     },
     {
-      "case_id": "dev-sc-stop",
-      "group_id": "sc-service",
-      "split": "dev",
+      "case_id": "eval-sc-stop",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
       "unit": "event",
       "task": "command_behavior",
       "truth": "positive",
@@ -294,9 +294,9 @@
       ]
     },
     {
-      "case_id": "dev-sc-query",
-      "group_id": "sc-service",
-      "split": "dev",
+      "case_id": "eval-sc-query",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
       "unit": "event",
       "task": "command_behavior",
       "truth": "negative",
@@ -451,7 +451,7 @@
       "context": "unknown",
       "expected_engine_behavior": "빈 명령줄을 처리하되 의미 분류나 명령 규칙은 내지 않을 것으로 예상합니다.",
       "technique_truth": {
-        "T1059": "unknown",
+        "T1059": "positive",
         "T1105": "unknown",
         "T1485": "unknown",
         "T1489": "unknown"
@@ -481,7 +481,7 @@
     },
     {
       "case_id": "eval-wget-tool",
-      "group_id": "wget-transfer",
+      "group_id": "http-download-document",
       "split": "eval",
       "unit": "event",
       "task": "command_behavior",
@@ -517,7 +517,7 @@
     },
     {
       "case_id": "eval-wget-info",
-      "group_id": "wget-transfer",
+      "group_id": "http-download-document",
       "split": "eval",
       "unit": "event",
       "task": "command_behavior",
@@ -773,7 +773,7 @@
     },
     {
       "case_id": "eval-stop-service",
-      "group_id": "ps-service",
+      "group_id": "service-stop-vs-query",
       "split": "eval",
       "unit": "event",
       "task": "command_behavior",
@@ -810,7 +810,7 @@
     },
     {
       "case_id": "eval-service-get",
-      "group_id": "ps-service",
+      "group_id": "service-stop-vs-query",
       "split": "eval",
       "unit": "event",
       "task": "command_behavior",
@@ -1037,9 +1037,9 @@
       ]
     },
     {
-      "case_id": "dev-normal-three",
-      "group_id": "fanout-normal-3",
-      "split": "dev",
+      "case_id": "eval-normal-three",
+      "group_id": "fanout-three-outbound",
+      "split": "eval",
       "unit": "batch",
       "task": "fanout_condition",
       "truth": "positive",
@@ -1433,9 +1433,9 @@
       ]
     },
     {
-      "case_id": "eval-exact-boundary",
+      "case_id": "dev-exact-boundary",
       "group_id": "fanout-time-boundary",
-      "split": "eval",
+      "split": "dev",
       "unit": "batch",
       "task": "fanout_condition",
       "truth": "positive",
@@ -1517,9 +1517,9 @@
       ]
     },
     {
-      "case_id": "eval-outside-boundary",
+      "case_id": "dev-outside-boundary",
       "group_id": "fanout-time-boundary",
-      "split": "eval",
+      "split": "dev",
       "unit": "batch",
       "task": "fanout_condition",
       "truth": "negative",
@@ -1602,7 +1602,7 @@
     },
     {
       "case_id": "eval-suspicious-three",
-      "group_id": "fanout-suspicious-3",
+      "group_id": "fanout-three-outbound",
       "split": "eval",
       "unit": "batch",
       "task": "fanout_condition",
