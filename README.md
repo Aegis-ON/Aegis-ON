@@ -90,7 +90,7 @@ flowchart LR
 
 대시보드에서 **A · 정상 프로세스**, **B · 의심 다운로드 명령**, **C · 다수 목적지 연결**을 누르고 API 토큰을 입력하면 선택한 샘플을 즉시 분석합니다. 각 결과에서 탐지 근거와 연결된 원본 이벤트의 식별 정보를 확인할 수 있습니다. 탐지 카드의 **시뮬레이션 승인**을 누른 후 API 토큰과 설정된 분석가 이름을 입력하면 승인 상태가 기록됩니다. 실제 차단은 수행되지 않습니다. A에는 탐지가 없지만 처리된 이벤트의 식별 정보를 확인할 수 있습니다.
 
-대시보드의 밝은 배경, 왼쪽 내비게이션, 요약 카드와 탐지 등급 표시는 [ARTEX Global 대시보드](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/dashboard.png)와 [탐지 목록](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/findings.png)의 실제 화면 구성을 참고해 Aegis-ON에 맞게 구현했습니다. ARTEX의 브랜드와 코드는 사용하지 않았습니다.
+대시보드의 왼쪽 내비게이션, 요약 카드와 탐지 등급 표시는 [ARTEX Global 대시보드](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/dashboard.png)와 [탐지 목록](https://github.com/jiwoochris/artex-global/blob/main/screenshots/en/findings.png)의 실제 화면 구성을 참고해 Aegis-ON에 맞게 구현했습니다. 기본 화면은 다크 테마이며 ARTEX의 브랜드와 코드는 사용하지 않았습니다.
 
 토큰을 설정하고 서버를 시작한 뒤 시나리오 이름을 `a`, `b`, `c` 중 하나로 바꾸어 실행할 수 있습니다. 두 요청 모두 Bearer 인증이 필요합니다.
 

@@ -10,6 +10,8 @@
 
 ## Warm Memory
 
+- [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] The presentation dashboard defaults to a low-glare dark palette at the user's request; retain readable text, focus indicators, and status badges. Evidence: static/index.html.
+
 ## Cold Memory
 
 ## Archived Decisions
