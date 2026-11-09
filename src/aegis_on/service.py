@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .engine import DetectionPipeline
-from .models import Detection, SecurityEvent
+from .models import Detection, SecurityEvent, validate_unicode
 from .privacy import redact_for_display
 
 
@@ -19,9 +19,9 @@ class DetectionService:
         return detections
 
     def analyze_with_event_refs(
-        self, raw_events: list[dict[str, Any]]
+        self, raw_events: list[dict[str, Any]], *, allow_empty_command_line: bool = False
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        events = [SecurityEvent.from_mapping(event) for event in raw_events]
+        events = [SecurityEvent.from_mapping(event, allow_empty_command_line=allow_empty_command_line) for event in raw_events]
         event_ids = [event.event_id for event in events]
         if len(event_ids) != len(set(event_ids)):
             raise ValueError("duplicate event_id in request")
@@ -44,6 +44,8 @@ class DetectionService:
         return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]
 
     def approve(self, detection_id: str, analyst: str, rationale: str) -> dict[str, Any]:
+        validate_unicode(analyst, "analyst")
+        validate_unicode(rationale, "rationale")
         detection = self._detections.get(detection_id)
         if not detection:
             raise KeyError(detection_id)

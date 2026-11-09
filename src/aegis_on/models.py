@@ -13,6 +13,11 @@ class DetectionSource(StrEnum):
     CORRELATION = "correlation"
 
 
+def validate_unicode(value: str, field: str) -> None:
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+        raise ValueError(f"invalid Unicode field: {field}")
+
+
 @dataclass(frozen=True)
 class SecurityEvent:
     timestamp: datetime
@@ -23,10 +28,27 @@ class SecurityEvent:
     parent_process: str = ""
     destination: str = ""
     event_id: str = field(default_factory=lambda: str(uuid4()))
+    process_path: str = ""
+    parent_process_path: str = ""
+    parent_command_line: str = ""
+    source_ip: str = ""
+    source_port: str = ""
+    destination_port: str = ""
+    source_metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_mapping(cls, value: dict[str, Any]) -> "SecurityEvent":
-        required = ("timestamp", "host", "user", "process", "command_line")
+    def from_mapping(cls, value: dict[str, Any], *, allow_empty_command_line: bool = False) -> "SecurityEvent":
+        # Reject unpaired UTF-16 surrogates before analysis or storage: JSON can
+        # carry them as escapes, but UTF-8 response encoding cannot represent them.
+        for key in ("timestamp", "host", "user", "process", "command_line", "parent_process",
+                    "destination", "event_id", "process_path", "parent_process_path",
+                    "parent_command_line", "source_ip", "source_port", "destination_port"):
+            field_value = value.get(key)
+            if isinstance(field_value, str):
+                validate_unicode(field_value, key)
+        required = ("timestamp", "host", "process")
+        if not allow_empty_command_line:
+            required += ("user", "command_line")
         absent = [key for key in required if not value.get(key)]
         if absent:
             raise ValueError(f"missing required event fields: {', '.join(absent)}")
@@ -43,12 +65,21 @@ class SecurityEvent:
         return cls(
             timestamp=timestamp,
             host=str(value["host"]),
-            user=str(value["user"]),
+            user=str(value.get("user") or ""),
             process=str(value["process"]),
-            command_line=str(value["command_line"]),
+            command_line=str(value.get("command_line") or ""),
             parent_process=str(value.get("parent_process", "")),
             destination=str(value.get("destination", "")),
             event_id=str(value.get("event_id") or uuid4()),
+            process_path=str(value.get("process_path") or ""),
+            parent_process_path=str(value.get("parent_process_path") or ""),
+            parent_command_line=str(value.get("parent_command_line") or ""),
+            source_ip=str(value.get("source_ip") or ""),
+            source_port=str(value.get("source_port") or ""),
+            destination_port=str(value.get("destination_port") or ""),
+            source_metadata=(value.get("source_metadata")
+                             if allow_empty_command_line and isinstance(value.get("source_metadata"), dict)
+                             else {}),
         )
 
 

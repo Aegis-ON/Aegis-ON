@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import ipaddress
 from collections import defaultdict
 from datetime import timedelta
 
@@ -50,7 +51,11 @@ class RuleDetector:
                     title=title,
                     score=score,
                     source=DetectionSource.RULE,
-                    evidence=[f"matched pattern: {match.group(0)}", f"process: {event.process}"],
+                    evidence=(
+                        [f"matched rule: {title} ({technique})"]
+                        if event.source_metadata.get("sysmon_event_id") in (1, 3)
+                        else [f"matched pattern: {match.group(0)}", f"process: {event.process}"]
+                    ),
                     event_ids=[event.event_id],
                     host=event.host,
                     requires_human_approval=technique == "T1485",
@@ -69,6 +74,9 @@ class SemanticRiskAdapter:
     }
 
     def classify(self, event: SecurityEvent) -> list[Detection]:
+        # A network connection without a command line must not invent command intent.
+        if not event.command_line:
+            return []
         corpus = " ".join((event.process, event.parent_process, event.command_line)).lower()
         findings: list[Detection] = []
         for technique, (title, base_score, signals) in self.FEATURES.items():
@@ -99,28 +107,48 @@ class CorrelationEngine:
     def detect_scan_fanout(self, events: list[SecurityEvent]) -> list[Detection]:
         """Flag a host contacting at least three unique destinations in ten minutes."""
 
-        grouped: dict[str, list[SecurityEvent]] = defaultdict(list)
+        grouped: dict[tuple[bool, str], list[SecurityEvent]] = defaultdict(list)
         for event in sorted(events, key=lambda item: item.timestamp):
-            grouped[event.host].append(event)
+            if event.destination:
+                is_sysmon = event.source_metadata.get("sysmon_event_id") in (1, 3)
+                if is_sysmon and (event.source_metadata.get("sysmon_event_id") != 3
+                                  or event.source_metadata.get("initiated") is not True):
+                    continue
+                grouped[(is_sysmon, event.host.casefold() if is_sysmon else event.host)].append(event)
 
         findings: list[Detection] = []
-        for host, host_events in grouped.items():
+        for (is_sysmon, _), host_events in grouped.items():
+            host = host_events[0].host
             anchor_index = 0
             while anchor_index < len(host_events):
                 anchor = host_events[anchor_index]
-                window_end = anchor.timestamp + timedelta(minutes=10)
-                window = [item for item in host_events[anchor_index:] if item.timestamp <= window_end]
-                destinations = {item.destination for item in window if item.destination}
+                window = [item for item in host_events[anchor_index:]
+                          if item.timestamp - anchor.timestamp <= timedelta(minutes=10)]
+                if is_sysmon:
+                    destinations = set()
+                    for item in window:
+                        address = ipaddress.ip_address(item.destination)
+                        destinations.add(str(address.ipv4_mapped or address)
+                                         if isinstance(address, ipaddress.IPv6Address) else str(address))
+                else:
+                    destinations = {item.destination for item in window if item.destination}
                 if len(destinations) < 3:
                     anchor_index += 1
                     continue
                 findings.append(
                     Detection(
                         technique="T1595",
-                        title="Potential active scanning fan-out",
+                        title="Potential multiple-destination connections",
                         score=min(85, 48 + 8 * len(destinations)),
                         source=DetectionSource.CORRELATION,
-                        evidence=[f"{len(destinations)} unique destinations in ten minutes", f"host: {host}"],
+                        evidence=[
+                            f"{len(destinations)} unique destinations in ten minutes",
+                            f"observed period: {window[0].timestamp.isoformat()} to {window[-1].timestamp.isoformat()}",
+                            f"related connection events: {len(window)}",
+                            ("condition: same host, at least 3 unique destinations within 10 minutes"
+                             + (", outbound connections only" if is_sysmon else "")),
+                            "multiple connections are not proof of scanning or attack",
+                        ],
                         event_ids=[item.event_id for item in window],
                         host=host,
                         requires_human_approval=False,
