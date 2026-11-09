@@ -69,7 +69,8 @@
         "SourceIp": "192.0.2.10",
         "SourcePort": "50000",
         "DestinationIp": "198.51.100.10",
-        "DestinationPort": "443"
+        "DestinationPort": "443",
+        "Initiated": "true"
       }
     },
     {
@@ -93,7 +94,8 @@
         "SourceIp": "192.0.2.10",
         "SourcePort": "50001",
         "DestinationIp": "198.51.100.11",
-        "DestinationPort": "443"
+        "DestinationPort": "443",
+        "Initiated": "true"
       }
     },
     {
@@ -117,7 +119,8 @@
         "SourceIp": "192.0.2.10",
         "SourcePort": "50002",
         "DestinationIp": "198.51.100.12",
-        "DestinationPort": "443"
+        "DestinationPort": "443",
+        "Initiated": "true"
       }
     }
   ]

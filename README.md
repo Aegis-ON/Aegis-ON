@@ -27,6 +27,19 @@ uvicorn --app-dir src aegis_on.api:app --reload
 
 브라우저에서 `http://127.0.0.1:8000`을 열고 데모 버튼을 누르면 API 토큰을 입력합니다. 생성된 토큰은 `printf '%s\n' "$AEGIS_API_TOKEN"`으로 확인할 수 있습니다. API 문서는 `http://127.0.0.1:8000/docs`에서 확인하고 Authorize에 토큰을 입력합니다.
 
+Windows PowerShell에서는 저장소 루트에서 다음 명령을 사용합니다. 가상환경을 직접 활성화하지 않아도 됩니다.
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:AEGIS_API_TOKEN = (.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))")
+$env:AEGIS_ANALYST_NAME = 'analyst-1'
+Write-Host $env:AEGIS_API_TOKEN
+.\.venv\Scripts\python.exe -m uvicorn --app-dir src aegis_on.api:app --reload
+```
+
+토큰은 서버를 시작한 PowerShell 세션에 설정됩니다. 서버를 종료하려면 `Ctrl+C`를 누릅니다.
+
 샘플 이벤트 분석:
 
 ```bash
@@ -74,10 +87,12 @@ Windows Sysmon의 **Event ID 1(프로세스 생성)**과 **Event ID 3(네트워�
 Windows PowerShell에서 저장소 루트 기준:
 
 ```powershell
-.\scripts\export_sysmon.ps1 -OutputPath .\sysmon-export.json -MaxEvents 500
+$LogDir = Join-Path $env:USERPROFILE 'Documents\Aegis-ON-Logs'
+New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+.\scripts\export_sysmon.ps1 -OutputPath (Join-Path $LogDir 'sysmon-export.json') -MaxEvents 500
 ```
 
-Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 사용자의 실제 로그가 JSON에 들어가므로 파일을 신뢰하는 장소에서만 보관·전송하세요. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 이유를 표시합니다.
+Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 사용자의 실제 로그가 JSON에 들어가므로 파일을 신뢰하는 장소에서만 보관·전송하세요. 위 경로는 저장소 밖에 두기 위한 예시입니다. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 이유를 표시합니다.
 
 1. 빠른 시작의 API 토큰과 분석가 이름을 설정하고 서버를 시작합니다.
 2. 대시보드에서 JSON 파일을 선택하고 **Sysmon 분석**을 눌러 토큰을 입력합니다.
@@ -98,7 +113,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/sysmon/analyze \
 
 각 입력 이벤트에는 분석 요청마다 새로운 내부 ID가 부여됩니다. 호스트·채널·EventRecordID가 같은 중복 항목은 같은 배치 내에서 두 번째부터 오류로 표시합니다. 레코드 ID가 없으면 분석은 가능하지만 원본 레코드 ID를 표시하거나 다른 배치와 중복을 판정할 수 없습니다. API의 `source_events`는 화면에 필요한 식별 정보와 연결 정보만 반환하며, 원본 명령줄·사용자명·전체 프로세스 경로는 반환하지 않습니다. IP 등은 기존 표시용 가명처리를 거치지만 이는 완전한 익명화가 아닙니다. 원본 이벤트와 매핑은 서버에 영구 저장되지 않습니다.
 
-팬아웃 결과는 **같은 호스트에서 10분 이내 서로 다른 목적지 3개 이상에 연결한 경우**를 표시합니다. 결과에 관찰 시작·종료 시각, 목적지 수, 관련 연결 이벤트 수와 조건이 포함됩니다. 이 조건만으로 포트 스캔이나 공격을 확정할 수 없습니다. 현재 결과의 ATT&CK `T1595`는 임시 의심 분류이며, 실제 기법 실행의 증거가 아닙니다. 상관분석은 요청 단위이며 중복을 줄이기 위해 겹치지 않는 시간 창을 사용하므로 창 경계를 가로지르는 활동은 누락될 수 있습니다.
+Sysmon 팬아웃 결과는 **같은 호스트가 10분 이내 서로 다른 목적지 3개 이상으로 발신 연결한 경우**를 표시합니다. Event ID 3의 `Initiated=true`인 이벤트만 집계하며 `false`(수신) 또는 값이 없거나 빈 이벤트는 팬아웃에서 제외합니다. `Initiated`가 없는 구버전 내보내기 파일도 처리할 수 있지만, 이 경우 발신 여부를 확인할 수 없어 해당 이벤트는 팬아웃에 포함하지 않습니다. `true`·`false` 외의 값은 해당 이벤트의 입력 오류로 표시합니다. 결과에 관찰 시작·종료 시각, 목적지 수, 관련 연결 이벤트 수와 조건이 포함됩니다. 이 조건만으로 포트 스캔이나 공격을 확정할 수 없습니다. 현재 결과의 ATT&CK `T1595`는 임시 의심 분류이며, 실제 기법 실행의 증거가 아닙니다. 상관분석은 요청 단위이며 중복을 줄이기 위해 겹치지 않는 시간 창을 사용하므로 창 경계를 가로지르는 활동은 누락될 수 있습니다.
 
 ## 다음 구현 우선순위
 

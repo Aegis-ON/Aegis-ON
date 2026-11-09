@@ -13,6 +13,11 @@ class DetectionSource(StrEnum):
     CORRELATION = "correlation"
 
 
+def validate_unicode(value: str, field: str) -> None:
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+        raise ValueError(f"invalid Unicode field: {field}")
+
+
 @dataclass(frozen=True)
 class SecurityEvent:
     timestamp: datetime
@@ -33,6 +38,14 @@ class SecurityEvent:
 
     @classmethod
     def from_mapping(cls, value: dict[str, Any], *, allow_empty_command_line: bool = False) -> "SecurityEvent":
+        # Reject unpaired UTF-16 surrogates before analysis or storage: JSON can
+        # carry them as escapes, but UTF-8 response encoding cannot represent them.
+        for key in ("timestamp", "host", "user", "process", "command_line", "parent_process",
+                    "destination", "event_id", "process_path", "parent_process_path",
+                    "parent_command_line", "source_ip", "source_port", "destination_port"):
+            field_value = value.get(key)
+            if isinstance(field_value, str):
+                validate_unicode(field_value, key)
         required = ("timestamp", "host", "process")
         if not allow_empty_command_line:
             required += ("user", "command_line")

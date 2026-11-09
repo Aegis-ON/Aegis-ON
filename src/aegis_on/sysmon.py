@@ -25,6 +25,8 @@ def _string(value: Any, *, required: bool = False, field: str = "field") -> str:
         value = ""
     if not isinstance(value, str):
         raise ValueError(f"invalid text field: {field}")
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+        raise ValueError(f"invalid Unicode field: {field}")
     if required and not value.strip():
         raise ValueError(f"missing required field: {field}")
     return value
@@ -47,10 +49,24 @@ def _ip(value: Any, *, required: bool = False, field: str = "IP") -> str:
     value = _string(value, required=required, field=field)
     if value:
         try:
-            return str(ipaddress.ip_address(value))
+            ipaddress.ip_address(value)
         except ValueError as exc:
             raise ValueError(f"invalid IP address: {field}") from exc
     return value
+
+
+def _initiated(value: Any) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        text = _string(value, field="Initiated").strip().casefold()
+        if not text:
+            return None
+        if text in ("true", "false"):
+            return text == "true"
+    raise ValueError("invalid Initiated field")
 
 
 def _timestamp(sysmon_time: Any, system_time: Any) -> str:
@@ -138,6 +154,7 @@ def parse_sysmon(payload: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any
             destination_ip = _ip(data.get("DestinationIp"), required=event_type == 3, field="DestinationIp")
             source_port = _integer(data.get("SourcePort"), maximum=65535, field="SourcePort")
             destination_port = _integer(data.get("DestinationPort"), maximum=65535, field="DestinationPort")
+            initiated = _initiated(data.get("Initiated")) if event_type == 3 else None
             timestamp = _timestamp(data.get("UtcTime"), system.get("TimeCreated"))
             key = (host.casefold(), channel.casefold(), record_id) if record_id is not None else None
             if key is not None and key in seen:
@@ -148,6 +165,7 @@ def parse_sysmon(payload: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any
                 "log_source": channel, "process_guid": guid, "process_id": process_id,
                 "source_ip": source_ip, "source_port": source_port,
                 "destination_ip": destination_ip, "destination_port": destination_port,
+                "initiated": initiated,
             }
             events.append({
                 "timestamp": timestamp, "host": host, "user": user,

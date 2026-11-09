@@ -22,7 +22,7 @@ def make_event(kind=1, record=1):
         event['EventData']['CommandLine'] = 'curl https://example.org/tool'
         event['EventData']['ParentImage'] = r'C:\Windows\system32\cmd.exe'
     if kind == 3:
-        event['EventData'].update({'SourceIp': '192.0.2.9', 'SourcePort': 50000,
+        event['EventData'].update({'Initiated': 'true', 'SourceIp': '192.0.2.9', 'SourcePort': 50000,
                                    'DestinationIp': '198.51.100.1', 'DestinationPort': 443})
     return event
 

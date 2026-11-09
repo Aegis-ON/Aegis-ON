@@ -29,7 +29,7 @@ let calls = [];
 let answer = null;
 const window = {prompt: () => token};
 const fetch = async (url, options) => { calls.push({url, options}); return answer(url); };
-vm.runInNewContext(process.argv[1], {document, window, fetch, Map, String, Error});
+vm.runInNewContext(process.argv[1], {document, window, fetch, Map, String, Error, AbortController});
 const click = id => elements[id].handlers.click();
 const response = (body, status = 200) => ({ok: status >= 200 && status < 300, status, json: async () => body});
 const detection = {technique:'T1595', title:'Potential active scanning fan-out', score:72, source:'correlation', host:'host', evidence:['3 unique destinations in ten minutes'], event_ids:['evt-a','evt-b']};

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import ipaddress
 from collections import defaultdict
 from datetime import timedelta
 
@@ -110,17 +111,27 @@ class CorrelationEngine:
         for event in sorted(events, key=lambda item: item.timestamp):
             if event.destination:
                 is_sysmon = event.source_metadata.get("sysmon_event_id") in (1, 3)
+                if is_sysmon and (event.source_metadata.get("sysmon_event_id") != 3
+                                  or event.source_metadata.get("initiated") is not True):
+                    continue
                 grouped[(is_sysmon, event.host.casefold() if is_sysmon else event.host)].append(event)
 
         findings: list[Detection] = []
-        for host_events in grouped.values():
+        for (is_sysmon, _), host_events in grouped.items():
             host = host_events[0].host
             anchor_index = 0
             while anchor_index < len(host_events):
                 anchor = host_events[anchor_index]
                 window = [item for item in host_events[anchor_index:]
                           if item.timestamp - anchor.timestamp <= timedelta(minutes=10)]
-                destinations = {item.destination for item in window if item.destination}
+                if is_sysmon:
+                    destinations = set()
+                    for item in window:
+                        address = ipaddress.ip_address(item.destination)
+                        destinations.add(str(address.ipv4_mapped or address)
+                                         if isinstance(address, ipaddress.IPv6Address) else str(address))
+                else:
+                    destinations = {item.destination for item in window if item.destination}
                 if len(destinations) < 3:
                     anchor_index += 1
                     continue
@@ -134,7 +145,8 @@ class CorrelationEngine:
                             f"{len(destinations)} unique destinations in ten minutes",
                             f"observed period: {window[0].timestamp.isoformat()} to {window[-1].timestamp.isoformat()}",
                             f"related connection events: {len(window)}",
-                            "condition: same host, at least 3 unique destinations within 10 minutes",
+                            ("condition: same host, at least 3 unique destinations within 10 minutes"
+                             + (", outbound connections only" if is_sysmon else "")),
                             "multiple connections are not proof of scanning or attack",
                         ],
                         event_ids=[item.event_id for item in window],

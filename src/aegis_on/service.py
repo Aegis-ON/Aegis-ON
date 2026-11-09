@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .engine import DetectionPipeline
-from .models import Detection, SecurityEvent
+from .models import Detection, SecurityEvent, validate_unicode
 from .privacy import redact_for_display
 
 
@@ -44,6 +44,8 @@ class DetectionService:
         return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]
 
     def approve(self, detection_id: str, analyst: str, rationale: str) -> dict[str, Any]:
+        validate_unicode(analyst, "analyst")
+        validate_unicode(rationale, "rationale")
         detection = self._detections.get(detection_id)
         if not detection:
             raise KeyError(detection_id)

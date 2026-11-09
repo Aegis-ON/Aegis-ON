@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import json
 import os
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
@@ -20,6 +23,15 @@ bearer = HTTPBearer(auto_error=False)
 MAX_SYSMON_BYTES = 2 * 1024 * 1024
 
 
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(request: Request, exc: RequestValidationError):
+    try:
+        return await request_validation_exception_handler(request, exc)
+    except UnicodeEncodeError:
+        # The default validation response can echo invalid input and fail UTF-8 encoding.
+        return JSONResponse(status_code=422, content={"detail": "invalid Unicode in request"})
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -31,6 +43,16 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _reject_nonfinite(value: str) -> None:
     raise ValueError("non-finite JSON value")
+
+
+def _display_ip(value: str) -> str:
+    """Use the same IP identity for display tokens and Sysmon correlation."""
+    if not value:
+        return ""
+    address = ipaddress.ip_address(value)
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        return str(address.ipv4_mapped)
+    return str(address)
 
 
 def authenticated_analyst(
@@ -121,8 +143,10 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
             "host": event["host"], "timestamp": event["timestamp"],
             **{key: metadata.get(key) for key in (
                 "sysmon_event_id", "record_id", "log_source", "process_guid", "process_id",
-                "source_ip", "source_port", "destination_ip", "destination_port"
+                "source_port", "destination_port", "initiated"
             )},
+            "source_ip": _display_ip(metadata["source_ip"]),
+            "destination_ip": _display_ip(metadata["destination_ip"]),
         })
     summary = {"total": len(items)}
     for status in ("processed", "invalid", "unsupported"):
@@ -149,4 +173,6 @@ def approve(
         detection = service.approve(detection_id, payload.analyst, payload.rationale)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="detection not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"simulation_only": True, "detection": detection}

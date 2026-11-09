@@ -53,7 +53,7 @@ const fetch=async (url, opts) => {
   assert.equal(opts.headers.Authorization,'Bearer test-secret');
   return {ok:true,status:200,json:async()=>actual.result};
 };
-vm.runInNewContext(actual.script,{document,window,fetch,Map,String,Error});
+vm.runInNewContext(actual.script,{document,window,fetch,Map,String,Error,AbortController});
 (async()=>{
   await elements['#run-sysmon'].handlers.click();
   assert.match(elements['#summary'].textContent,/처리 5건/);

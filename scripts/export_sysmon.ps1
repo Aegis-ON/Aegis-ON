@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $channel = 'Microsoft-Windows-Sysmon/Operational'
 $names = @('UtcTime', 'Image', 'CommandLine', 'ParentImage', 'ParentCommandLine',
-    'User', 'ProcessGuid', 'ProcessId', 'SourceIp', 'SourcePort', 'DestinationIp', 'DestinationPort')
+    'User', 'ProcessGuid', 'ProcessId', 'SourceIp', 'SourcePort', 'DestinationIp', 'DestinationPort', 'Initiated')
 
 try {
     $records = @(Get-WinEvent -FilterHashtable @{ LogName = $channel; Id = @(1, 3) } -MaxEvents $MaxEvents -ErrorAction Stop)
