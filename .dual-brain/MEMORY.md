@@ -12,6 +12,7 @@
 ## Warm Memory
 
 - [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] The presentation dashboard defaults to a low-glare dark palette at the user's request; retain readable text, focus indicators, and status badges. Evidence: static/index.html.
+- [decision][refs:1][last_referenced:2026-11-10][last_verified:2026-11-10] Evaluate synthetic command triage per event and outbound fan-out conditions per batch separately; fan-out condition truth is not attack truth. Keep truth annotations independent of predictions, exclude invalid/unknown cases appropriately, and do not treat this dataset as a PII or real-world performance benchmark. Evidence: evaluation/synthetic_v1.json, src/aegis_on/evaluation.py and docs/detection_evaluation.md.
 
 ## Cold Memory
 

