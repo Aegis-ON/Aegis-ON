@@ -15,11 +15,30 @@ class DetectionService:
         self._detections: OrderedDict[str, Detection] = OrderedDict()
 
     def analyze(self, raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        detections, _ = self.analyze_with_event_refs(raw_events)
+        return detections
+
+    def analyze_with_event_refs(
+        self, raw_events: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         events = [SecurityEvent.from_mapping(event) for event in raw_events]
+        event_ids = [event.event_id for event in events]
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("duplicate event_id in request")
+        event_refs = redact_for_display([
+            {"input_index": index, "event_id": event.event_id}
+            for index, event in enumerate(events)
+        ])
+        display_ids = [ref["event_id"] for ref in event_refs]
+        if len(display_ids) != len(set(display_ids)):
+            raise ValueError("duplicate event_id after display redaction")
         detections = self.pipeline.analyze(events)
         for detection in detections:
             self._detections[detection.detection_id] = detection
-        return [redact_for_display(detection.to_dict()) for detection in detections]
+        return (
+            [redact_for_display(detection.to_dict()) for detection in detections],
+            event_refs,
+        )
 
     def list_detections(self) -> list[dict[str, Any]]:
         return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]

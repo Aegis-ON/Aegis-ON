@@ -15,7 +15,14 @@ class RuleDetector:
             "T1485",
             "Potential data destruction command",
             88,
-            re.compile(r"\b(?:rm\s+-[^\n]*r|del\s+/[^\n]*[sq]|format\s+|mkfs\b)", re.I),
+            re.compile(
+                r"\b(?:rm\s+(?:(?:--[a-z-]+(?:=[^\s;&|]+)?|-[a-z]+)\s+)*"
+                r"(?:--recursive|-[a-z]*r[a-z]*)(?=\s|$|[;&|])"
+                r"|del\s+(?:/[a-z]+\s+)*"
+                r"/[a-z]*[sq][a-z]*(?=\s|$|[/;&|])"
+                r"|format\s+|mkfs\b)",
+                re.I,
+            ),
         ),
         (
             "T1489",
@@ -98,11 +105,14 @@ class CorrelationEngine:
 
         findings: list[Detection] = []
         for host, host_events in grouped.items():
-            for anchor_index, anchor in enumerate(host_events):
+            anchor_index = 0
+            while anchor_index < len(host_events):
+                anchor = host_events[anchor_index]
                 window_end = anchor.timestamp + timedelta(minutes=10)
                 window = [item for item in host_events[anchor_index:] if item.timestamp <= window_end]
                 destinations = {item.destination for item in window if item.destination}
                 if len(destinations) < 3:
+                    anchor_index += 1
                     continue
                 findings.append(
                     Detection(
@@ -116,7 +126,8 @@ class CorrelationEngine:
                         requires_human_approval=False,
                     )
                 )
-                break
+                # Emit one alert per non-overlapping ten-minute window.
+                anchor_index += len(window)
         return findings
 
 
