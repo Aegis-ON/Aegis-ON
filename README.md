@@ -19,7 +19,7 @@
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn aegis_on.api:app --reload
+uvicorn --app-dir src aegis_on.api:app --reload
 ```
 
 브라우저에서 `http://127.0.0.1:8000`을 열고, API 문서는 `http://127.0.0.1:8000/docs`에서 확인합니다.
