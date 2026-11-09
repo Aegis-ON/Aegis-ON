@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Any
 
 from .engine import DetectionPipeline
@@ -13,6 +14,7 @@ class DetectionService:
     def __init__(self) -> None:
         self.pipeline = DetectionPipeline()
         self._detections: OrderedDict[str, Detection] = OrderedDict()
+        self._lock = Lock()
 
     def analyze(self, raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         detections, _ = self.analyze_with_event_refs(raw_events)
@@ -33,24 +35,28 @@ class DetectionService:
         if len(display_ids) != len(set(display_ids)):
             raise ValueError("duplicate event_id after display redaction")
         detections = self.pipeline.analyze(events)
-        for detection in detections:
-            self._detections[detection.detection_id] = detection
+        with self._lock:
+            for detection in detections:
+                self._detections[detection.detection_id] = detection
         return (
             [redact_for_display(detection.to_dict()) for detection in detections],
             event_refs,
         )
 
     def list_detections(self) -> list[dict[str, Any]]:
-        return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]
+        with self._lock:
+            return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]
 
     def approve(self, detection_id: str, analyst: str, rationale: str) -> dict[str, Any]:
         validate_unicode(analyst, "analyst")
         validate_unicode(rationale, "rationale")
-        detection = self._detections.get(detection_id)
-        if not detection:
-            raise KeyError(detection_id)
-        detection.status = "approved_for_simulated_response"
-        detection.evidence.append(f"approved locally by {analyst} at {datetime.now(timezone.utc).isoformat()}")
-        if rationale:
-            detection.evidence.append(f"analyst rationale: {rationale}")
-        return redact_for_display(detection.to_dict())
+        with self._lock:
+            detection = self._detections.get(detection_id)
+            if not detection:
+                raise KeyError(detection_id)
+            if detection.status != "approved_for_simulated_response":
+                detection.status = "approved_for_simulated_response"
+                detection.evidence.append(f"approved locally by {analyst} at {datetime.now(timezone.utc).isoformat()}")
+                if rationale:
+                    detection.evidence.append(f"analyst rationale: {rationale}")
+            return redact_for_display(detection.to_dict())

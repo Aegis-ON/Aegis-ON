@@ -57,6 +57,7 @@
         if (activeRequest) activeRequest.abort();
         activeRequest = new AbortController();
         results.replaceChildren();
+        summary.textContent = '분석 준비 중…';
         for (const stat of Object.values(stats)) stat.textContent = '—';
         return activeRequest;
       }
@@ -166,10 +167,10 @@
           results.append(card);
         }
       }
-      function renderSysmon(data, request) {
+      function renderSysmon(data, request, inputLabel) {
         const counts = data.summary;
         setStats(counts, data.detections.length);
-        summary.textContent = `전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
+        summary.textContent = `${inputLabel} · 전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
         const batch = document.createElement('section'); batch.className = 'batch';
         batch.append(createText('strong', '입력 이벤트 처리 결과'));
         const items = document.createElement('ul'); items.className = 'items';
@@ -190,10 +191,10 @@
         }
         renderDetections(data.detections, data.source_events, request);
       }
-      async function analyzeSysmon(body, token, request) {
+      async function analyzeSysmon(body, token, request, inputLabel) {
         const response = await fetch('/api/v1/sysmon/analyze', {method:'POST', headers:{'Authorization':`Bearer ${token}`, 'Content-Type':'application/json'}, body, signal:request.signal});
         const data = await readResponse(response, 'Sysmon 분석 요청');
-        if (isCurrent(request)) renderSysmon(data, request);
+        if (isCurrent(request)) renderSysmon(data, request, inputLabel);
       }
       document.querySelector('#run-demo').addEventListener('click', async () => {
         const request = beginAnalysis(); const token = askToken(); if (!token) return;
@@ -207,7 +208,7 @@
           if (!isCurrent(request)) return;
           const total = sample.events.length;
           setStats({total,processed:total,invalid:0,unsupported:0},data.detections.length);
-          summary.textContent = `${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
+          summary.textContent = `기존 JSON 데모 · ${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
           renderDetections(data.detections, [], request);
         } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
@@ -217,9 +218,10 @@
         if (!file.name.toLowerCase().endsWith('.json')) { summary.textContent = '.json 파일을 선택해 주세요.'; return; }
         if (file.size > MAX_FILE_BYTES) { summary.textContent = '파일이 2 MiB를 초과해 전송하지 않았습니다.'; return; }
         const token = askToken(); if (!token) return;
-        try { summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…'; await analyzeSysmon(file, token, request); }
+        try { summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…'; await analyzeSysmon(file, token, request, `파일: ${file.name}`); }
         catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
+      const scenarioLabels = {a:'시나리오 A · 정상 프로세스', b:'시나리오 B · 의심 다운로드 명령', c:'시나리오 C · 다수 목적지 연결'};
       for (const name of ['a','b','c']) {
         document.querySelector(`#scenario-${name}`).addEventListener('click', async () => {
           const request = beginAnalysis(); const token = askToken(); if (!token) return;
@@ -227,7 +229,7 @@
             summary.textContent = `시나리오 ${name.toUpperCase()}를 불러와 분석하고 있습니다…`;
             const sample = await readResponse(await fetch(`/api/v1/demo/scenarios/${name}`, {headers:{'Authorization':`Bearer ${token}`}, signal:request.signal}), '시나리오 읽기');
             if (!isCurrent(request)) return;
-            await analyzeSysmon(JSON.stringify(sample), token, request);
+            await analyzeSysmon(JSON.stringify(sample), token, request, scenarioLabels[name]);
           } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
         });
       }
