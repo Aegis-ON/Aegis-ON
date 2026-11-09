@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Aegis-ON</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #09111f; color: #eef4ff; }
+      body { margin: 0; padding: 2.5rem; max-width: 1080px; margin-inline: auto; }
+      header { display:flex; justify-content:space-between; align-items:center; gap:1rem; border-bottom:1px solid #293a59; padding-bottom:1.25rem; }
+      h1 { margin:0; font-size:2rem; } .tag { color:#85a4d7; } button { background:#36d399; color:#052018; border:0; border-radius:8px; padding:.7rem 1rem; font-weight:700; cursor:pointer; }
+      #summary { margin:1.5rem 0; padding:1rem; border:1px solid #293a59; border-radius:10px; background:#101c30; }
+      .card { background:#101c30; border:1px solid #293a59; border-left:5px solid #fbbf24; border-radius:8px; margin:.75rem 0; padding:1rem; }
+      .high { border-left-color:#fb7185; } .meta { color:#9fb0cd; font-size:.9rem; } code { color:#99f6e4; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div><h1>Aegis-ON</h1><div class="tag">개인정보 무반출 · 사람 승인형 AI 보안관제</div></div>
+      <button id="run-demo">데모 이벤트 분석</button>
+    </header>
+    <section id="summary">준비됨 — 분석은 로컬 API에서만 수행됩니다. 현재 모델 상태: <code>semantic-baseline</code></section>
+    <main id="results"></main>
+    <script>
+      const summary = document.querySelector('#summary');
+      const results = document.querySelector('#results');
+      document.querySelector('#run-demo').addEventListener('click', async () => {
+        const token = window.prompt('설정한 Aegis-ON API 토큰을 입력하세요.');
+        if (!token) return;
+        try {
+          summary.textContent = '샘플 이벤트를 분석하고 있습니다…';
+          const sampleResponse = await fetch('/data/demo_events.json', {headers: {'Authorization': `Bearer ${token}`}});
+          if (!sampleResponse.ok) throw new Error('샘플 이벤트를 불러오지 못했습니다.');
+          const sample = await sampleResponse.json();
+          const response = await fetch('/api/v1/analyze', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body:JSON.stringify(sample)});
+          if (!response.ok) throw new Error(`분석 요청 실패 (${response.status})`);
+          const data = await response.json();
+          summary.textContent = `${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
+          results.replaceChildren(...data.detections.map(d => {
+            const card = document.createElement('article');
+            card.className = `card ${d.score >= 70 ? 'high' : ''}`;
+            const title = document.createElement('strong');
+            title.textContent = `${d.technique} · ${d.title}`;
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            meta.textContent = `위험 점수 ${d.score} · ${d.source} · ${d.host}`;
+            const evidence = document.createElement('p');
+            evidence.textContent = d.evidence.join(' · ');
+            card.append(title, meta, evidence);
+            return card;
+          }));
+        } catch (error) {
+          summary.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>
