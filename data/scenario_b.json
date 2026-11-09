@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "System": {
+        "Provider": "Microsoft-Windows-Sysmon",
+        "EventID": 1,
+        "TimeCreated": "2026-11-09T10:01:00.0000000Z",
+        "Computer": "LAB-01",
+        "EventRecordID": 2,
+        "Channel": "Microsoft-Windows-Sysmon/Operational"
+      },
+      "EventData": {
+        "UtcTime": "2026-11-09 10:01:00.000",
+        "Image": "C:\\Windows\\System32\\curl.exe",
+        "CommandLine": "curl https://example.org/tool.exe",
+        "ParentImage": "C:\\Windows\\explorer.exe",
+        "ParentCommandLine": "explorer.exe",
+        "User": "LAB\\analyst",
+        "ProcessGuid": "{00000000-0000-0000-0000-000000000001}",
+        "ProcessId": "1234",
+        "SourceIp": "",
+        "SourcePort": "",
+        "DestinationIp": "",
+        "DestinationPort": ""
+      }
+    }
+  ]
+}

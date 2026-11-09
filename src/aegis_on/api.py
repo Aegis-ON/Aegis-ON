@@ -21,6 +21,11 @@ app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService()
 bearer = HTTPBearer(auto_error=False)
 MAX_SYSMON_BYTES = 2 * 1024 * 1024
+DEMO_SCENARIOS = {
+    "a": "data/scenario_a.json",
+    "b": "data/scenario_b.json",
+    "c": "data/scenario_c.json",
+}
 
 
 @app.exception_handler(RequestValidationError)
@@ -91,6 +96,14 @@ def health() -> dict[str, str]:
 @app.get("/data/demo_events.json", include_in_schema=False)
 def demo_events(analyst: str = Depends(authenticated_analyst)) -> FileResponse:
     return FileResponse("data/demo_events.json")
+
+
+@app.get("/api/v1/demo/scenarios/{scenario}")
+def demo_scenario(scenario: str, analyst: str = Depends(authenticated_analyst)) -> FileResponse:
+    path = DEMO_SCENARIOS.get(scenario)
+    if path is None:
+        raise HTTPException(status_code=404, detail="demo scenario not found")
+    return FileResponse(path, media_type="application/json")
 
 
 @app.post("/api/v1/analyze")
