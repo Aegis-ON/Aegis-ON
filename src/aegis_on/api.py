@@ -31,7 +31,7 @@ from .sysmon import parse_sysmon
 from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
 from .auth_sessions import AuthSessions, AuthConfigurationError, AuthStorageError
-from .collector_auth import CollectorRegistry, CollectorExists
+from .collector_auth import CollectorRegistry, CollectorExists, CollectorNotFound, CollectorStateConflict
 
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService(SQLiteHistory(os.environ.get('AEGIS_HISTORY_DB') or str(Path.home() / '.aegis-on' / 'history.sqlite3')))
@@ -631,11 +631,8 @@ def _collector_identity(request: Request, credentials: HTTPAuthorizationCredenti
         raise HTTPException(status_code=401, detail='collector authentication required')
     collector_id = _collector_name(request.headers.get('x-collector-id'))
     try:
-        if CollectorRegistry(_collector_store()).authenticate(collector_id, credentials.credentials):
-            return collector_id
-        token = os.environ.get('AEGIS_API_TOKEN', '')
-        if (os.environ.get('AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN') == '1' and token
-                and hmac.compare_digest(credentials.credentials.encode('utf-8'), token.encode('utf-8'))):
+        legacy = os.environ.get('AEGIS_API_TOKEN', '') if os.environ.get('AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN') == '1' else ''
+        if CollectorRegistry(_collector_store()).authorize(collector_id, credentials.credentials, legacy):
             return collector_id
     except HistoryError:
         raise HTTPException(status_code=503, detail='collector storage unavailable') from None
@@ -707,6 +704,18 @@ def collectors(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
 
 @app.post('/api/v1/collectors/register')
 def register_collector(payload: CollectorRegistration, request: Request, analyst: str = Depends(authenticated_analyst)):
+    _require_management_session(request, analyst)
+    collector_id = _collector_name(payload.collector_id)
+    try:
+        secret = CollectorRegistry(_collector_store()).register(collector_id)
+    except CollectorExists:
+        raise HTTPException(status_code=409, detail='collector identifier already used') from None
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='collector storage unavailable') from None
+    return JSONResponse({'collector_id': collector_id, 'credential': secret}, headers={'Cache-Control': 'no-store'})
+
+
+def _require_management_session(request: Request, analyst: str) -> None:
     sessions = _sessions()
     session_token = request.cookies.get('aegis_session', '')
     try:
@@ -717,14 +726,36 @@ def register_collector(payload: CollectorRegistration, request: Request, analyst
             raise HTTPException(status_code=403, detail='invalid CSRF token')
     except AuthStorageError:
         raise HTTPException(status_code=503, detail='login storage unavailable') from None
-    collector_id = _collector_name(payload.collector_id)
+
+
+@app.post('/api/v1/collectors/{collector_id}/revoke')
+def revoke_collector(collector_id: str, request: Request, analyst: str = Depends(authenticated_analyst)):
+    _require_management_session(request, analyst)
+    collector_id = _collector_name(collector_id)
     try:
-        secret = CollectorRegistry(_collector_store()).register(collector_id)
-    except CollectorExists:
-        raise HTTPException(status_code=409, detail='collector identifier already used') from None
+        CollectorRegistry(_collector_store()).revoke(collector_id)
+    except CollectorNotFound:
+        raise HTTPException(status_code=404, detail='collector not found') from None
+    except CollectorStateConflict:
+        raise HTTPException(status_code=409, detail='collector credential is already revoked') from None
     except HistoryError:
         raise HTTPException(status_code=503, detail='collector storage unavailable') from None
-    return JSONResponse({'collector_id': collector_id, 'credential': secret}, headers={'Cache-Control': 'no-store'})
+    return JSONResponse({'collector_id': collector_id, 'credential_state': 'revoked'}, headers={'Cache-Control': 'no-store'})
+
+
+@app.post('/api/v1/collectors/{collector_id}/reissue')
+def reissue_collector(collector_id: str, request: Request, analyst: str = Depends(authenticated_analyst)):
+    _require_management_session(request, analyst)
+    collector_id = _collector_name(collector_id)
+    try:
+        secret = CollectorRegistry(_collector_store()).reissue(collector_id)
+    except CollectorNotFound:
+        raise HTTPException(status_code=404, detail='collector not found') from None
+    except CollectorStateConflict:
+        raise HTTPException(status_code=409, detail='revoke the current credential before reissue') from None
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='collector storage unavailable') from None
+    return JSONResponse({'collector_id': collector_id, 'credential_state': 'active', 'credential': secret}, headers={'Cache-Control': 'no-store'})
 
 
 @app.get("/api/v1/detections")

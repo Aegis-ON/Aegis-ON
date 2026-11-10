@@ -141,7 +141,7 @@ const entries=Object.fromEntries(['#kicker','#title','#subtitle','#status','#vie
 const document={querySelector:q=>entries[q]||null,createElement:t=>new E(t)};const location={pathname:'/console'};const window={};
 const script=fs.readFileSync('static/console.html','utf8').split('<script>')[1].split('</script>')[0];
 vm.runInNewContext(script+`\nrenderCollectors({collectors:[{collector_id:'a',last_heartbeat_at:'2000-01-01T00:00:00Z',reported_state:'stopped'},{collector_id:'b',last_heartbeat_at:'2000-01-01T00:00:00Z',reported_state:'error'}]});`,{document,location,window,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array});
-const text=entries['#view'].textContent;assert(text.includes('stopped · 30초 이상 미보고'));assert(text.includes('error · 30초 이상 미보고'));
+const text=entries['#view'].textContent;assert(text.includes('중단 보고 · 30초 이상 미보고'));assert(text.includes('오류 보고 · 30초 이상 미보고'));
 """
         result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)

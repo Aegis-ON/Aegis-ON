@@ -30,6 +30,17 @@ New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Aegis-ON" | Out-Null
 
 원격 연결은 신뢰할 수 있는 인증서가 있는 HTTPS와 접근 제한이 필요합니다. 서버의 TLS 종단 및 방화벽은 운영자가 구성합니다. 프록시를 사용할 때는 신뢰할 수 있는 프록시에서만 전달한 HTTPS 원본 정보를 ASGI 서버가 받아들이도록 설정하세요. 임의의 외부 `X-Forwarded-*` 헤더는 신뢰하지 마세요. HTTP는 서버와 클라이언트가 모두 같은 호스트의 loopback인 경우에만 사용할 수 있습니다. 리디렉션과 인증서 검증 우회는 지원하지 않습니다. 공유 토큰 수집은 기본 비활성이며 이전 시스템을 이행할 때만 서버에 `AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN=1`, 수집기에 `-UseLegacySharedToken`을 명시할 수 있습니다. 이 모드에서는 PC별 신원이 보장되지 않습니다.
 
+### 기존 PC에서 인증 정보 교체
+
+관제 화면에서 해당 수집기를 **폐기**한 후 **재발급**합니다. 기존 수집기 프로세스를 먼저 중지하고, 같은 Windows 계정에서 다음을 실행해 새 자격 파일에 일회성 비밀을 숨겨 입력합니다. 기존 자격 파일은 덮어쓰지 않습니다. 기존 커서·pending·binding을 지우거나 수정하지 마세요.
+
+```powershell
+.\scripts\collect_sysmon.ps1 -CollectorId 'pc-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt" -CredentialPath "$env:LOCALAPPDATA\Aegis-ON\collector-new.secret" -InitializeCredential
+.\scripts\collect_sysmon.ps1 -CollectorId 'pc-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt" -CredentialPath "$env:LOCALAPPDATA\Aegis-ON\collector-new.secret" -ServerUrl 'https://soc.example.invalid'
+```
+
+ID와 서버 origin을 바꾸면 기존 커서 바인딩을 사용할 수 없습니다. 자격 변경 이전에 이미 인증된 요청은 변경 후 완료될 수 있으며 재발급된 자격으로 보고됐다는 것을 서버가 확정하지 못합니다. 새 비밀 발급 응답이 유실되면 다시 폐기한 뒤 재발급해야 합니다. 실제 Windows의 프로세스 중지, DPAPI, 재시작 및 pending 복구는 아직 검증하지 않았습니다.
+
 처음 실행하면 현재 채널 끝에서 시작하므로 그 이전의 이벤트는 자동 수집하지 않습니다. 각 배치의 레코드 번호 범위를 `.pending`에 먼저 기록하고 서버가 분석·저장을 확인한 후에만 커서를 갱신합니다. 연결이 끊겨도 같은 범위와 배치 키를 재전송하며, 원본 이벤트가 사라졌거나 재구성한 내용이 기존 요청과 다르면 중단하거나 충돌을 반환해 확인하도록 합니다. 오류 이벤트, 인증 실패, 중복 식별자 충돌 등 서버가 4xx 오류로 배치를 거부하면 수집기는 중단합니다(429는 재시도). 운영자가 커서를 진행하지 않은 상태에서 원인을 확인하고 재처리해야 합니다. 지속된 전송 실패로 로그 보존 범위를 넘어가면 잃은 이벤트는 복구할 수 없습니다.
 
 커서의 `.binding`은 수집기 ID와 서버 origin의 SHA-256 지문을 보관합니다. 다른 서버 또는 ID에 같은 커서를 쓰는 것을 거부하므로 설정이 바뀌면 별도 경로를 사용하고 이전 데이터의 처리 계획을 검토하세요. 기존 PR #12의 바인딩 없는 커서는 **원래 서버와 수집기 ID를 직접 확인한 후에만** `-AdoptExistingCursor`로 가져올 수 있습니다. 커서가 없는데 binding 또는 pending이 남아 있으면 자동으로 초기화하지 않고 중단합니다. 커서 파일을 지우거나 임의로 수정하면 중복 또는 누락을 초래할 수 있습니다. 커서의 번호와 지문도 민감할 수 있어 로컬 접근을 제한해야 합니다.
