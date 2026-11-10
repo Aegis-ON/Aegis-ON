@@ -1,38 +1,54 @@
-# 명령줄 공격 분석 연구 상태
+# 명령줄 분류 실험
 
-**공격 분류 모델은 아직 준비되지 않았습니다.** 현재 API와 대시보드는 `unavailable`을 표시합니다. 로컬 모델 로더나 제품 결합 결과는 구현하지 않았고 모델 다운로드 또는 외부 추론도 수행하지 않습니다. 기존 규칙·키워드 기반 휴리스틱·네트워크 상관분석과 PII NER은 그대로 사용합니다. PII NER은 공격 분류 모델이 아닙니다. 이 문서는 후보 조사와 합성 데이터 기반 평가 준비를 기록합니다.
+이 기능은 **작은 합성 데이터로 미세조정한 실험용 프로토타입**입니다. 모델 출력은 관제 검토 후보 신호이며 실제 공격 확정, 검증된 공격 확률 또는 ATT&CK 기법 판정이 아닙니다. 실제 명령은 실행하지 않습니다. PII NER과 별도의 모델·데이터·평가입니다. 규칙·키워드·네트워크 상관분석과 승인 시뮬레이션은 그대로 동작합니다.
 
-## 후보와 도입 보류 사유
+## 기반 모델과 학습 데이터
 
-- [Genos](https://huggingface.co/genos-security/genos): CodeBERT 기반 gatekeeper는 단일 명령을 Benign (0), Malicious (1), Context_Dependent (2)로 분류합니다. 영문 명령, 최대 256 토큰으로 문맥과 긴 입력에 한계가 있습니다. ATT&CK 기법 ID 출력은 아닙니다. 확인한 revision은 `36ae71cea3a1e22b002c2cb685d0b59aaa2188d9`입니다. 카드 상단 Apache-2.0 표기와 본문의 가중치 라이선스 미선언 문구가 충돌하므로 권리 확인이 필요합니다. `.pt`는 별도 backbone과 `genos_api` 코드가 필요한 pickle이며 일반 Transformers 체크포인트가 아닙니다. 카드에 따르면 학습은 약한 라벨에 의존하고 구성요소 간 학습·평가 중복이 있으며 일부 정상 명령에 오탐이 있습니다. CPU 성능이나 Aegis 연동은 검증하지 않았습니다.
-- [PowerShell RoBERTa](https://huggingface.co/fetterm4n/finetuned-roberta-powershell-detector): PowerShell 용 benign (0)/malicious (1) 분류를 주장하며 확인 revision은 `84bd8d43fe34c5f15716a368af3d212a4981cb7b`입니다. 카드의 라이선스 문구는 선택되지 않은 자리표시자이고 학습 데이터 출처·분할과 config의 라벨 매핑을 충분히 확인할 수 없습니다. PowerShell 외 명령과 기법 분류에 적합하다고 가정하지 않습니다.
-- [CodeBERT base](https://huggingface.co/microsoft/codebert-base)는 사전학습 모델이지 검증된 명령줄 공격 분류기가 아닙니다. 가중치만 연결해 공격 판단을 만들지 않습니다.
+[Google BERT-Tiny](https://huggingface.co/google/bert_uncased_L-2_H-128_A-2), revision `30b0a37ccaaa32f332884b96992754e246e48c5f`는 카드에 Apache-2.0으로 표기된 영문 uncased 사전학습 모델(2층, 약 4.4M 매개변수)입니다. 원래 공격 분류기가 아니며 별도 분류층을 학습합니다. 가중치 파일은 약 17.7MB입니다. 사전학습 출처는 BERT 연구의 BookCorpus와 영어 위키피디아이며, 모델 카드의 라이선스 표기와 원천 학습 코퍼스의 개별 사용 조건은 구분해야 합니다. 한국어·명령 난독화·Windows 환경에서의 성능은 확인되지 않았습니다.
 
-위 후보를 실제로 다운로드, 로드 또는 추론하지 않았으며 모델 성능 수치는 없습니다. Mac CPU 적합성은 미확인입니다. PII 모델을 재활용하지 않습니다. 모델 선택에는 라이선스·데이터 출처 및 분할·라벨 의미를 확인하고, 오프라인 로드, 파일/토크나이저 revision과 해시, 입력 길이, 실패 처리 및 CPU 통합 검증이 필요합니다. 모델 점수는 교정 검증 전 실제 공격 확률이나 기존 규칙 점수와 동일하지 않으며, 출력에 없는 ATT&CK 기법을 생성하지 않습니다.
+`evaluation/command_synthetic_v2.json`은 이 작업에서 직접 작성한 가상 텍스트 44건입니다. 외부 공격 로그나 PR #4 데이터를 학습에 넣지 않았습니다. `positive`는 해당 합성 시나리오에서 **검토가 필요하다고 주석한 신호**로, 실행 성공이나 악성 의도 정답이 아닙니다. 예를 들어 encoded 명령도 단순 인코딩 신호로 검토 대상에 넣었으며 일부 실제 내용은 무해합니다. `unknown`은 맥락이 없어 점수에서 제외합니다. 개인정보나 인증 정보는 의도적으로 넣지 않았습니다. 예시 문구를 텍스트로만 분석하고 실행하지 마세요.
 
-## 데이터 준비
+| 분할 | 사례 수 | 명령군 수 | 목적 |
+| --- | ---: | ---: | --- |
+| train | 24 | 12 | 학습, 양성·음성 각 12 |
+| validation | 8 | 4 | epoch 선택, 양성·음성 각 4 |
+| test | 8 | 4 | 소규모 내부 확인, 양성·음성 각 4 |
+| ambiguous | 4 | 2 | 정답 불명 출력 확인, 지표 제외 |
 
-기존 합성 manifest의 `dev` 중 유효한 Event 1이고 명령줄이 있으며 정답이 positive/negative인 사례만 내보냅니다. `eval`, 판단 불가, 입력 오류 및 네트워크 배치를 내보내지 않습니다. 전체 manifest의 사례 ID, 그룹, 정규화 명령 및 정확한 이벤트의 교차 분할 검증을 먼저 수행합니다. 현재 dev 출력은 **6개뿐**이며 배선 확인용이지 실용적인 학습 데이터가 아닙니다. positive는 합성 시나리오의 관제 검토 라벨이며 실제 악성 확정 라벨이 아닙니다.
+각 그룹은 사례 2개를 포함하며 경로·옵션만 달라질 수 있어 독립 표본이 아닙니다. 그룹은 수작업으로 배정했습니다. `validate_data`는 그룹의 분할 충돌, 정규화한 정확 중복과 PR #4에 대한 train/validation의 정확 중복을 검사합니다. 유사 변형이나 그룹 지정의 정확성은 자동으로 보장하지 않습니다. 실제로 PR #4 평가셋과 이 학습셋에는 같은 명령 계열의 유사 사례가 있으므로 PR #4를 독립 테스트로 취급할 수 없습니다. 개발 중 이미 본 이 test도 최종 독립 성능셋이 아닙니다.
 
-```bash
-PYTHONPATH=src python -m aegis_on.attack_research \
-  --dataset evaluation/synthetic_v1.json --output /tmp/aegis-command-dev.json
-```
+공개 데이터 후보 [shell-safety-v1.1](https://huggingface.co/datasets/tomngdev/shell-safety-v1.1)은 MIT 표기의 합성 명령·실행 문맥을 제공하지만 allow/ask/deny는 에이전트 권한 라벨이라 공격 라벨로 바로 사용할 수 없습니다. [PowerShell 스크립트 데이터](https://huggingface.co/datasets/wwe123/Benign_and_malicious_PowerShell_scripts)는 스크립트 단위이며 카드에서 라이선스를 확인하지 못했습니다. 둘 다 사용하지 않았습니다. 실환경 평가에는 권한이 확인되고 민감 정보가 제거된 다양한 정상 관리·의심 로그와 독립 전문가 주석이 필요합니다.
 
-출력은 명령 원문, 사례·그룹 ID와 라벨을 포함합니다. `synthetic: true` 표기는 검증 가능한 합성 여부의 증명이 아닙니다. 실사용 로그나 비밀값을 입력하지 말고 출력 파일 접근을 제한하세요. 학습 시에는 command와 label만 모델에 제공하고 case/group ID와 설명을 모델 입력에서 빼야 합니다. 같은 시나리오/템플릿 단위로 학습·검증·독립 시험을 분리하고 정규화 중복 및 유사성을 추가로 수동 검토해야 합니다. 자동 검사는 모든 유사 변형이나 외부 데이터와의 중복을 식별할 수 없습니다. 기존 `eval`도 개발 중 이미 살펴본 소규모 합성 사례이므로 독립적인 최종 성능 평가가 아닙니다.
+## 준비와 재현
 
-공개 데이터 후보 [shell-safety-v1.1](https://huggingface.co/datasets/tomngdev/shell-safety-v1.1)은 카드에 MIT로 표시된 합성 명령과 실행 문맥의 allow/ask/deny 데이터입니다. 이는 에이전트 권한 결정 라벨이므로 공격 정답으로 자동 변환할 수 없으며, 기존 평가셋과의 중복 및 분할 독립성도 아직 확인하지 않았습니다. [PowerShell 스크립트 데이터](https://huggingface.co/datasets/wwe123/Benign_and_malicious_PowerShell_scripts)는 스크립트 단위이며 카드에서 라이선스를 확인하지 못했고 데이터 뷰어 오류가 있었습니다. 어느 데이터도 다운로드하거나 학습에 사용하지 않았습니다. 이용 전 출처·라이선스·주석·중복·민감 정보 및 명령줄/스크립트 단위 차이를 검토해야 합니다.
-
-## 평가 인터페이스
-
-기존 기준선 명령:
+기본 실행은 공격 모델을 다운로드하거나 외부에 호출하지 않습니다. 다음은 명시적 준비·실험 단계입니다. 모델과 데이터는 저장소 밖에 두고 직접 출처와 파일을 확인하세요.
 
 ```bash
-PYTHONPATH=src python -m aegis_on.evaluation --dataset evaluation/synthetic_v1.json --split eval
+pip install -r requirements.txt -r requirements-attack.txt
+pip install huggingface_hub
+python -c "from huggingface_hub import snapshot_download; snapshot_download('google/bert_uncased_L-2_H-128_A-2', revision='30b0a37ccaaa32f332884b96992754e246e48c5f', local_dir='/tmp/aegis-bert-base', allow_patterns=['config.json','vocab.txt','model.safetensors'])"
+PYTHONPATH=src python -m aegis_on.attack_experiment --base /tmp/aegis-bert-base --dataset evaluation/command_synthetic_v2.json --prior evaluation/synthetic_v1.json --output /tmp/aegis-attack-model
 ```
 
-`aegis_on.attack_research.compare_commands`는 추후 구현자가 제공하는 `predict(command)` 계약에 대해 모델과 기준선을 **공통으로 평가 가능한 사건**에서 비교하는 연구용 함수입니다. `suspicious`, `benign`, `abstain`만 허용합니다. 빈 명령, 무효 입력, 미지원, 정답 불명, 모델 예외·미지원 출력은 음성으로 계산하지 않고 제외 수와 알려진 정답 분포를 기록합니다. 전부 실패하거나 거부하면 비교 점수를 내지 않습니다. OR 결합은 연구용 계산일 뿐 제품 결합 기능이 아닙니다. 후보 모델의 실제 라벨을 이 관제 정답에 대응시키려면 별도 근거가 필요합니다. 특히 Genos의 Context_Dependent는 정상으로 바꾸지 말고 평가 보류로 다뤄야 합니다. 예측기에는 원문 명령 외 case ID·정답·설명을 제공하지 않습니다.
+학습 스크립트는 사전학습 가중치 SHA-256 `7fb69ad9f6866d8983183c930e33828f326470bf6ad8bbb2ad4ed957a92e9414`와 config/vocab Git blob을 검증하고 예상 밖 최상위 파일을 거부합니다. seed 42, CPU, AdamW 3e-5, 배치 4, 6 epoch, validation loss가 가장 낮은 checkpoint, 사전 고정 threshold 0.5입니다. `test` 결과가 즉시 출력되므로 반복적인 튜닝 후에는 이 데이터도 개발셋으로 취급해야 합니다. train·validation 입력이 128 토큰을 넘으면 학습이 실패하고 test·ambiguous 입력 초과는 해당 사례를 미평가로 제외합니다.
 
-같은 사례 비교라도 기존 키워드 기준선은 프로세스와 부모 프로세스도 입력에 사용하고, 모델 계약은 명령줄만 사용하므로 입력 정보가 동일하지 않습니다. 제외가 많은 비교는 성공 사례의 부분집합 결과입니다. 팬아웃은 별도 배치 단위이며 여기서 점수화하지 않습니다. PII 성능과 공격 분석 성능도 별개입니다.
+```bash
+export AEGIS_ATTACK_MODEL_DIR=/tmp/aegis-attack-model
+```
 
-현재 구현은 실모델의 로드 성공·실패, 긴 입력, 결과·원본 이벤트 연결과 모델 기반 화면을 검증할 수 없습니다. 모델 통합 전 해당 기능과 테스트를 구현해야 합니다. 분석 API는 PII 후보 검사를 마친 후 원문 이벤트로 기존 위협 엔진을 실행하고, 응답의 표시 항목을 가명처리합니다. 탐지되지 않은 PII는 남을 수 있습니다. 공격 모델을 추가할 때도 사용자 로그를 외부로 보내지 말고 원문·예외가 응답이나 로그에 노출되지 않도록 해야 합니다.
+서버를 재시작하면 설정한 로컬 safetensors·토크나이저를 CPU로 로드합니다. 별도 실모델 테스트는 `AEGIS_ATTACK_INTEGRATION=1 PYTHONPATH=src python -m unittest discover -s tests -p test_attack_real_model.py -v`로 실행합니다. 모델 파일은 Git에 넣지 않습니다. 모델은 별도 신뢰 가능한 위치에서 준비해야 하며, 표시되는 각 파일 SHA-256은 식별을 돕지만 신뢰할 수 있는 원본과 대조하지 않으면 진위나 학습 출처를 증명하지 않습니다. 파일 교체 권한을 제한하세요. 명령에 한해 공백·누락, 잘못된 자료형, 20,000자 또는 128 토큰 초과, 추론 실패를 별도 상태로 표시하며 잘라서 정상 처리하지 않습니다. 0.5 미만은 **기준 미충족**이지 안전 판정이 아닙니다. 모델이 모호한 맥락을 자동으로 판별하거나 보류할 수 있다고 주장하지 않습니다.
+
+## 실제 Colab 측정
+
+Colab Linux x86-64 Python 3.13.18, PyTorch 2.14.1+cpu, Transformers 4.57.6. 기반 revision의 세 파일은 HF revision metadata와 무결성을 대조했고, 위와 같은 설정으로 별도 notebook 셀에서 실제 학습해 validation loss 기준 6 epoch를 선택했습니다. 학습한 `model.safetensors` SHA-256은 `c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28`입니다. 학습 셀은 저장소의 재현 스크립트와 같은 설정을 사용했지만 **스크립트 자체를 실행한 것은 아닙니다**. 저장된 모델을 PR 로더 소스의 SHA-256을 확인한 후 CPU에 다시 로드했습니다.
+
+동일 test 8건, 0.5 임계값, event 단위, 양성은 합성 검토 주석입니다. 아래 baseline은 실제 규칙과 키워드 구현을 사용했지만 process는 명령 첫 토큰으로 합성하고 parent는 비웠습니다. 모델은 명령만 받습니다. 결합 제품 점수는 구현하지 않았습니다.
+
+| 방식 | TP | FP | TN | FN | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 규칙·키워드 | 2 | 0 | 4 | 2 | 1.000 | 0.500 | 0.667 |
+| 실제 미세조정 모델 | 4 | 3 | 1 | 0 | 0.571 | 1.000 | 0.727 |
+
+모델 오탐은 `test-normal-whoami-1`, `test-normal-whoami-2`, `test-normal-search-2`이며 미탐은 없었습니다. 기준선 미탐은 `test-sus-rundll-1`, `test-sus-rundll-2`입니다. 판단 불가 4건 중 모델은 2건을 검토 후보로 표시했고 나머지 2건은 기준 미충족으로 표시했습니다. 이것이 해당 사례의 실제 의도 판정은 아닙니다. 시험 8건은 4개 그룹의 변형으로 실제 환경 성능이나 공격 탐지율을 입증하지 않습니다. 모델 점수는 softmax 값이며 교정된 실제 공격 확률이 아닙니다.
+
+PII 후보 검사가 먼저 마스킹 함수를 만들고, 위협 분석은 메모리의 원문 명령을 입력으로 사용한 뒤 결과의 이벤트 식별자를 기존 방식으로 가립니다. 명령 원문은 모델 결과에 반환하지 않습니다. PII 모델의 미탐은 다른 출력 경로에 남을 수 있습니다. 모델·규칙 결과와 PII는 별도 상태이며 원본 로그는 외부 API로 보내지 않습니다.

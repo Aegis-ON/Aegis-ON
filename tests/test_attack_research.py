@@ -92,12 +92,12 @@ class AttackResearchTests(unittest.TestCase):
             with TestClient(api.app) as client:
                 self.assertEqual(client.get('/api/v1/attack-model/status').status_code, 401)
                 headers = {'Authorization': 'Bearer test-secret'}
-                self.assertEqual(client.get('/api/v1/attack-model/status', headers=headers).json()['state'], 'unavailable')
+                self.assertEqual(client.get('/api/v1/attack-model/status', headers=headers).json()['state'], 'disabled')
                 event = {'timestamp': '2026-11-09T10:00:00Z', 'host': 'demo', 'user': 'test',
                          'process': 'curl', 'command_line': 'curl https://example.org', 'event_id': 'evt-1'}
                 response = client.post('/api/v1/analyze', headers=headers, json={'events': [event]})
                 self.assertEqual(response.status_code, 200)
                 result = response.json()
-                self.assertEqual(result['attack_model']['state'], 'unavailable')
+                self.assertEqual(result['attack_model']['state'], 'disabled')
                 self.assertTrue(any(d['source'] == 'rule' and d['event_ids'] == ['evt-1'] for d in result['detections']))
                 self.assertFalse(any(d['source'] == 'attack-model' for d in result['detections']))

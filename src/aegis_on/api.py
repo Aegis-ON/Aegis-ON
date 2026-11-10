@@ -13,6 +13,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from .service import DetectionService
+from .attack_model import AttackModel
+from starlette.concurrency import run_in_threadpool
 from .privacy import redact_for_display
 from .pii import PIIDetector
 from .pii_reporting import InvalidPIIInput, inspect_events
@@ -21,6 +23,7 @@ from .sysmon import parse_sysmon
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService()
 pii_detector = PIIDetector.from_environment()
+attack_model = AttackModel.from_environment()
 bearer = HTTPBearer(auto_error=False)
 MAX_SYSMON_BYTES = 2 * 1024 * 1024
 DEMO_SCENARIOS = {
@@ -92,12 +95,12 @@ def health() -> dict[str, str]:
     return {"status": "ok", "model_state": "semantic-baseline"}
 
 
-def _attack_model_status() -> dict[str, str]:
-    return {"state": "unavailable", "reason": "no verified attack model integrated"}
+def _attack_model_status() -> dict[str, Any]:
+    return attack_model.status()
 
 
 @app.get("/api/v1/attack-model/status")
-def attack_model_status(analyst: str = Depends(authenticated_analyst)) -> dict[str, str]:
+def attack_model_status(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
     return _attack_model_status()
 
 
@@ -137,6 +140,18 @@ def _pii_inspect(events: list[dict[str, Any]], indices: list[int]):
         raise HTTPException(status_code=413, detail="PII analysis input exceeds the configured limit") from None
 
 
+def _attack_results(events: list[dict[str, Any]], refs: list[dict[str, Any]]) -> dict[str, Any]:
+    # Only sanitized refs are returned; model receives command text alone.
+    results = []
+    for event, ref in zip(events, refs):
+        result = attack_model.predict(event.get('command_line', ''))
+        results.append({'input_index': ref['input_index'], 'event_id': ref['event_id'], **result})
+    state = _attack_model_status()
+    if any(r['status'] == 'inference_error' for r in results):
+        state = {**state, 'state': 'inference_error', 'reason': 'At least one command analysis failed'}
+    return {**state, 'results': results}
+
+
 def _link_pii(pii: dict[str, Any], refs: list[dict[str, Any]]) -> None:
     event_ids = {ref["input_index"]: ref["event_id"] for ref in refs}
     for finding in pii["findings"]:
@@ -168,7 +183,7 @@ def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analys
             message = "invalid event"
         raise HTTPException(status_code=422, detail=message) from None
     _link_pii(pii, event_refs)
-    return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs, "pii": pii, "attack_model": _attack_model_status()}
+    return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs, "pii": pii, "attack_model": _attack_results(payload.events, event_refs)}
 
 
 @app.post("/api/v1/sysmon/analyze")
@@ -254,7 +269,7 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
     return {
         "model_state": "semantic-baseline", "summary": summary,
         "items": redact_for_display(items), "source_events": source_events,
-        "detections": detections, "pii": pii, "attack_model": _attack_model_status(),
+        "detections": detections, "pii": pii, "attack_model": await run_in_threadpool(_attack_results, raw_events, source_events),
     }
 
 

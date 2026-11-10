@@ -1,0 +1,5 @@
+# Optional CPU-only experimental command classifier. Provision a local model separately.
+torch>=2.2,<3
+transformers>=4.44,<5
+safetensors>=0.4,<1
+numpy>=1.26,<3

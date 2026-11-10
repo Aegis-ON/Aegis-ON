@@ -38,7 +38,7 @@
               <div class="divider"></div><p class="panel-desc">직접 수집한 Sysmon Event ID 1·3 JSON 파일 (최대 2 MiB, 1,000건)</p><div class="file-row"><label for="sysmon-file" class="hint">파일 선택</label><input id="sysmon-file" type="file" accept=".json,application/json" /><button class="action primary" id="run-sysmon" type="button">파일 분석</button></div><div class="secondary"><button class="action" id="run-demo" type="button">기존 JSON 데모 분석</button></div>
               <section id="summary" aria-live="polite">준비됨 — 분석할 시나리오나 파일을 선택하세요.</section>
             </section>
-            <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />위협 분석은 규칙과 키워드 기반 휴리스틱 기준선을 사용하며 BERT가 아닙니다. 개인정보 탐지는 정규식과 응답에 보고된 모델 결과를 구분합니다.</p><p class="note-line"><strong>개인정보 탐지의 한계</strong><br />탐지 및 가명처리는 모든 개인정보를 보호하지 못하며 누락될 수 있습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
+            <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />명령줄 분석은 규칙·키워드 기준선과 선택적 실험용 BERT 모델을 구분합니다. 키워드 기준선은 BERT가 아닙니다. 개인정보 탐지는 별도 기능입니다.</p><p class="note-line"><strong>개인정보 탐지의 한계</strong><br />탐지 및 가명처리는 모든 개인정보를 보호하지 못하며 누락될 수 있습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
           </div>
           <section id="result-section"><div class="results-head"><h2>탐지 및 이벤트</h2><small>현재 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
           <p class="foot">표시되는 IP 등은 가명처리됩니다. 원본 이벤트는 레코드 ID·출처 등 식별 정보만 표시하며, 실제 명령줄과 사용자명은 표시하지 않습니다. 분석 결과와 연결 정보는 서버에 영구 저장되지 않습니다.</p>
@@ -175,9 +175,18 @@
       }
       function renderAttackModel(model) {
         const section = document.createElement('section'); section.className = 'pii-summary';
-        section.append(createText('h3', '명령줄 공격 분석 모델'));
-        section.append(createText('p', model && model.state === 'unavailable' ? '모델 미준비 · 모델 분석 결과 없음. 명령줄은 규칙과 키워드 기준선으로 분석하며 네트워크 상관분석은 별도로 실행됩니다.' : '모델 상태를 확인할 수 없습니다.'));
-        section.append(createText('p', '개인정보 NER 모델은 공격 행위 분류에 사용되지 않습니다.', 'hint'));
+        section.append(createText('h3', '명령줄 공격 분석 모델 · 실험용'));
+        const states = {ready:'로컬 모델 준비됨', disabled:'모델 비활성화', error:'모델 로드 실패', inference_error:'일부 모델 분석 실패'};
+        section.append(createText('p', states[model && model.state] || '모델 상태를 확인할 수 없습니다.'));
+        section.append(createText('p', '합성 데이터로 학습한 실험 모델입니다. 점수는 검증된 공격 확률이 아니며 공격이나 ATT&CK 기법을 확정하지 않습니다.', 'hint'));
+        if (model && Array.isArray(model.results)) {
+          const list = document.createElement('ul'); list.className = 'items';
+          for (const item of model.results) {
+            const state = {ok:item.label === 'review' ? '검토 필요 후보' : '기준 미충족', missing_command:'명령줄 없음', model_unavailable:'모델 미사용', too_long:'길이 제한으로 미분석', invalid_input:'입력 오류', inference_error:'추론 실패'}[item.status] || '미분석';
+            list.append(createText('li', `입력 ${displayValue(item.input_index)} · 이벤트 ${displayValue(item.event_id)} · ${state}${item.status === 'ok' ? ` · 모델 점수 ${displayValue(item.score)}` : ''}`));
+          }
+          section.append(list);
+        }
         results.append(section);
       }
       function renderPii(pii) {
