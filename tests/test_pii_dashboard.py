@@ -67,6 +67,10 @@ const run=async pii=>{const action=click('#run-sysmon'); requests.at(-1).resolve
   await run({state:'disabled',findings:[]});
   assert.match(output(),/정규식 탐지 결과가 없습니다/);
   assert.doesNotMatch(output(),/개인정보 탐지 결과가 없습니다/);
+  await run({state:'ready',verified_public_hosts:'enabled',findings:[]});
+  assert.match(output(),/공개 호스트에 한해 한 글자 성씨 반복 가림 예외/);
+  await run({state:'ready',verified_public_hosts:'invalid',findings:[]});
+  assert.match(output(),/예외 설정이 잘못되어 보수적 가림/);
   await run(undefined);
   assert.match(output(),/개인정보 탐지 결과가 제공되지 않았습니다/);
   const old=click('#run-sysmon'); const oldRequest=requests.at(-1);

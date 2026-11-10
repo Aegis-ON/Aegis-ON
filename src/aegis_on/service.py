@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from datetime import datetime, timezone
+import hashlib
 from threading import Lock
 from typing import Any, Callable
 
@@ -14,6 +15,9 @@ class DetectionService:
     def __init__(self) -> None:
         self.pipeline = DetectionPipeline()
         self._detections: OrderedDict[str, Detection] = OrderedDict()
+        # Keep the conservative display as the stored Detection. An optional
+        # sanitized alternate is shown only while its exact host is approved.
+        self._host_overrides: dict[str, tuple[bytes, str]] = {}
         self._lock = Lock()
 
     def analyze(self, raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -39,23 +43,45 @@ class DetectionService:
         detections = self.pipeline.analyze(events)
         # Store only display-safe detection text so later list/approval responses
         # cannot reveal candidate values after the request's mask is discarded.
+        host_overrides: dict[str, tuple[bytes, str]] = {}
         for detection in detections:
-            detection.host = mask(detection.host)
+            original_host = detection.host
+            conservative_host = mask(original_host)
+            alternate_host = getattr(mask, 'host', mask)(original_host)
+            if alternate_host != conservative_host:
+                host_overrides[detection.detection_id] = (
+                    hashlib.sha256(original_host.encode('utf-8')).digest(), alternate_host)
+            detection.host = conservative_host
             detection.event_ids = [mask(value) for value in detection.event_ids]
             detection.evidence = [mask(value) for value in detection.evidence]
         with self._lock:
             for detection in detections:
                 self._detections[detection.detection_id] = detection
+            self._host_overrides.update(host_overrides)
         return (
-            [redact_for_display(detection.to_dict()) for detection in detections],
+            [self._display_detection(detection, host_overrides) for detection in detections],
             event_refs,
         )
 
-    def list_detections(self) -> list[dict[str, Any]]:
-        with self._lock:
-            return [redact_for_display(item.to_dict()) for item in reversed(self._detections.values())]
+    @staticmethod
+    def _display_detection(detection: Detection, overrides: dict[str, tuple[bytes, str]]) -> dict[str, Any]:
+        value = detection.to_dict()
+        override = overrides.get(detection.detection_id)
+        if override:
+            value['host'] = override[1]
+        return redact_for_display(value)
 
-    def approve(self, detection_id: str, analyst: str, rationale: str) -> dict[str, Any]:
+    def _active_overrides(self, hosts: frozenset[str]) -> dict[str, tuple[bytes, str]]:
+        hashes = {hashlib.sha256(host.encode('utf-8')).digest() for host in hosts}
+        return {key: value for key, value in self._host_overrides.items() if value[0] in hashes}
+
+    def list_detections(self, verified_public_hosts: frozenset[str] = frozenset()) -> list[dict[str, Any]]:
+        with self._lock:
+            overrides = self._active_overrides(verified_public_hosts)
+            return [self._display_detection(item, overrides) for item in reversed(self._detections.values())]
+
+    def approve(self, detection_id: str, analyst: str, rationale: str,
+                verified_public_hosts: frozenset[str] = frozenset()) -> dict[str, Any]:
         validate_unicode(analyst, "analyst")
         validate_unicode(rationale, "rationale")
         with self._lock:
@@ -67,4 +93,4 @@ class DetectionService:
                 detection.evidence.append(f"approved locally by {analyst} at {datetime.now(timezone.utc).isoformat()}")
                 if rationale:
                     detection.evidence.append(f"analyst rationale: {rationale}")
-            return redact_for_display(detection.to_dict())
+            return self._display_detection(detection, self._active_overrides(verified_public_hosts))

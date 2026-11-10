@@ -20,7 +20,8 @@ class InvalidPIIInput(ValueError):
     """An event field would be coerced to unscanned text by the analyzer."""
 
 
-def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: PIIDetector):
+def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: PIIDetector,
+                   *, verified_public_hosts: frozenset[str] = frozenset()):
     """Return sanitized summaries and a pure replacement function, never raw text."""
     for event in events:
         for field in FIELDS:
@@ -36,8 +37,12 @@ def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: P
     findings: list[dict[str, Any]] = []
     finding_spans = []
     replacements: dict[str, str] = {}
+    candidate_types: dict[str, set[str]] = {}
+    host_direct: dict[str, list[tuple[int, int]]] = {}
     for index, field, value in fields:
         spans = detector.find(value)
+        if field == 'host':
+            host_direct.setdefault(value, []).extend((span.start, span.end) for span in spans)
         _, masked = redact_spans(value, spans)
         for merged, token in masked:
             replacements[value[merged.start:merged.end]] = token
@@ -47,6 +52,7 @@ def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: P
             _, individual = redact_spans(value, [span])
             token = individual[0][1]
             raw = value[span.start:span.end]
+            candidate_types.setdefault(raw.casefold(), set()).add(span.label)
             replacements.setdefault(raw, token)
             findings.append({"input_index": index, "field": field, "type": span.label,
                              "source": span.source, "token": token})
@@ -86,11 +92,24 @@ def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: P
                 return replacements[raw]
         raise ValueError('PII replacement lookup failed')
 
-    def mask_segments(text: str) -> list[tuple[int, int, str]]:
+    def mask_segments(text: str, *, host: bool = False) -> list[tuple[int, int, str]]:
         if not pattern:
             return []
-        matches = [(match.start(), match.start() + len(match.group(1)), replacement_for(match.group(1)))
-                   for match in pattern.finditer(text)]
+        matches = []
+        for match in pattern.finditer(text):
+            raw = match.group(1)
+            start, end = match.start(), match.start() + len(raw)
+            # Only an operator-verified exact host can opt out, and only for
+            # a propagated one-syllable Korean surname embedded in a longer
+            # word. Direct detections and conflicting PII types always win.
+            embedded = ((start > 0 and text[start - 1].isalnum())
+                        or (end < len(text) and text[end].isalnum()))
+            directly_detected = any(a < end and start < b for a, b in host_direct.get(text, ()))
+            if (host and text in verified_public_hosts and embedded and len(raw) == 1
+                    and '\uac00' <= raw <= '\ud7a3'
+                    and candidate_types.get(raw.casefold()) == {'SURNAME'} and not directly_detected):
+                continue
+            matches.append((start, end, replacement_for(raw)))
         merged: list[tuple[int, int, str]] = []
         for start, end, token in matches:
             if merged and start < merged[-1][1]:
@@ -102,12 +121,19 @@ def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: P
         return merged
 
     def mask(text: str) -> str:
+        return render(text, host=False)
+
+    def render(text: str, *, host: bool) -> str:
         parts, position = [], 0
-        for start, end, token in mask_segments(text):
+        for start, end, token in mask_segments(text, host=host):
             parts.extend((text[position:start], token))
             position = end
         parts.append(text[position:])
         return ''.join(parts)
+
+    # A separate host-only entry point prevents the exception from affecting
+    # event identifiers, evidence, commands, or analyst approval text.
+    mask.host = lambda text: render(text, host=True)
 
     # The final output can include overlaps discovered in other event fields.
     # Reflect that actual union token in each finding without including raw text.

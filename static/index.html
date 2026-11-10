@@ -183,6 +183,8 @@
         } else {
           const status = {ready:'개인정보 모델 준비됨', disabled:'개인정보 모델 비활성화', error:'개인정보 모델 오류'}[pii.state];
           section.append(createText('p', `${status}${pii.reason ? ` · ${pii.reason}` : ''}`));
+          if (pii.verified_public_hosts === 'enabled') section.append(createText('p', '운영자가 확인한 공개 호스트에 한해 한 글자 성씨 반복 가림 예외가 설정되어 있습니다.', 'pii-warning'));
+          if (pii.verified_public_hosts === 'invalid') section.append(createText('p', '공개 호스트 예외 설정이 잘못되어 보수적 가림을 사용합니다.', 'pii-warning'));
           if (pii.state !== 'ready') section.append(createText('p', '정규식 탐지는 계속 적용됩니다.', 'hint'));
           const findings = Array.isArray(pii.findings) ? pii.findings : [];
           section.append(createText('p', findings.length ? `개인정보 탐지 결과 ${findings.length}건${pii.truncated ? ' (일부만 표시)' : ''}` : pii.truncated ? '표시된 개인정보 탐지 항목이 없습니다.' : pii.state === 'ready' ? '개인정보 탐지 결과가 없습니다.' : '정규식 탐지 결과가 없습니다.'));

@@ -94,12 +94,32 @@ def health() -> dict[str, str]:
 
 @app.get("/api/v1/pii/status")
 def pii_status(analyst: str = Depends(authenticated_analyst)) -> dict[str, str]:
-    return pii_detector.status()
+    _, state = _verified_public_hosts()
+    return {**pii_detector.status(), 'verified_public_hosts': state}
+
+
+def _verified_public_hosts() -> tuple[frozenset[str], str]:
+    """Read operator-controlled exact host values; invalid settings fail closed."""
+    raw = os.environ.get('AEGIS_PII_VERIFIED_PUBLIC_HOSTS', '')
+    if not raw:
+        return frozenset(), 'disabled'
+    try:
+        values = json.loads(raw)
+        if (not isinstance(values, list) or len(values) > 1000 or
+                any(not isinstance(v, str) or not v or len(v) > 512
+                    or any(0xD800 <= ord(c) <= 0xDFFF for c in v) for v in values)):
+            raise ValueError('invalid configuration')
+        return frozenset(values), 'enabled' if values else 'disabled'
+    except (ValueError, RecursionError):
+        return frozenset(), 'invalid'
 
 
 def _pii_inspect(events: list[dict[str, Any]], indices: list[int]):
     try:
-        return inspect_events(events, indices, pii_detector)
+        verified_hosts, state = _verified_public_hosts()
+        pii, mask = inspect_events(events, indices, pii_detector, verified_public_hosts=verified_hosts)
+        pii['verified_public_hosts'] = state
+        return pii, mask
     except InvalidPIIInput:
         raise HTTPException(status_code=422, detail="invalid event text field") from None
     except RuntimeError:
@@ -198,7 +218,7 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
         # a candidate is actually present; structural event indexes stay numeric.
         def display_source_value(key: str, value: Any) -> Any:
             if isinstance(value, str):
-                masked = mask(value)
+                masked = mask.host(value) if key == 'host' else mask(value)
                 # Mask the original form before normalization. Rewriting an IP
                 # first can break its full-span match and leak address fragments.
                 if key in {'source_ip', 'destination_ip'} and masked == value:
@@ -231,7 +251,8 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
 
 @app.get("/api/v1/detections")
 def list_detections(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
-    return {"detections": service.list_detections()}
+    hosts, _ = _verified_public_hosts()
+    return {"detections": service.list_detections(hosts)}
 
 
 @app.post("/api/v1/detections/{detection_id}/approval")
@@ -244,7 +265,8 @@ def approve(
         _, mask = _pii_inspect([{"user": payload.analyst, "command_line": payload.rationale}], [0])
         safe_analyst = redact_for_display(mask(payload.analyst))
         rationale = redact_for_display(mask(payload.rationale))
-        detection = service.approve(detection_id, safe_analyst, rationale)
+        hosts, _ = _verified_public_hosts()
+        detection = service.approve(detection_id, safe_analyst, rationale, hosts)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="detection not found") from exc
     except ValueError as exc:
