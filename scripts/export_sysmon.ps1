@@ -11,6 +11,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (Test-Path -LiteralPath $OutputPath) { throw 'Output already exists; choose a new file.' }
 $channel = 'Microsoft-Windows-Sysmon/Operational'
 $names = @('UtcTime', 'Image', 'CommandLine', 'ParentImage', 'ParentCommandLine',
     'User', 'ProcessGuid', 'ProcessId', 'SourceIp', 'SourcePort', 'DestinationIp', 'DestinationPort', 'Initiated')
@@ -48,5 +49,11 @@ $events = @(
 
 if ($events.Count -eq 0) { throw 'No matching Sysmon Event 1 or 3 records were found.' }
 $json = ConvertTo-Json -InputObject ([ordered]@{ events = $events }) -Depth 6
+# Windows PowerShell adds a UTF-8 BOM and Set-Content appends a newline.
+# Use a conservative 5-byte allowance before creating any output file.
+$estimatedBytes = [System.Text.Encoding]::UTF8.GetByteCount($json) + 5
+if ($estimatedBytes -gt (2 * 1024 * 1024)) {
+    throw 'Export exceeds the 2 MiB API limit; select fewer events.'
+}
 Set-Content -LiteralPath $OutputPath -Value $json -Encoding UTF8
 Write-Host "Exported $($events.Count) Sysmon events to $OutputPath"
