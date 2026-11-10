@@ -1,0 +1,13 @@
+{
+  "version": "command-refine-protocol-v1",
+  "training_commit": "b7b92dd1584d3803d2b43ad83b14acd4c141f389",
+  "development_sha256": "1b9e9c7e1899227d97a403d952a6717150884391943d8caa24482bb2251bb97a",
+  "test_sha256": "822c1c0b963c80536fc196bf8a59e66fb161a78763aa62c0c6946cb60debcacf",
+  "original_weights_sha256": "c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28",
+  "refined_weights_sha256": "bff7da13980f8c939c63d102c33a7143e90e3113182b9ebdc9116889255d0432",
+  "threshold": 0.5,
+  "selection": "minimum validation loss, epoch 8; no threshold tuning",
+  "evaluation_unit": "single command, common valid labeled cases with both models available",
+  "unknown_handling": "exclude from scores; count separately",
+  "metric": "TP FP TN FN precision recall F1 and FP/(FP+TN) false alert rate; ATT&CK candidate binary alerts only"
+}
