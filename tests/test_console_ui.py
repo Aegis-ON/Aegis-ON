@@ -146,4 +146,24 @@ const text=entries['#view'].textContent;assert(text.includes('stopped · 30초 �
         result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required')
+    def test_approval_refresh_supersedes_inflight_status_poll(self):
+        harness = r'''
+
+const assert=require('assert'),vm=require('vm'),fs=require('fs');let root,timer,calls=0,fail=false,total=0,delay=false,release;
+class E{constructor(tag='div'){this.tag=tag;this.children=[];this.handlers={};this._text='';this.value='';this.className='';this.attrs={};this.classList={add:()=>{}};this.style={};this.id='';}
+set textContent(x){this._text=String(x);this.children=[]}get textContent(){return this._text+this.children.map(x=>x.textContent).join('')}get childNodes(){return this.children}append(...items){for(const x of items){x.parent=this;this.children.push(x)}if(this.tag==='select'&&!this.value&&this.children[0])this.value=this.children[0].value}replaceChildren(...items){this._text='';this.children=[];this.append(...items)}addEventListener(k,v){this.handlers[k]=v}setAttribute(k,v){this.attrs[k]=v}scrollIntoView(){}remove(){if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this)}contains(x){return this===x||this.children.some(c=>c.contains(x))}}
+const entries=Object.fromEntries(['#kicker','#title','#subtitle','#status','#view','#load'].map(k=>[k,new E()]));root=entries['#view'];
+function walk(e,p){if(p(e))return e;for(const c of e.children){let x=walk(c,p);if(x)return x}return null}
+const document={activeElement:null,querySelector:q=>entries[q]||(q.startsWith('#')?walk(root,e=>e.id===q.slice(1)):null),createElement:tag=>new E(tag)};
+const window={prompt:()=> 'temporary-token'},location={pathname:'/',hash:''};
+let delayCollector=false, releaseCollector;const data={analyses:[{analysis_id:'a',analyzed_at:'2026-01-01T00:00:00Z',input_type:'sysmon',event_refs:[{event_id:'e'}],detection_ids:['d']}],detections:[{detection_id:'d',technique:'T1',title:'SYNTHETIC_ALERT',source:'rule',score:50,host:'[HOST:1]',event_ids:['e'],evidence:[],status:'pending_review'}]};let approved=false;
+const fetch=async(url,opts)=>{calls++;if(url.endsWith('/approval')){approved=true;data.detections[0].status='approved_for_simulated_response';data.detections[0].approval={simulation_only:true};return {ok:true,json:async()=>({simulation_only:true})}}if(delayCollector&&url.endsWith('/collectors'))await new Promise(r=>releaseCollector=r);let result=url.endsWith('/history')?data:url.endsWith('/endpoints')?{endpoints:[]}:url.endsWith('/collectors')?{collectors:[]}:{state:'disabled'};return {ok:true,json:async()=>result}};
+const code=fs.readFileSync('static/console.html','utf8').split('<script>')[1].split('</script>')[0];vm.runInNewContext(code,{document,window,location,fetch,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array,setInterval:(f,ms)=>{assert.equal(ms,5000);timer=f;return 1}});
+const tick=()=>new Promise(r=>setImmediate(r));
+(async()=>{entries['#load'].handlers.click();await tick();let button=walk(root,e=>e.tag==='button'&&e.textContent==='a');await button.handlers.click();await walk(root,e=>e.tag==='button'&&e.textContent.includes('SYNTHETIC_ALERT')).handlers.click();assert(root.textContent.includes('pending_review'));delayCollector=true;timer();await tick();assert(releaseCollector);delayCollector=false;await walk(root,e=>e.tag==='button'&&e.textContent==='시뮬레이션 승인').handlers.click();assert(approved);releaseCollector();await tick();console.log('server approved:',approved,'UI still pending:',root.textContent.includes('pending_review'),'approval button still present:',!!walk(root,e=>e.tag==='button'&&e.textContent==='시뮬레이션 승인'));assert(!root.textContent.includes('pending_review'));assert(!walk(root,e=>e.tag==='button'&&e.textContent==='시뮬레이션 승인'));})().catch(e=>{console.error(e);process.exit(1)});
+'''
+        result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 if __name__ == '__main__': unittest.main()
