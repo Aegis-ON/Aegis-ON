@@ -17,3 +17,40 @@ Install `requirements.txt` and `requirements-attack.txt`; use the independently 
 ```bash
 PYTHONPATH=src python -m aegis_on.command_refine --development evaluation/command_refine_dev_v1.json --original-dir /path/original/model --original-manifest /path/original/metadata.json --output /path/new/model
 ```
+
+## Actual run and selected model
+
+On macOS arm64, Python 3.12.2, PyTorch 2.7.0 and Transformers 4.41.2, the original model was loaded through the product loader and separately fine-tuned. The minimum validation loss was at epoch 8 (0.6170874). No final-test examples were used to train or choose the checkpoint, and 0.5 was not tuned. The selected weights SHA-256 is `bff7da13980f8c939c63d102c33a7143e90e3113182b9ebdc9116889255d0432`. The accompanying manifest records hashes of all six artifacts and local environment. Saved files were reloaded with the actual product loader and passed its real-model test. The original model was not modified. The evaluator and selected model/test hashes were frozen in commit `9fee9dad4d351b0bb7b2723b6445d03d67658539` before final test inference.
+
+The local ZIP backup SHA-256 is `b5808996909ee9ac422e92f4432a7387b989f8bfa154e2a6d12ccae22d6e05fe`. Its upload to an owner-only private Drive folder was observed; the Drive copy has not been independently downloaded or hash-checked. Compare independently trusted hashes after copying; a manifest next to mutable model files is not a signature. The original Drive ZIP round-trip has not been verified either. The prior model itself originates from BERT-Tiny revision `30b0a37ccaaa32f332884b96992754e246e48c5f`, fine-tuned previously on synthetic data; the refined model starts from that checkpoint, not a freshly trained model.
+
+To repeat the frozen comparison using the separately retained models:
+
+```bash
+PYTHONPATH=src python -m aegis_on.command_refine_evaluate \
+  --test evaluation/command_refine_test_v1.json \
+  --protocol evaluation/command_refine_protocol_v1.json \
+  --original-dir /path/original/model --original-manifest /path/original/metadata.json \
+  --refined-dir /path/new/model --refined-manifest /path/new/model/manifest.json \
+  --output /tmp/refinement-new-report.json
+```
+
+## Final synthetic test
+
+Two local runs produced byte-identical reports, SHA-256 `7e57fbabfb5fdc00c8ada626054127831c9ab9ee12bf0b10c5a6702cfe751b57`. The 27-case file has 24 labeled cases across six manually grouped families, plus three unknown cases excluded before inference. Both models successfully scored all 24 labeled commands. The same 24 events were used by each method. Baseline uses the existing rules and keyword adapter with the first command token as a synthetic process and an empty parent. Model inputs are command strings only. Case/group details are in [the report](../evaluation/command_refine_report_v1.json).
+
+| Method | TP | FP | TN | FN | Precision | Recall | F1 | Negative false-alert rate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rules + keyword | 7 | 4 | 8 | 5 | 0.636 | 0.583 | 0.609 | 4/12 (0.333) |
+| Original BERT | 12 | 12 | 0 | 0 | 0.500 | 1.000 | 0.667 | 12/12 (1.000) |
+| Refined BERT | 7 | 2 | 10 | 5 | 0.778 | 0.583 | 0.667 | 2/12 (0.167) |
+
+The refined model reduced this dataset's negative alerts by ten but missed five positives instead of zero. It missed both proxy-setting examples, both event-tracing examples and one remote PowerShell configuration example. Its two FPs are one BitLocker inventory and one proxy inventory example. Baseline missed both proxy-setting examples, both Wi-Fi profile export examples and one tracing example. The original flagged every scored command. Equal F1 does not mean equivalent behavior: the false-alarm/miss trade-off changes. Do not enable this model by default or claim an operational improvement without real-world evidence.
+
+Each of the six families has two negative and two positive related variants. On the refined model: binary-proxy TP2/FP0/TN2/FN0; bitlocker-config 2/1/1/0; event-tracing 0/0/2/2; proxy-configuration 0/1/1/2; remote-powershell 1/0/2/1; wifi-profile 2/0/2/0. These groups are hand-assigned, not six statistically independent samples. The two T1218.007 annotations are two variations from one binary-proxy group; all three methods flagged 2/2 for review for any reason. The binary models do not predict ATT&CK technique IDs. Source: https://attack.mitre.org/techniques/T1218/007/
+
+The weak labels, tool reuse across earlier datasets, small grouped variants, and missing context sharply limit inference. An approved download can look like an unapproved one in a command string; an unspecified script's true content is unknowable. Three unknown examples do not validate model abstention. The original PR7 evaluation was examined earlier and is reference-only; old PR4/v2 evaluation families overlap some new training families and are not independent post-refinement. No performance should be generalized to a real population or attributed to a proven causal training bias. Production work requires a separately sourced, consented, independently annotated, privacy-reviewed dataset with truly held-out source/template families and explicit analyst cost for false negatives.
+
+## Verification
+
+Mac full regression: 159 tests, 156 passed, three opt-in real-model tests skipped; separately the actual refined attack model integration test passed. In-process authenticated JSON and synthetic Sysmon requests with the refined model also passed, including event ID links, missing command and regex IP masking. The existing model integrates optionally into the same JSON/Sysmon pipeline, but these numbers do not represent browser, Windows Sysmon, production deployment, or a new real PII ONNX test. The last relevant GitHub-hosted PII job failed before execution due to billing/spending limits; local tests are not GitHub CI. The model is not committed to Git. No sharing settings, GitHub billing, protections or automatic merge were changed.
