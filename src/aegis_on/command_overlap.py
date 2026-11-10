@@ -2,11 +2,17 @@
 from __future__ import annotations
 import difflib
 import json
+import ntpath
 import re
 from pathlib import Path
 
 
 def normalized(s): return ' '.join(s.casefold().split())
+
+def executable_name(s):
+    match=re.match(r'^\s*("[^"]+"|\x27[^\x27]+\x27|\S+)',s)
+    if not match: return ''
+    return ntpath.basename(match.group(1).strip('\"\x27')).casefold().removesuffix('.exe')
 
 def template(s):
     s=normalized(s)
@@ -29,8 +35,8 @@ def audit(new, old, pr4):
         exact=[ident for ident,text in prior if normalized(text)==normalized(cmd)]
         candidates=[(difflib.SequenceMatcher(None,template(cmd),template(text),autojunk=False).ratio(),ident) for ident,text in prior]
         score,ident=max(candidates) if candidates else (0.0,None)
-        executable=cmd.strip().split()[0].casefold().removesuffix('.exe')
-        same_tool=sorted({ident for ident,text in prior if text.strip().split()[0].casefold().removesuffix('.exe')==executable})
+        executable=executable_name(cmd)
+        same_tool=sorted({ident for ident,text in prior if executable_name(text)==executable})
         results.append({'id':case['id'],'group':case['group'],'exact_matches':exact,'nearest_prior':ident,'template_similarity':round(score,4),'same_tool_prior_ids':same_tool})
     return results
 

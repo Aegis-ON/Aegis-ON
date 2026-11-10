@@ -79,7 +79,9 @@ def evaluate(data, predictor):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--dataset',required=True);parser.add_argument('--output',required=True)
     args=parser.parse_args(); raw=Path(args.dataset).read_bytes(); digest=hashlib.sha256(raw).hexdigest()
-    if Path(args.output).resolve() == Path(args.dataset).resolve(): raise SystemExit('Output must differ from dataset')
+    if (Path(args.output).resolve() == Path(args.dataset).resolve() or
+            (Path(args.output).exists() and os.path.samefile(args.output,args.dataset))):
+        raise SystemExit('Output must differ from dataset')
     if digest != DATASET_SHA256: raise SystemExit('Frozen dataset hash mismatch')
     if not os.environ.get('AEGIS_ATTACK_MODEL_MANIFEST'): raise SystemExit('A trusted model manifest is required')
     predictor=AttackModel.from_environment()

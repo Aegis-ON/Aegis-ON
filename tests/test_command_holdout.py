@@ -1,9 +1,13 @@
 import copy
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from aegis_on.command_holdout import validate, evaluate
-from aegis_on.command_overlap import audit
+from aegis_on import command_holdout
+from aegis_on.command_overlap import audit, executable_name
 
 class CommandHoldoutTests(unittest.TestCase):
     @classmethod
@@ -69,5 +73,21 @@ class CommandHoldoutTests(unittest.TestCase):
         findings=audit(self.data,old,pr4)
         self.assertTrue(findings)
         self.assertFalse(any(r['exact_matches'] for r in findings))
+
+    def test_same_executable_identified_with_quoted_windows_path(self):
+        new={'cases':[{'id':'new','group':'g','command':'"C:\\Program Files\\bin\\cmd.exe" /c whoami'}]}
+        old={'cases':[{'id':'old','command':'cmd /c whoami'}]}
+        self.assertEqual(audit(new,old,{'cases':[]})[0]['same_tool_prior_ids'],['v2:old'])
+        self.assertEqual(executable_name('/usr/bin/python --version'),'python')
+
+    def test_output_hardlink_cannot_overwrite_frozen_dataset(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data=Path(folder,'data.json'); out=Path(folder,'report.json')
+            original=Path('evaluation/command_holdout_v1.json').read_bytes()
+            data.write_bytes(original); os.link(data,out)
+            with patch('sys.argv',['command_holdout','--dataset',str(data),'--output',str(out)]):
+                with self.assertRaisesRegex(SystemExit,'Output must differ'):
+                    command_holdout.main()
+            self.assertEqual(data.read_bytes(),original)
 
 if __name__=='__main__': unittest.main()
