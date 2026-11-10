@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import urllib.error
@@ -144,6 +145,52 @@ class HistoryTests(unittest.TestCase):
         api.service = DetectionService(SQLiteHistory(self.path))
         self.assertEqual(self.client.get('/api/v1/history', headers=self.headers).status_code, 503)
         self.assertEqual(self.path.stat().st_size, 0)
+
+    def test_transient_initial_connection_failure_can_retry_without_deleting_file(self):
+        store = SQLiteHistory(self.path)
+        with patch('sqlite3.connect', side_effect=sqlite3.OperationalError('temporary')):
+            with self.assertRaises(HistoryError):
+                store.list_snapshot()
+        self.assertTrue(self.path.exists())
+        original_stat = self.path.stat()
+        self.assertEqual(store.list_snapshot(), ([], []))
+        self.assertEqual(self.path.stat().st_ino, original_stat.st_ino)
+
+    def test_preexisting_empty_database_is_not_claimed_by_new_instance(self):
+        self.path.parent.mkdir(parents=True)
+        self.path.touch(mode=0o600)
+        with self.assertRaises(HistoryError):
+            SQLiteHistory(self.path).list_snapshot()
+        self.assertEqual(self.path.stat().st_size, 0)
+
+    def test_initialization_is_serialized_and_truncation_stays_an_error(self):
+        store = SQLiteHistory(self.path)
+        entered, release = threading.Event(), threading.Event()
+        original_connect = sqlite3.connect
+        calls = 0
+        def delayed_connect(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                entered.set()
+                if not release.wait(5):
+                    raise RuntimeError('test timed out')
+            return original_connect(*args, **kwargs)
+        try:
+            with patch('sqlite3.connect', side_effect=delayed_connect):
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    first = pool.submit(store.list_snapshot)
+                    self.assertTrue(entered.wait(5))
+                    second = pool.submit(store.save_analysis, {'analysis_id':'a'}, [{'detection_id':'d', 'evidence':[]}])
+                    self.assertFalse(second.done())
+                    release.set()
+                    self.assertEqual(first.result(timeout=5), ([], []))
+                    second.result(timeout=5)
+        finally:
+            release.set()
+        self.path.write_bytes(b'')
+        with self.assertRaises(HistoryError):
+            store.list_snapshot()
 
     def test_locked_database_returns_503_without_modifying_history(self):
         result = self.create()

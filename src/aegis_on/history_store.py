@@ -36,6 +36,10 @@ class SQLiteHistory:
         self.path = os.fspath(path)
         self.timeout = timeout
         self._identity = None
+        # Only an inode created exclusively by this instance can be retried
+        # after a transient initialization failure. Existing empty files must
+        # remain errors, since they might contain a truncated history.
+        self._pending_identity = None
         self._identity_lock = Lock()
         if not self.path or self.path == ':memory:':
             raise HistoryError('History storage unavailable')
@@ -74,31 +78,31 @@ class SQLiteHistory:
                 if self._identity is not None and self._identity != identity:
                     raise HistoryError('History storage unavailable')
                 self._identity = identity
-            conn = sqlite3.connect(self.path, timeout=self.timeout, isolation_level=None)
-            conn.execute('PRAGMA foreign_keys = ON')
-            # Serialize first-time initialization across processes and verify
-            # the schema version inside the transaction, not before the lock.
-            conn.execute('BEGIN IMMEDIATE')
-            version = conn.execute('PRAGMA user_version').fetchone()[0]
-            if version == 0:
-                # Existing empty/truncated files are not evidence of a first
-                # run. Only the process that exclusively created the file may
-                # initialize it. A racing first request can retry after 503.
-                if not created:
+                if created:
+                    self._pending_identity = identity
+                conn = sqlite3.connect(self.path, timeout=self.timeout, isolation_level=None)
+                conn.execute('PRAGMA foreign_keys = ON')
+                # Keep the pending-creation decision and initialization in the
+                # same lock; SQLite also serializes across separate processes.
+                conn.execute('BEGIN IMMEDIATE')
+                version = conn.execute('PRAGMA user_version').fetchone()[0]
+                if version == 0:
+                    if self._pending_identity != identity:
+                        raise HistoryError('History storage unavailable')
+                    objects = conn.execute(
+                        "SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1"
+                    ).fetchone()
+                    if objects:
+                        raise HistoryError('History storage unavailable')
+                    conn.execute('CREATE TABLE analyses (sequence INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL)')
+                    conn.execute('CREATE TABLE detections (sequence INTEGER PRIMARY KEY AUTOINCREMENT, '
+                                 'analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), '
+                                 'detection_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, approval TEXT)')
+                    conn.execute('PRAGMA user_version = 1')
+                elif version != 1:
                     raise HistoryError('History storage unavailable')
-                objects = conn.execute(
-                    "SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1"
-                ).fetchone()
-                if objects:
-                    raise HistoryError('History storage unavailable')
-                conn.execute('CREATE TABLE analyses (sequence INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL)')
-                conn.execute('CREATE TABLE detections (sequence INTEGER PRIMARY KEY AUTOINCREMENT, '
-                             'analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), '
-                             'detection_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, approval TEXT)')
-                conn.execute('PRAGMA user_version = 1')
-            elif version != 1:
-                raise HistoryError('History storage unavailable')
-            conn.execute('COMMIT')
+                conn.execute('COMMIT')
+                self._pending_identity = None
             yield conn
         except KeyError:
             if conn is not None and conn.in_transaction:
