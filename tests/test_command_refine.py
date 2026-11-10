@@ -26,3 +26,30 @@ class RefinementDataTests(unittest.TestCase):
         self.assertFalse(set(old)&set(all_new))
 
 if __name__=='__main__': unittest.main()
+
+class RefinementMetricTests(unittest.TestCase):
+    def test_common_support_group_and_unknown_exclusion(self):
+        from aegis_on.command_refine_evaluate import compare
+        class Fake:
+            def __init__(self,label): self.label=label
+            def predict(self,command): return {'status':'ok','label':self.label,'score':0.9 if self.label=='review' else 0.1}
+        rows=[{'id':'p','group':'g','label':'positive','command':'demo positive'},
+              {'id':'n','group':'g','label':'negative','command':'demo negative'},
+              {'id':'u','group':'h','label':'unknown','command':'demo unknown'}]
+        r=compare({'cases':rows},Fake('review'),Fake('below_threshold'))
+        self.assertEqual(r['scored_cases'],2);self.assertEqual(r['excluded']['unknown_truth'],1)
+        self.assertEqual(r['overall']['original']['tp'],1);self.assertEqual(r['overall']['original']['fp'],1)
+        self.assertEqual(r['overall']['refined']['fn'],1);self.assertEqual(r['overall']['refined']['tn'],1)
+        self.assertEqual(r['overall']['original']['false_alert_rate'],1)
+        self.assertEqual(r['by_group']['g']['refined']['support'],2)
+
+    def test_prediction_failure_is_excluded_from_all_comparisons(self):
+        from aegis_on.command_refine_evaluate import compare
+        class Good:
+            def predict(self,command): return {'status':'ok','label':'review','score':0.9}
+        class Failed:
+            def predict(self,command): return {'status':'inference_error'}
+        r=compare({'cases':[{'id':'p','group':'g','label':'positive','command':'sample'}]},Good(),Failed())
+        self.assertEqual(r['scored_cases'],0)
+        self.assertEqual(r['overall']['baseline']['support'],0)
+        self.assertEqual(r['excluded']['model_unavailable_or_rejected'],1)
