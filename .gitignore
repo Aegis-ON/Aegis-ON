@@ -9,3 +9,10 @@ Aegis-ON-Logs/
 models/
 *.onnx
 *.safetensors
+# Local history databases and SQLite journals must remain outside version control.
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*

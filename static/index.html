@@ -18,7 +18,7 @@
     <div class="app">
       <aside class="sidebar" aria-label="주 메뉴">
         <div class="brand"><span class="brand-mark">A</span>Aegis-ON</div>
-        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>시나리오 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a></nav>
+        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>시나리오 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a><a class="nav-link" href="#history"><span>◷</span>분석 이력</a></nav>
         <p class="side-note">로컬 분석 데모<br />자동 차단은 수행하지 않습니다.</p>
       </aside>
       <div class="main">
@@ -40,8 +40,9 @@
             </section>
             <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />명령줄 분석은 규칙·키워드 기준선과 선택적 실험용 BERT 모델을 구분합니다. 키워드 기준선은 BERT가 아닙니다. 개인정보 탐지는 별도 기능입니다.</p><p class="note-line"><strong>개인정보 탐지의 한계</strong><br />탐지 및 가명처리는 모든 개인정보를 보호하지 못하며 누락될 수 있습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
           </div>
-          <section id="result-section"><div class="results-head"><h2>탐지 및 이벤트</h2><small>현재 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
-          <p class="foot">표시되는 IP 등은 가명처리됩니다. 원본 이벤트는 레코드 ID·출처 등 식별 정보만 표시하며, 실제 명령줄과 사용자명은 표시하지 않습니다. 분석 결과와 연결 정보는 서버에 영구 저장되지 않습니다.</p>
+          <section id="history" class="panel"><h2 class="panel-title">로컬 분석 이력</h2><p class="panel-desc">이력에는 가명처리된 식별 정보와 승인 시뮬레이션이 저장됩니다. 실제 차단은 수행하지 않습니다.</p><button class="action" id="load-history" type="button">이력 불러오기</button><div id="history-list" aria-live="polite">인증 후 이전 분석을 조회할 수 있습니다.</div></section>
+          <section id="result-section"><div class="results-head"><h2>탐지 및 이벤트</h2><small>선택한 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
+          <p class="foot">로컬 이력은 민감할 수 있습니다. 원본 로그 전체는 저장하지 않지만 개인정보 탐지의 누락으로 일부 값이 남을 수 있습니다.</p>
         </main>
       </div>
     </div>
@@ -79,6 +80,10 @@
       function sourceDetail(event) {
         const detail = document.createElement('div');
         detail.className = 'source-event';
+        if (event.sysmon_event_id === undefined || event.sysmon_event_id === null) {
+          detail.append(createText('strong', `입력 ${displayValue(event.input_index)} · 이벤트 ID ${displayValue(event.event_id)}`));
+          return detail;
+        }
         detail.append(createText('strong', `입력 ${displayValue(event.input_index)} · Sysmon 이벤트 ${displayValue(event.sysmon_event_id)}`));
         detail.append(createText('p', `레코드 ID: ${displayValue(event.record_id)} · 출처: ${displayValue(event.log_source)} · 시각: ${displayValue(event.timestamp)}`));
         detail.append(createText('p', `호스트: ${displayValue(event.host)} · PID: ${displayValue(event.process_id)} · 프로세스 GUID: ${displayValue(event.process_guid)}`));
@@ -96,6 +101,7 @@
             try { detail = (await response.json()).detail; } catch (_) { /* Keep unknown errors generic. */ }
             if (detail === 'PII model inference failed') throw new Error('개인정보 모델 추론에 실패했습니다. 서버 상태를 확인해 주세요.');
             if (detail === 'API authentication is not configured') throw new Error('API 인증이 설정되지 않았습니다.');
+            if (detail === 'history storage unavailable') throw new Error('로컬 이력을 저장하거나 불러오지 못했습니다. 저장소 상태를 확인해 주세요.');
             throw new Error('서비스를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.');
           }
           throw new Error(`${operation} 실패 (HTTP ${response.status})`);
@@ -139,6 +145,7 @@
             for (const event of linked) card.append(sourceDetail(event));
           }
           const approvalStatus = createText('p', `승인 상태: ${displayValue(detection.status)} · 실제 차단 없음`, 'approval-line');
+          if (detection.approval) approvalStatus.append(createText('span', ` · ${displayValue(detection.approval.approved_at)} · 분석가: ${displayValue(detection.approval.analyst)} · 사유: ${displayValue(detection.approval.rationale)}`));
           const approvalButton = createText('button', '시뮬레이션 승인', 'action approval-button');
           approvalButton.type = 'button';
           approvalButton.disabled = !detection.detection_id || detection.status === 'approved_for_simulated_response';
@@ -276,6 +283,33 @@
         catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
       const scenarioLabels = {a:'시나리오 A · 정상 프로세스', b:'시나리오 B · 의심 다운로드 명령', c:'시나리오 C · 다수 목적지 연결'};
+      document.querySelector('#load-history')?.addEventListener('click', async () => {
+        const request = beginAnalysis(); const token = askToken(); if (!token) return;
+        const list = document.querySelector('#history-list');
+        list.textContent = '저장된 이력을 불러오는 중…';
+        try {
+          const response = await fetch('/api/v1/history', {headers:{Authorization:`Bearer ${token}`}, signal:request.signal});
+          const data = await readResponse(response, '이력 조회');
+          if (!isCurrent(request)) return;
+          list.replaceChildren();
+          if (!data.analyses.length) { list.append(createText('p', '저장된 분석 이력이 없습니다.', 'empty')); return; }
+          for (const analysis of data.analyses) {
+            const button = createText('button', `${displayValue(analysis.analyzed_at)} · ${displayValue(analysis.input_type)} · 탐지 ${(analysis.detection_ids || []).length}건`, 'action');
+            button.type = 'button';
+            button.addEventListener('click', () => {
+              const selected = beginAnalysis();
+              const ids = new Set(analysis.detection_ids || []);
+              const detections = data.detections.filter(d => ids.has(d.detection_id));
+              const sources = analysis.source_events && analysis.source_events.length ? analysis.source_events : (analysis.event_refs || []);
+              summary.textContent = `저장된 ${displayValue(analysis.input_type)} 분석 · ${displayValue(analysis.analyzed_at)} · 승인 조치는 시뮬레이션입니다.`;
+              if (analysis.summary) setStats(analysis.summary, detections.length);
+              renderAttackModel(analysis.attack_model);
+              renderDetections(detections, sources, selected);
+            });
+            list.append(button);
+          }
+        } catch (error) { if (isCurrent(request)) list.textContent = `이력 조회 실패: ${error.message}`; }
+      });
       for (const name of ['a','b','c']) {
         document.querySelector(`#scenario-${name}`).addEventListener('click', async () => {
           const request = beginAnalysis(); const token = askToken(); if (!token) return;
