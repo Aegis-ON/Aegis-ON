@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import re
+import tempfile
 from typing import Any
 
 from .privacy import EMAIL_RE, PHONE_RE, IP_RE, IPV6_CANDIDATE_RE, _token
@@ -43,6 +44,19 @@ def _verify_model_files(root: Path) -> None:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         if digest != expected:
             raise ValueError("local model file checksum mismatch")
+
+
+def _load_verified_tokenizer(root: Path, auto_tokenizer: Any) -> Any:
+    """Keep additional local files from altering the verified tokenizer."""
+    with tempfile.TemporaryDirectory(prefix='aegis-pii-tokenizer-') as directory:
+        isolated = Path(directory)
+        for name, expected in MODEL_ASSET_SHA256.items():
+            data = (root / name).read_bytes()
+            if hashlib.sha256(data).hexdigest() != expected:
+                raise ValueError("local model file checksum mismatch")
+            (isolated / name).write_bytes(data)
+        return auto_tokenizer.from_pretrained(str(isolated), local_files_only=True,
+                                               use_fast=True, trust_remote_code=False)
 
 
 @dataclass(frozen=True)
@@ -172,7 +186,7 @@ class _LocalModel:
         if (config.get("model_type") != "bert" or config.get("max_position_embeddings") != 512
                 or config.get("vocab_size") != 119547):
             raise ValueError("model configuration mismatch")
-        self.tokenizer = AutoTokenizer.from_pretrained(str(root), local_files_only=True, use_fast=True, trust_remote_code=False)
+        self.tokenizer = _load_verified_tokenizer(root, AutoTokenizer)
         if (not self.tokenizer.is_fast or self.tokenizer.vocab_size != 119547
                 or [self.tokenizer.pad_token_id, self.tokenizer.unk_token_id, self.tokenizer.cls_token_id,
                     self.tokenizer.sep_token_id, self.tokenizer.mask_token_id] != [0, 100, 101, 102, 103]):
@@ -209,11 +223,15 @@ class _LocalModel:
         for start in range(0, len(ids), step):
             end = min(start + self.capacity, len(ids))
             prepared = self.tokenizer.prepare_for_model(ids[start:end], add_special_tokens=True,
-                return_special_tokens_mask=True, return_attention_mask=True, return_token_type_ids=True,
+                return_special_tokens_mask=False, return_attention_mask=True, return_token_type_ids=True,
                 truncation=False)
-            special = prepared["special_tokens_mask"]
-            if len(special) > 512 or sum(1 for x in special if not x) != end - start:
+            # BertTokenizerFast cannot construct a special-token mask from a
+            # list of already-tokenized IDs. Verify the known BERT sequence and
+            # construct the mask from positions, not token values.
+            expected = [self.tokenizer.cls_token_id, *ids[start:end], self.tokenizer.sep_token_id]
+            if prepared["input_ids"] != expected or len(expected) > 128:
                 raise ValueError("tokenization incomplete")
+            special = [1] + [0] * (end - start) + [1]
             feed = {name: self.np.asarray([prepared[name]], dtype=self.np.int64) for name in self.input_names}
             result = self.session.run([self.output_name], feed)
             if len(result) != 1:

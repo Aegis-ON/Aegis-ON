@@ -8,7 +8,7 @@
 
 모델 카드의 18개 후보 유형은 `GIVENNAME`, `SURNAME`, `USERNAME`, `EMAIL`, `TELEPHONENUM`, `DATEOFBIRTH`, `CREDITCARDNUMBER`, `IDCARD`, `STREET`, `CITY`, `ZIPCODE`, `BUILDINGNUM`, `IP_ADDRESS`, `PASSWORD`, `ACCOUNTNUM`, `DRIVERLICENSENUM`, `TIME`, `COMPANY`입니다. BIO 라벨은 이 유형의 B/I와 O를 합쳐 37개입니다. 이 목록은 모델이 출력할 수 있는 유형이며, 모든 사례를 정확히 탐지한다는 보장은 아닙니다. 위 목록 밖의 유형은 모델의 지원을 주장하지 않습니다.
 
-기준 리비전은 `3a1d4f61e156035a22d820b59c78e4d5e5cc6f6f`입니다. 해당 리비전에서 파일을 내려받아 SHA-256을 계산하고, ONNX의 LFS SHA-256과 나머지 파일의 Git blob ID를 Hugging Face 리비전 메타데이터와 대조했습니다. 로더는 다음 **여섯 파일 모두의 SHA-256**을 확인한 뒤 라벨·BERT 설정, 토크나이저 어휘 크기와 특수 토큰을 검사합니다. 파일이 누락되거나 변조되면 모델은 준비 상태가 되지 않습니다.
+기준 리비전은 `3a1d4f61e156035a22d820b59c78e4d5e5cc6f6f`입니다. 해당 리비전에서 파일을 내려받아 SHA-256을 계산하고, ONNX의 LFS SHA-256과 나머지 파일의 Git blob ID를 Hugging Face 리비전 메타데이터와 대조했습니다. 로더는 다음 **여섯 파일 모두의 SHA-256**을 확인한 뒤 라벨·BERT 설정, 토크나이저 어휘 크기와 특수 토큰을 검사합니다. 토크나이저는 확인된 설정 파일만 임시 디렉터리에 복사하여 로드하므로, 같은 폴더의 다른 파일은 토큰화에 영향을 주지 않습니다. 파일이 누락되거나 변조되면 모델은 준비 상태가 되지 않습니다.
 
 | 파일 | SHA-256 |
 | --- | --- |
@@ -19,7 +19,7 @@
 | `special_tokens_map.json` | `5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a` |
 | `vocab.txt` | `fe0fda7c425b48c516fc8f160d594c8022a0808447475c1a7c6d6479763f310c` |
 
-Google Colab Linux x86-64의 Python 3.13.18, ONNX Runtime 1.31.1과 Transformers 4.57.6에서 이 공식 파일들을 직접 열어 한국어·영어 합성 문장에 CPU 추론을 실행했습니다. 세 입력은 `input_ids`, `attention_mask`, `token_type_ids`이고 출력은 각 토큰에 대한 37개 점수로, 현재 로더의 기대 형식과 일치했습니다. 이 단독 모델 실험은 PR 코드 전체의 통합 검증과 별개입니다. 로컬 Mac과 Windows에서 실제 모델을 실행했는지는 아래 테스트를 통해 따로 확인해야 합니다.
+Google Colab Linux x86-64의 Python 3.13.18, ONNX Runtime 1.31.1과 Transformers 4.57.6에서 이 공식 파일들을 직접 열어 한국어·영어 합성 문장에 CPU 추론을 실행했습니다. 세 입력은 `input_ids`, `attention_mask`, `token_type_ids`이고 출력은 각 토큰에 대한 37개 점수로, 현재 로더의 기대 형식과 일치했습니다. 실제 Fast 토크나이저는 미리 토큰화한 ID에서 `return_special_tokens_mask=True`를 요청하면 예외를 발생시켰습니다. 수정 방식인 특수 토큰 ID 배열 확인과 위치 기반 마스크로 단독 추론에 성공했고, 287토큰 합성 입력을 네 개 창으로 처리해 끝부분에 도달했습니다. 이 단독 모델 실험은 PR 코드 전체의 통합 검증과 별개입니다. 로컬 Mac과 Windows에서 실제 모델을 실행했는지는 아래 테스트를 통해 따로 확인해야 합니다.
 
 모델 카드에는 학습 데이터로 `ai4privacy/pii-masking-400k`가 표시되며, 이 [데이터셋의 현재 사용 조건](https://huggingface.co/datasets/ai4privacy/pii-masking-400k/blob/main/license.md)은 모델 카드의 라이선스 표기와 별도로 검토할 필요가 있습니다. 학습 당시 데이터 조건과 모델 배포 권한은 이 저장소에서 확인하지 못했으므로 실제 배포 또는 상용 사용 전 모델 제작자에게 확인하세요.
 

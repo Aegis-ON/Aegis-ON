@@ -45,6 +45,11 @@ class NumericModel:
         return [Span(m.start(), m.end(), 'ACCOUNTNUM', 'model') for m in re.finditer('1234567890', text)]
 
 
+class Ipv6FragmentModel:
+    def find(self, text):
+        return [Span(0, 4, 'IDCARD', 'model')] if text == '2001' else []
+
+
 class PiiApiTests(unittest.TestCase):
     def setUp(self):
         self.env = patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-token', 'AEGIS_ANALYST_NAME': 'analyst'}, clear=False)
@@ -236,10 +241,28 @@ class PiiApiTests(unittest.TestCase):
                             'TimeCreated': '2026-01-01T00:00:00Z', 'Computer': 'LAB',
                             'Channel': 'Microsoft-Windows-Sysmon/Operational'},
                  'EventData': {'Image': r'C:\curl.exe', 'CommandLine': 'curl 1234567890', 'ProcessId': 1234567890}}
-        response = self.client.post('/api/v1/sysmon/analyze', json={'events': [event]}, headers=self.headers)
+        unsupported = {'System': {'Provider': 'Microsoft-Windows-Sysmon', 'EventID': 1234567890}, 'EventData': {}}
+        response = self.client.post('/api/v1/sysmon/analyze', json={'events': [event, unsupported]}, headers=self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(any(f['type'] == 'ACCOUNTNUM' for f in response.json()['pii']['findings']))
         self.assertNotIn('1234567890', response.text)
+
+    def test_normalizing_ip_cannot_expose_a_detected_ipv6_fragment(self):
+        api.pii_detector = PIIDetector(Ipv6FragmentModel())
+        event = {'System': {'Provider': 'Microsoft-Windows-Sysmon', 'EventID': 3,
+                            'TimeCreated': '2026-01-01T00:00:00Z', 'Computer': 'LAB',
+                            'Channel': 'Microsoft-Windows-Sysmon/Operational'},
+                 'EventData': {'Image': r'C:\curl.exe', 'User': '2001',
+                               'SourceIp': '2001:0db8:0001:0002:0003:0004:0005:0006',
+                               'DestinationIp': '192.0.2.17', 'Initiated': 'true'}}
+        response = self.client.post('/api/v1/sysmon/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        source = payload['source_events'][0]['source_ip']
+        finding = next(f for f in payload['pii']['findings'] if f['field'] == 'source_ip' and f['type'] == 'IP_ADDRESS')
+        self.assertEqual(source, finding['display_token'])
+        self.assertTrue(source.startswith('[IP:'))
+        self.assertNotIn(':db8:1:2:3:4:5:6', response.text)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import os
 import hashlib
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +11,8 @@ try:
 except ImportError:
     np = None
 
-from aegis_on.pii import MODEL_LABELS, PIIDetector, Span, _LocalModel, _verify_model_files, redact_spans, regex_spans
+from aegis_on.pii import (MODEL_LABELS, PIIDetector, Span, _LocalModel, _load_verified_tokenizer,
+                          _verify_model_files, redact_spans, regex_spans)
 from aegis_on.privacy import redact_text
 
 
@@ -74,6 +76,25 @@ class PIITests(unittest.TestCase):
                             _verify_model_files(root)
                         (root / name).write_bytes(value)
 
+    def test_tokenizer_loader_uses_only_verified_files(self):
+        contents = {'config.json': b'config', 'tokenizer.json': b'tokenizer',
+                    'tokenizer_config.json': b'tokenizer config', 'special_tokens_map.json': b'special',
+                    'vocab.txt': b'vocabulary'}
+        hashes = {name: hashlib.sha256(value).hexdigest() for name, value in contents.items()}
+        class Loader:
+            @staticmethod
+            def from_pretrained(path, **options):
+                self.assertEqual({p.name for p in Path(path).iterdir()}, set(contents))
+                self.assertEqual(options, {'local_files_only': True, 'use_fast': True, 'trust_remote_code': False})
+                return 'loaded'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, value in contents.items():
+                (root / name).write_bytes(value)
+            (root / 'added_tokens.json').write_text('{"unverified": 119547}')
+            with patch('aegis_on.pii.MODEL_ASSET_SHA256', hashes):
+                self.assertEqual(_load_verified_tokenizer(root, Loader), 'loaded')
+
     def test_regex_offsets_and_compatible_ip_tokens(self):
         samples = ["host:2001:db8::1.", "mapped ::ffff:192.0.2.1 connected",
                    "https://[2001:db8::1]:8443 a@example.org 010-1234-5678",
@@ -135,6 +156,9 @@ class PIITests(unittest.TestCase):
 
 
 class FakeTokenizer:
+    cls_token_id = 101
+    sep_token_id = 102
+
     def __call__(self, text, **kwargs):
         import re
         matches = list(re.finditer(r"\S+", text))
@@ -142,9 +166,11 @@ class FakeTokenizer:
                 "offset_mapping": [(m.start(), m.end()) for m in matches]}
 
     def prepare_for_model(self, ids, **kwargs):
+        if kwargs.get('return_special_tokens_mask'):
+            raise AssertionError('fast tokenizer cannot create special token mask for raw token IDs')
         full = [101] + ids + [102]
         return {"input_ids": full, "attention_mask": [1] * len(full), "token_type_ids": [0] * len(full),
-                "special_tokens_mask": [1] + [0] * len(ids) + [1]}
+                }
 
 
 class FakeSession:
@@ -201,6 +227,44 @@ class WindowTests(unittest.TestCase):
         self.assertEqual(spans[-1].end, len(text))
         self.assertGreater(len(model.session.lengths), 1)
         self.assertLessEqual(max(model.session.lengths), 10)
+
+    def test_special_token_ids_in_input_are_not_treated_as_inserted_tokens(self):
+        class InputSpecialTokenizer(FakeTokenizer):
+            def __call__(self, text, **kwargs):
+                result = super().__call__(text, **kwargs)
+                result['input_ids'] = [101]
+                return result
+        class InputSpecialSession:
+            def run(self, outputs, feed):
+                logits = np.zeros((1, len(feed['input_ids'][0]), len(MODEL_LABELS)))
+                logits[0, 1, MODEL_LABELS.index('B-GIVENNAME')] = 1
+                return [logits]
+        model = _LocalModel.__new__(_LocalModel)
+        model.tokenizer = InputSpecialTokenizer()
+        model.np = np
+        model.session = InputSpecialSession()
+        model.input_names = {'input_ids', 'attention_mask', 'token_type_ids'}
+        model.output_name = 'logits'
+        model.capacity = 8
+        spans = model.find('literal')
+        self.assertEqual(spans, [Span(0, 7, 'GIVENNAME', 'model')])
+
+    @unittest.skipUnless(importlib.util.find_spec('transformers'), 'optional transformers dependency not installed')
+    def test_actual_fast_tokenizer_prepares_windows_without_mask_assertion(self):
+        from transformers import BertTokenizerFast
+        with tempfile.TemporaryDirectory() as directory:
+            vocab = [f'unused{i}' for i in range(104)]
+            vocab[0], vocab[7], vocab[100], vocab[101], vocab[102], vocab[103] = (
+                '[PAD]', 'target', '[UNK]', '[CLS]', '[SEP]', '[MASK]')
+            path = Path(directory) / 'vocab.txt'
+            path.write_text('\n'.join(vocab) + '\n', encoding='utf-8')
+            model = _LocalModel.__new__(_LocalModel)
+            model.tokenizer = BertTokenizerFast(vocab_file=str(path), do_lower_case=False)
+            model.np, model.session = np, FakeSession()
+            model.input_names = {'input_ids', 'attention_mask', 'token_type_ids'}
+            model.output_name, model.capacity = 'logits', 8
+            spans = model.find('target')
+            self.assertEqual(spans, [Span(0, 6, 'GIVENNAME', 'model')])
 
     def make_position_model(self, labels, per_window=None):
         model = _LocalModel.__new__(_LocalModel)

@@ -190,15 +190,20 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
                 "sysmon_event_id", "record_id", "log_source", "process_guid", "process_id",
                 "source_port", "destination_port", "initiated"
             )},
-            "source_ip": _display_ip(metadata["source_ip"]),
-            "destination_ip": _display_ip(metadata["destination_ip"]),
+            "source_ip": metadata["source_ip"],
+            "destination_ip": metadata["destination_ip"],
         }
         # Numeric identifiers and ports are not separately scanned, but an
         # already-detected value may also appear there. Preserve numbers unless
         # a candidate is actually present; structural event indexes stay numeric.
         def display_source_value(key: str, value: Any) -> Any:
             if isinstance(value, str):
-                return mask(value)
+                masked = mask(value)
+                # Mask the original form before normalization. Rewriting an IP
+                # first can break its full-span match and leak address fragments.
+                if key in {'source_ip', 'destination_ip'} and masked == value:
+                    return _display_ip(value)
+                return masked
             if key in {'record_id', 'process_id', 'source_port', 'destination_port'} and type(value) is int:
                 masked = mask(str(value))
                 return value if masked == str(value) else masked
@@ -207,6 +212,11 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
     for item in items:
         if item["status"] == "processed":
             item["event_id"] = mask(item["event_id"])
+        elif item["status"] == "unsupported" and type(item.get("sysmon_event_id")) is int:
+            original = item["sysmon_event_id"]
+            masked = mask(str(original))
+            if masked != str(original):
+                item["sysmon_event_id"] = masked
     summary = {"total": len(items)}
     for status in ("processed", "invalid", "unsupported"):
         summary[status] = sum(item["status"] == status for item in items)
