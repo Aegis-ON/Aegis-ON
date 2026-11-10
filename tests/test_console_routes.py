@@ -20,7 +20,8 @@ class ConsoleRouteTests(unittest.TestCase):
     def test_shells_resolve_on_direct_load_and_data_remains_authenticated(self):
         landing = self.client.get('/')
         self.assertEqual(landing.status_code, 200)
-        self.assertIn('이벤트를 읽고', landing.text)
+        self.assertIn('관제 메뉴', landing.text)
+        self.assertNotIn('제품 소개', landing.text)
         for path in ['/console','/console/endpoints','/console/endpoints/'+'a'*64,'/console/detections','/console/history']:
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)

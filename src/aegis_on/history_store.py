@@ -19,6 +19,10 @@ class HistoryError(Exception):
     """A storage failure whose message does not disclose paths or data."""
 
 
+class BatchConflict(Exception):
+    """An idempotency key was reused for different input."""
+
+
 def _encode(value: Any) -> str:
     return json.dumps(value, ensure_ascii=True, allow_nan=False, separators=(',', ':'))
 
@@ -98,13 +102,31 @@ class SQLiteHistory:
                     conn.execute('CREATE TABLE detections (sequence INTEGER PRIMARY KEY AUTOINCREMENT, '
                                  'analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), '
                                  'detection_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, approval TEXT)')
-                    conn.execute('PRAGMA user_version = 1')
-                elif version != 1:
+                    version = 1
+                if version == 1:
+                    # Do not upgrade a damaged v1 file into an apparently
+                    # valid but empty v2 database.
+                    required = {
+                        'analyses': {'sequence', 'payload'},
+                        'detections': {'sequence', 'analysis_sequence', 'detection_id', 'payload', 'approval'},
+                    }
+                    for table, columns in required.items():
+                        actual = {row[1] for row in conn.execute(f'PRAGMA table_info({table})')}
+                        if not columns.issubset(actual):
+                            raise HistoryError('History storage unavailable')
+                    conn.execute('CREATE TABLE collectors (collector_id TEXT PRIMARY KEY, last_received_at TEXT, '
+                                 'last_heartbeat_at TEXT, reported_state TEXT, last_error_at TEXT, last_error_code TEXT)')
+                    conn.execute('CREATE TABLE collected_batches (collector_id TEXT NOT NULL, batch_id TEXT NOT NULL, '
+                                 'input_type TEXT NOT NULL, digest TEXT NOT NULL, '
+                                 'analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), '
+                                 'PRIMARY KEY(collector_id,batch_id))')
+                    conn.execute('PRAGMA user_version = 2')
+                elif version != 2:
                     raise HistoryError('History storage unavailable')
                 conn.execute('COMMIT')
                 self._pending_identity = None
             yield conn
-        except KeyError:
+        except (KeyError, BatchConflict):
             if conn is not None and conn.in_transaction:
                 conn.rollback()
             raise
@@ -131,7 +153,7 @@ class SQLiteHistory:
             detection['approval'] = data
         return detection
 
-    def save_analysis(self, batch: dict[str, Any], detections: list[dict[str, Any]]) -> None:
+    def save_analysis(self, batch: dict[str, Any], detections: list[dict[str, Any]], collection: dict[str, str] | None = None) -> dict[str, Any] | None:
         try:
             if not isinstance(batch, dict) or not isinstance(detections, list):
                 raise ValueError('invalid analysis')
@@ -150,10 +172,63 @@ class SQLiteHistory:
             raise HistoryError('History storage unavailable') from None
         with self._connection() as conn:
             conn.execute('BEGIN IMMEDIATE')
+            if collection is not None:
+                row = conn.execute('SELECT c.input_type,c.digest,a.payload FROM collected_batches c '
+                                   'JOIN analyses a ON a.sequence=c.analysis_sequence '
+                                   'WHERE c.collector_id=? AND c.batch_id=?',
+                                   (collection['collector_id'], collection['batch_id'])).fetchone()
+                if row is not None:
+                    if row[0] != collection['input_type'] or row[1] != collection['digest']:
+                        raise BatchConflict()
+                    saved = json.loads(row[2])
+                    conn.execute('COMMIT')
+                    return {'analysis_id': saved['analysis_id'], 'summary': saved['summary'], 'replayed': True}
             sequence = conn.execute('INSERT INTO analyses(payload) VALUES (?)', (encoded_batch,)).lastrowid
             conn.executemany('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
                              [(sequence, detection_id, payload) for detection_id, payload in encoded_detections])
+            if collection is not None:
+                received = datetime.now(timezone.utc).isoformat()
+                conn.execute('INSERT INTO collected_batches(collector_id,batch_id,input_type,digest,analysis_sequence) '
+                             'VALUES (?,?,?,?,?)', (collection['collector_id'], collection['batch_id'],
+                                                     collection['input_type'], collection['digest'], sequence))
+                conn.execute('INSERT INTO collectors(collector_id,last_received_at) VALUES (?,?) '
+                             'ON CONFLICT(collector_id) DO UPDATE SET last_received_at=excluded.last_received_at',
+                             (collection['collector_id'], received))
             conn.execute('COMMIT')
+            if collection is not None:
+                return {'analysis_id': batch['analysis_id'], 'summary': batch['summary'], 'replayed': False}
+
+    def heartbeat(self, collector_id: str, state: str, error_code: str | None) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        with self._connection() as conn:
+            conn.execute('BEGIN IMMEDIATE')
+            conn.execute('INSERT INTO collectors(collector_id,last_heartbeat_at,reported_state,last_error_at,last_error_code) '
+                         'VALUES (?,?,?,?,?) ON CONFLICT(collector_id) DO UPDATE SET '
+                         'last_heartbeat_at=excluded.last_heartbeat_at,reported_state=excluded.reported_state, '
+                         'last_error_at=CASE WHEN excluded.last_error_at IS NULL THEN collectors.last_error_at ELSE excluded.last_error_at END, '
+                         'last_error_code=CASE WHEN excluded.last_error_code IS NULL THEN collectors.last_error_code ELSE excluded.last_error_code END',
+                         (collector_id, now, state, now if state == 'error' else None, error_code))
+            conn.execute('COMMIT')
+
+    def lookup_collected(self, collection: dict[str, str]) -> dict[str, Any] | None:
+        with self._connection() as conn:
+            row = conn.execute('SELECT c.input_type,c.digest,a.payload FROM collected_batches c '
+                               'JOIN analyses a ON a.sequence=c.analysis_sequence '
+                               'WHERE c.collector_id=? AND c.batch_id=?',
+                               (collection['collector_id'], collection['batch_id'])).fetchone()
+            if row is None:
+                return None
+            if row[0] != collection['input_type'] or row[1] != collection['digest']:
+                raise BatchConflict()
+            saved = json.loads(row[2])
+            return {'analysis_id': saved['analysis_id'], 'summary': saved['summary'], 'replayed': True}
+
+    def list_collectors(self) -> list[dict[str, Any]]:
+        with self._connection() as conn:
+            names = ('collector_id','last_received_at','last_heartbeat_at','reported_state','last_error_at','last_error_code')
+            return [dict(zip(names, row)) for row in conn.execute(
+                'SELECT collector_id,last_received_at,last_heartbeat_at,reported_state,last_error_at,last_error_code '
+                'FROM collectors ORDER BY collector_id')]
 
     def list_analyses(self) -> list[dict[str, Any]]:
         with self._connection() as conn:

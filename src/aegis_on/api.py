@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import hashlib
 import copy
 import ipaddress
 import json
@@ -15,7 +16,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from .service import DetectionService
 from .attack_model import AttackModel
@@ -24,7 +25,7 @@ from .privacy import redact_for_display, _token
 from .pii import PIIDetector
 from .pii_reporting import InvalidPIIInput, inspect_events
 from .sysmon import parse_sysmon
-from .history_store import SQLiteHistory, HistoryError
+from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
 
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
@@ -92,9 +93,14 @@ class ApprovalRequest(BaseModel):
     rationale: str = Field(default="", max_length=500)
 
 
+class CollectorHeartbeat(BaseModel):
+    state: str
+    error_code: str | None = None
+
+
 @app.get("/", include_in_schema=False)
 def dashboard() -> FileResponse:
-    return FileResponse("static/landing.html")
+    return FileResponse("static/console.html")
 
 
 @app.get('/console/analysis', include_in_schema=False)
@@ -224,7 +230,7 @@ def _history_batch(kind: str, prepared: dict[str, Any], sources: list[dict[str, 
             'attack_model': {'state': state, 'weights_sha256': weights, 'results': results}}
 
 
-def _commit_history(prepared: dict[str, Any], batch: dict[str, Any]) -> None:
+def _commit_history(prepared: dict[str, Any], batch: dict[str, Any], collection: dict[str, str] | None = None) -> dict[str, Any] | None:
     # Keep current API response and in-memory display independent from the
     # more conservative durable representation.
     batch = copy.deepcopy(batch)
@@ -260,7 +266,9 @@ def _commit_history(prepared: dict[str, Any], batch: dict[str, Any]) -> None:
         detection['evidence'] = [f"matched rule: {detection['title']}" if e.startswith('matched pattern:')
                                  else e for e in evidence if not e.startswith('process:')]
     try:
-        service.commit_analysis(prepared, batch)
+        return service.commit_analysis(prepared, batch, collection) if collection is not None else service.commit_analysis(prepared, batch)
+    except BatchConflict:
+        raise HTTPException(status_code=409, detail='idempotency key reused with different input') from None
     except HistoryError:
         raise HTTPException(status_code=503, detail='history storage unavailable') from None
 
@@ -278,8 +286,7 @@ def demo_scenario(scenario: str, analyst: str = Depends(authenticated_analyst)) 
     return FileResponse(path, media_type="application/json")
 
 
-@app.post("/api/v1/analyze")
-def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+def _analyze_json(payload: AnalyzeRequest, collection: dict[str, str] | None = None) -> dict[str, Any]:
     pii, mask = _pii_inspect(payload.events, list(range(len(payload.events))))
     try:
         prepared = service.prepare_analysis(payload.events, mask=mask)
@@ -293,12 +300,18 @@ def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analys
     _link_pii(pii, event_refs)
     model = _attack_results(payload.events, event_refs)
     batch = _history_batch('json', prepared, [], {'total': len(payload.events), 'processed': len(payload.events), 'invalid': 0, 'unsupported': 0}, pii, model)
-    _commit_history(prepared, batch)
+    saved = _commit_history(prepared, batch, collection)
+    if collection is not None:
+        return saved
     return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs, "pii": pii, "attack_model": model, 'analysis_id': batch['analysis_id']}
 
 
-@app.post("/api/v1/sysmon/analyze")
-async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+@app.post("/api/v1/analyze")
+def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    return _analyze_json(payload)
+
+
+async def _bounded_json_body(request: Request) -> bytes:
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
         raise HTTPException(status_code=415, detail="application/json is required")
     if request.headers.get("content-encoding", "identity").lower() != "identity":
@@ -314,6 +327,10 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
         if len(body) + len(chunk) > MAX_SYSMON_BYTES:
             raise HTTPException(status_code=413, detail="Sysmon file exceeds 2 MiB")
         body.extend(chunk)
+    return bytes(body)
+
+
+async def _analyze_sysmon(body: bytes, collection: dict[str, str] | None = None) -> dict[str, Any]:
     try:
         payload = json.loads(body.decode("utf-8-sig"), object_pairs_hook=_unique_object, parse_constant=_reject_nonfinite)
         raw_events, items = parse_sysmon(payload)
@@ -321,6 +338,10 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
         raise HTTPException(status_code=422, detail="invalid Sysmon JSON batch") from None
 
     processed_indices = [item["input_index"] for item in items if item["status"] == "processed"]
+    if collection is not None and len(processed_indices) != len(items):
+        # Collectors can only advance a cursor after the whole batch commits.
+        # Invalid/unsupported entries require explicit collector-side handling.
+        raise HTTPException(status_code=422, detail='collector batch contains invalid or unsupported events')
     pii, mask = _pii_inspect(raw_events, processed_indices)
     try:
         prepared = service.prepare_analysis(raw_events, allow_empty_command_line=True, mask=mask)
@@ -384,12 +405,92 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
     # Sysmon event IDs were generated by the parser; these are the same IDs
     # used in the conservative detection/event references.
     batch = _history_batch('sysmon', prepared, history_sources, summary, pii, model)
-    _commit_history(prepared, batch)
+    saved = _commit_history(prepared, batch, collection)
+    if collection is not None:
+        return saved
     return {
         "model_state": "semantic-baseline", "summary": summary,
         "items": redact_for_display(items), "source_events": source_events,
         "detections": detections, "pii": pii, "attack_model": model, 'analysis_id': batch['analysis_id'],
     }
+
+
+@app.post("/api/v1/sysmon/analyze")
+async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    return await _analyze_sysmon(await _bounded_json_body(request))
+
+
+def _collector_name(value: str | None) -> str:
+    # Treat identifiers as opaque non-secret labels, never hostnames or logs.
+    # Avoid persisting the configured bearer token if mistakenly supplied.
+    token = os.environ.get('AEGIS_API_TOKEN', '')
+    if (not value or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', value)
+            or (token and token in value)):
+        raise HTTPException(status_code=422, detail='invalid collector identifier or idempotency key')
+    return value
+
+
+def _collector_store() -> SQLiteHistory:
+    if not isinstance(service.history, SQLiteHistory):
+        raise HTTPException(status_code=503, detail='persistent history is required for collection')
+    return service.history
+
+
+@app.post('/api/v1/ingest/{kind}')
+async def ingest_batch(kind: str, request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    if kind not in ('json', 'sysmon'):
+        raise HTTPException(status_code=404, detail='unsupported ingestion type')
+    collector_id = _collector_name(request.headers.get('x-collector-id'))
+    batch_id = _collector_name(request.headers.get('idempotency-key'))
+    body = await _bounded_json_body(request)
+    collection = {'collector_id': collector_id, 'batch_id': batch_id,
+                  'input_type': kind, 'digest': hashlib.sha256(body).hexdigest()}
+    store = _collector_store()
+    try:
+        previous = await run_in_threadpool(store.lookup_collected, collection)
+        if previous is not None:
+            return previous
+        if kind == 'sysmon':
+            return await _analyze_sysmon(body, collection)
+        try:
+            payload = json.loads(body.decode('utf-8-sig'), object_pairs_hook=_unique_object,
+                                 parse_constant=_reject_nonfinite)
+            if not isinstance(payload, dict):
+                raise ValueError('invalid payload')
+            valid = AnalyzeRequest(**payload)
+        except (ValueError, UnicodeDecodeError, RecursionError, ValidationError):
+            raise HTTPException(status_code=422, detail='invalid collector JSON batch') from None
+        return await run_in_threadpool(_analyze_json, valid, collection)
+    except BatchConflict:
+        raise HTTPException(status_code=409, detail='idempotency key reused with different input') from None
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='history storage unavailable') from None
+
+
+@app.post('/api/v1/collectors/{collector_id}/heartbeat')
+def collector_heartbeat(collector_id: str, payload: CollectorHeartbeat,
+                        analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    collector_id = _collector_name(collector_id)
+    codes = {'read_error', 'export_error', 'send_error', 'invalid_input', 'other'}
+    if payload.state not in {'running','stopped','error'} or (
+            payload.state == 'error' and payload.error_code not in codes) or (
+            payload.state != 'error' and payload.error_code is not None):
+        raise HTTPException(status_code=422, detail='invalid collector heartbeat')
+    try:
+        _collector_store().heartbeat(collector_id, payload.state, payload.error_code)
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='history storage unavailable') from None
+    return {'recorded': True}
+
+
+@app.get('/api/v1/collectors')
+def collectors(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    try:
+        records = _collector_store().list_collectors()
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='history storage unavailable') from None
+    return {'collectors': records,
+            'note': 'Reported state and timestamps are not a live connectivity guarantee.'}
 
 
 @app.get("/api/v1/detections")

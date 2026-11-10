@@ -141,7 +141,7 @@ curl -fsS -H "Authorization: Bearer $AEGIS_API_TOKEN" \
     -H 'Content-Type: application/json' --data-binary @-
 ```
 
-탐지 ID를 이용한 승인 API는 시뮬레이션 상태만 기록하며, 실제 단말 격리나 네트워크 차단을 수행하지 않습니다. 같은 탐지에 승인 요청을 다시 보내면 최초 승인 결과를 반환하고 기존 사유를 유지합니다. 탐지와 승인은 단일 서버 프로세스의 메모리에만 보관되어 서버를 재시작하면 사라지며 여러 워커 사이에 공유되지 않습니다.
+탐지 ID를 이용한 승인 API는 시뮬레이션 상태만 기록하며, 실제 단말 격리나 네트워크 차단을 수행하지 않습니다. 같은 탐지에 승인 요청을 다시 보내면 최초 승인 결과를 반환하고 기존 사유를 유지합니다. 탐지와 승인 이력은 설정된 로컬 SQLite에 저장됩니다. 운영 및 개인정보 보존 범위는 [이력 안내](docs/local_history.md)를 참고하세요.
 
 ## Sysmon 로그 분석
 
@@ -187,12 +187,32 @@ Sysmon 팬아웃 결과는 **같은 호스트가 10분 이내 서로 다른 목�
 
 실제 대응 어댑터는 기본적으로 비활성화하며, 사람의 승인과 대상 범위 확인 없이는 단말·계정·네트워크를 변경하지 않습니다.
 
-## 소개 및 관제 페이지
+## 관제 화면과 연속 수집
 
-`/`는 제품 소개이고 **관제 화면 열기**를 선택하면 `/console`로 이동합니다. 콘솔은 `/console/endpoints`(분석별 호스트 관찰), `/console/endpoints/{id}`(관찰 상세), `/console/detections`(탐지·모델 결과), `/console/analysis`(JSON·Sysmon 입력), `/console/history`(분석·승인 시뮬레이션 이력)로 나뉩니다. 각 페이지를 직접 열거나 새로고침할 수 있습니다. 이전 `/#analysis`, `/#result-section`, `/#history`, `/#overview` 링크는 대응하는 화면으로 이동합니다. HTML은 공개 셸이며 데이터 조회와 분석은 기존 Bearer 인증이 필요합니다. 콘솔 각 페이지의 **인증하고 불러오기**에서 토큰을 입력하세요. 토큰을 URL이나 DB에 저장하지 않습니다.
+서버의 첫 화면 `/`과 `/console`은 관제 개요입니다. `/console/endpoints` 및 `/console/endpoints/{id}`는 분석별 호스트 관찰, `/console/detections`는 탐지 상세, `/console/analysis`는 기존 JSON·Sysmon 분석과 데모, `/console/history`는 분석·승인 시뮬레이션 이력입니다. 직접 URL, 새로고침, 뒤로 가기를 지원하며 예전 `/#analysis`, `/#result-section`, `/#history`, `/#overview`는 해당 화면으로 이동합니다. HTML은 공개 셸이지만 데이터 API는 기존 Bearer 인증이 필요합니다. **인증하고 불러오기**에서 토큰을 입력하면 관제 개요가 5초마다 인증된 폴링으로 저장된 이벤트·탐지와 수집기 보고를 조회합니다. 공개 스트림을 유지할 필요가 없는 로컬 구조라 폴링을 사용합니다. 상세 열람 중이거나 결과 표의 키보드 포커스가 유지되는 동안에는 자동 갱신이 일시 중지됩니다. 상세를 닫거나 표 밖으로 포커스를 옮기면 다시 갱신합니다. 연결 오류·재시도·복구 상태와 마지막 성공 이후 오래된 화면임을 알립니다. 토큰은 URL이나 DB에 저장하지 않습니다. HTTP 서버는 루프백에만 바인딩하세요. 원격 접근에는 별도의 인증·TLS·접근 제한이 필요하며 이 구현에서 제공하지 않습니다.
 
-엔드포인트 목록은 실제 자산 목록이나 에이전트 상태가 아닙니다. `GET /api/v1/endpoints`와 `GET /api/v1/endpoints/{id}`는 저장된 가명처리 이력에서 **단일 분석별 관찰 묶음**을 파생합니다. 서로 다른 분석은 병합하지 않으며, 같은 가명도 실제 동일 장치임을 보장하지 않습니다. 짧은 가명은 충돌 가능성이 있고, 요청별 개인정보 후보에 따라 같은 장치의 가명이 달라질 수 있습니다. 호스트가 없는 경우 각 이벤트를 별도 미상으로 표시합니다. 기존 JSON 이력에는 이벤트별 호스트가 저장되지 않아 탐지와 연결된 이벤트만 호스트를 추정할 수 있고, 나머지는 미상입니다. 이벤트 시각이 저장되지 않은 JSON 이력의 마지막 관찰 시각은 확인 불가로 표시합니다. 하나의 탐지가 여러 관찰 묶음에 연결될 수 있어 묶음별 탐지 수의 합은 고유 탐지 수가 아닙니다. 모델 분류는 탐지 목록과 별도로 표시하며 ATT&CK 기법을 예측하지 않습니다.
+`POST /api/v1/ingest/json` 또는 `/api/v1/ingest/sysmon`은 인증된 연속 수집 경로입니다. 기존 분석 API와 동일한 JSON 본문과 `X-Collector-ID`, `Idempotency-Key`를 전달합니다. Sysmon 수집 배치는 오류·미지원 항목이 하나라도 있으면 전체 거부하여 수집기 체크포인트가 진행되지 않게 합니다. 기존 수동 Sysmon 분석은 유효 이벤트 부분 처리 방식을 유지합니다. 전송한 전체 배치가 분석 및 저장된 뒤에만 성공 응답이 나갑니다. 규칙·상관분석과 활성화된 모델은 기존 분석 경로를 사용하며 상관분석은 수신 배치 내에서만 이뤄집니다. 서로 다른 배치에 나뉜 이벤트의 팬아웃은 분석하지 못합니다.
 
-이벤트 원문·명령줄 전체를 새로 저장하지 않으며 SQLite의 기존 가명처리 한계와 공개 호스트 예외는 [이력 안내](docs/local_history.md)를 따릅니다. 직접 입력한 JSON 원문은 사용자가 지우거나 페이지를 벗어날 때까지 입력창에 남을 수 있습니다. 승인 기록은 실제 차단이 아닌 시뮬레이션입니다. 실제 Windows Sysmon 수집 검증은 아직 수행하지 않았습니다.
+같은 수집기·동일 키·동일 본문의 재전송은 기존 결과를 반환합니다. 같은 키에 다른 본문이나 형식은 충돌로 거부합니다. **서로 다른 키로 보낸 동일 이벤트의 중복은 제거하지 않습니다.** 로그 롤오버, 채널 초기화, 체크포인트 손실 또는 수집기 가동 전 데이터까지 복구한다고 보장하지 않습니다. 서버는 배치 본문의 SHA-256과 수집기·배치 식별자를 기록합니다. 해시는 원문이 아니지만 추측 가능한 본문의 일치 여부를 확인하는 데 사용될 수 있습니다. 식별자에는 개인정보·호스트명·토큰을 넣지 말고 임의의 비민감 값을 사용하세요. 기존 공통 토큰은 수집기별 권한이나 신원을 구분하지 않으므로 ID는 장치 소유권의 증거가 아닙니다. 재시도에는 JSON 공백과 인코딩까지 같은 UTF-8 본문 바이트를 보내야 합니다.
 
-소개 화면은 [We.Inc 블랙 그리드 템플릿](https://we.inc/ko/templates/nightwatch-security)의 검은 격자·큰 제목·절제된 강조색을 참고했습니다. 관제의 정보 배치는 [Wazuh 대시보드](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/navigating-the-wazuh-dashboard.html), [Elastic Detection & Response](https://www.elastic.co/docs/solutions/security/dashboards/detection-response-dashboard) 및 [경고 상세](https://www.elastic.co/docs/solutions/security/detect-and-alert/view-detection-alert-details), [Microsoft Defender 사건 조사](https://learn.microsoft.com/en-us/defender-xdr/investigate-incident-cases)의 요약·관련 자산·근거 탐색 흐름을 참고했습니다. 이들 제품의 사건 관리나 실시간 차단 기능을 구현했다는 의미는 아닙니다.
+수집기는 `POST /api/v1/collectors/{id}/heartbeat`로 `running`, `error`, `stopped` 및 정해진 오류 코드를 보고하며, 인증된 `GET /api/v1/collectors`에서 마지막 수신과 보고 시각을 확인합니다. 이는 **수집기 본인이 마지막으로 보고한 상태**입니다. 30초 동안 보고가 없으면 화면은 최근 보고 없음을 표시하고, 단말 온라인 여부나 무손실 수집을 보장하지 않습니다. 서버에 연결할 수 없는 동안 오류 보고도 서버에 도달하지 못할 수 있습니다.
+
+### Windows Sysmon 연속 수집 (실제 Windows 미검증)
+
+실험용 `scripts/collect_sysmon.ps1`은 로컬 Sysmon Operational 채널의 Event ID 1·3을 읽어 루프백 서버로 전송합니다. Sysmon을 설치하거나 설정을 변경하지 않습니다. Event ID 3은 Sysmon 설정에서 수집하도록 켜져 있어야 합니다. PowerShell과 Sysmon이 있는 Windows에서 먼저 사용자에게 권한과 기존 설정을 확인한 후, 저장소 외부의 비공개 디렉터리를 준비하세요.
+
+```powershell
+$Secret = Read-Host '서버 API 토큰' -AsSecureString
+$env:AEGIS_API_TOKEN = [System.Net.NetworkCredential]::new('', $Secret).Password
+Remove-Variable Secret
+New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Aegis-ON" | Out-Null
+.\scripts\collect_sysmon.ps1 -CollectorId 'collector-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt"
+```
+
+서버는 같은 컴퓨터의 `127.0.0.1:8000`에서 실행해야 합니다. 최초 실행 시 현재 채널 끝에서 시작하므로 이전 이벤트는 가져오지 않습니다. 성공 응답 전에 체크포인트를 진행하지 않으며 재시도할 배치의 레코드 번호만 별도 파일에 남깁니다. 채널 삭제·롤오버가 의심되거나 체크포인트가 손상되면 중단하고 확인해야 합니다. 허용되지 않는 이벤트나 전송 오류로 배치가 거부되면 체크포인트는 진행되지 않고 재시도되므로 원인을 해결해야 합니다. 체크포인트를 임의로 삭제하면 재수집이나 누락이 생길 수 있습니다. Sysmon 자체가 해당 이벤트를 생성하지 않았거나 로그가 보존 기간보다 오래 중단된 경우 복구할 수 없습니다. 채널 삭제 후 레코드 번호가 재사용되면 단순 범위 검사로 초기화를 놓칠 수 있습니다. 이 스크립트의 구문·Windows 동작과 실제 Sysmon은 아직 검증하지 않았습니다.
+
+엔드포인트는 자산 목록이나 온라인 상태가 아닙니다. 인증된 `GET /api/v1/endpoints`와 `GET /api/v1/endpoints/{id}`는 저장된 가명처리 이력에서 **단일 분석별 관찰 묶음**을 파생합니다. 서로 다른 분석은 병합하지 않으며 같은 가명도 실제 동일 장치임을 보장하지 않습니다. 짧은 가명은 충돌할 수 있고 요청별 개인정보 후보에 따라 동일 호스트의 가명이 바뀔 수 있습니다. 호스트가 없으면 이벤트별 미상으로 처리합니다. JSON 이력에는 이벤트별 호스트가 없어 탐지와 연결된 경우만 호스트를 추정할 수 있으며 나머지는 미상입니다. JSON 이력의 마지막 이벤트 시각은 저장되지 않았으면 확인 불가입니다. 하나의 탐지가 여러 관찰 묶음에 연결될 수 있어 묶음별 탐지 수의 합은 고유 탐지 수가 아닙니다.
+
+원본 로그와 전체 명령줄을 새로 영구 저장하지 않습니다. SQLite의 기존 가명처리 한계와 공개 호스트 예외는 [이력 안내](docs/local_history.md)를 따르며 모든 개인정보 제거를 보장하지 않습니다. 직접 입력한 JSON 원문은 지우거나 페이지를 벗어날 때까지 입력창에 남을 수 있습니다. 모델 분류는 탐지 목록과 별도로 표시하며 ATT&CK 기법이나 실제 공격 확률을 예측하지 않습니다. 승인은 실제 차단이 아닌 시뮬레이션입니다.
+
+화면 구성은 [Wazuh 대시보드](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/navigating-the-wazuh-dashboard.html), [Elastic Detection & Response](https://www.elastic.co/docs/solutions/security/dashboards/detection-response-dashboard), [Microsoft Defender 사건 조사](https://learn.microsoft.com/en-us/defender-xdr/investigate-incident-cases), [ARTEX Global 화면](https://github.com/jiwoochris/artex-global/tree/main/screenshots/en)의 탐지·자산·근거 탐색 흐름을 참고했습니다. 이들 제품의 모든 기능을 지원한다는 의미는 아닙니다.

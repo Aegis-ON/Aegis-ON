@@ -79,4 +79,22 @@ const html=fs.readFileSync('static/console.html','utf8');vm.runInNewContext(html
         result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required')
+    def test_live_polling_focus_error_and_recovery(self):
+        harness = r"""
+const assert=require('assert'),vm=require('vm'),fs=require('fs');let root,timer,calls=0,fail=false,total=0,delay=false,release;
+class E{constructor(tag='div'){this.tag=tag;this.children=[];this.handlers={};this._text='';this.value='';this.className='';this.attrs={};this.classList={add:()=>{}};this.style={};this.id='';}
+set textContent(x){this._text=String(x);this.children=[]}get textContent(){return this._text+this.children.map(x=>x.textContent).join('')}get childNodes(){return this.children}append(...items){for(const x of items){x.parent=this;this.children.push(x)}if(this.tag==='select'&&!this.value&&this.children[0])this.value=this.children[0].value}replaceChildren(...items){this._text='';this.children=[];this.append(...items)}addEventListener(k,v){this.handlers[k]=v}setAttribute(k,v){this.attrs[k]=v}scrollIntoView(){}remove(){if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this)}contains(x){return this===x||this.children.some(c=>c.contains(x))}}
+const entries=Object.fromEntries(['#kicker','#title','#subtitle','#status','#view','#load'].map(k=>[k,new E()]));root=entries['#view'];
+function walk(e,p){if(p(e))return e;for(const c of e.children){let x=walk(c,p);if(x)return x}return null}
+const document={activeElement:null,querySelector:q=>entries[q]||(q.startsWith('#')?walk(root,e=>e.id===q.slice(1)):null),createElement:tag=>new E(tag)};
+const window={prompt:()=> 'temporary-token'},location={pathname:'/',hash:''};
+const fetch=async(url)=>{calls++;if(fail)throw new Error('network');if(delay&&url.endsWith('/endpoints'))await new Promise(r=>{release=r});let data=url.endsWith('/history')?{analyses:Array.from({length:total},(_,i)=>({analysis_id:'batch-'+i,event_refs:[],detection_ids:[]})),detections:[]}:url.endsWith('/endpoints')?{endpoints:[]}:url.endsWith('/collectors')?{collectors:[]}:{state:'disabled'};return {ok:true,json:async()=>data}};
+const code=fs.readFileSync('static/console.html','utf8').split('<script>')[1].split('</script>')[0];vm.runInNewContext(code,{document,window,location,fetch,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array,setInterval:(f,ms)=>{assert.equal(ms,5000);timer=f;return 1}});
+const tick=()=>new Promise(r=>setImmediate(r));
+(async()=>{entries['#load'].handlers.click();await tick();assert(root.textContent.includes('저장된 분석0'));total=1;timer();await tick();assert(root.textContent.includes('저장된 분석1'));document.activeElement=walk(root,e=>e.tag==='button');assert(document.activeElement);let before=calls;timer();await tick();assert.equal(calls,before);assert(entries['#status'].textContent.includes('일시 중지'));document.activeElement=null;fail=true;timer();await tick();assert(entries['#status'].textContent.includes('재연결'));fail=false;timer();await tick();assert(entries['#status'].textContent.includes('복구됨'));delay=true;timer();await tick();let button=walk(root,e=>e.tag==='button'&&e.textContent==='batch-0');assert(button&&release);await button.handlers.click();assert(walk(root,e=>e.id==='history-detail'));release();await tick();assert(walk(root,e=>e.id==='history-detail'),'poll replaced open detail');})().catch(e=>{console.error(e);process.exit(1)});
+"""
+        result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 if __name__ == '__main__': unittest.main()
