@@ -28,10 +28,21 @@ vm.runInNewContext(process.argv[1],{document,window,fetch,Map,String,Error,Abort
  await elements['#load-history'].handlers.click(); assert.match(elements['#history-list'].textContent,/저장된 분석 이력이 없습니다/);
  response={ok:false,status:503,json:async()=>({detail:'history storage unavailable'})};
  await elements['#load-history'].handlers.click(); assert.match(elements['#history-list'].textContent,/저장소 상태/);
- response={ok:true,json:async()=>({analyses:[{analyzed_at:'2026',input_type:'json',detection_ids:['d1'],summary:{total:1,processed:1,invalid:0,unsupported:0},event_refs:[{event_id:'e1',input_index:0}]}],detections:[{detection_id:'d1',event_ids:['e1'],title:'synthetic finding',technique:'T1',score:50,host:'masked',source:'rule',evidence:[],status:'approved_for_simulated_response',approval:{analyst:'analyst',rationale:'reviewed',approved_at:'2026',simulation_only:true}}]})};
- await elements['#load-history'].handlers.click(); elements['#history-list'].children[0].handlers.click();
+ const batch={analysis_id:'a1',analyzed_at:'2026',input_type:'json',detection_ids:['d1'],summary:{total:1,processed:1,invalid:0,unsupported:0},event_refs:[{event_id:'e1',input_index:0}]};
+ const detection={detection_id:'d1',event_ids:['e1'],title:'synthetic finding',technique:'T1',score:50,host:'old-public-host',source:'rule',evidence:[],status:'approved_for_simulated_response',approval:{analyst:'analyst',rationale:'reviewed',approved_at:'2026',simulation_only:true}};
+ response={ok:true,json:async()=>({analyses:[batch],detections:[detection]})};
+ await elements['#load-history'].handlers.click();
+ response={ok:true,json:async()=>({analyses:[batch],detections:[{...detection,host:'masked'}]})};
+ await elements['#history-list'].children[0].handlers.click();
  assert.match(elements['#results'].textContent,/synthetic finding/); assert.match(elements['#results'].textContent,/이벤트 ID e1/);
  assert.match(elements['#results'].textContent,/시뮬레이션/); assert.match(elements['#results'].textContent,/reviewed/);
+ assert.doesNotMatch(elements['#results'].textContent,/old-public-host/);
+ const noFinding={analysis_id:'a2',analyzed_at:'2026',input_type:'sysmon',detection_ids:[],summary:{total:1,processed:1,invalid:0,unsupported:0},source_events:[{input_index:0,event_id:'e2',sysmon_event_id:1,record_id:42,log_source:'Synthetic-Sysmon'}]};
+ response={ok:true,json:async()=>({analyses:[noFinding],detections:[]})};
+ await elements['#load-history'].handlers.click(); await elements['#history-list'].children[0].handlers.click();
+ assert.match(elements['#results'].textContent,/탐지 결과가 없습니다/);
+ assert.match(elements['#results'].textContent,/레코드 ID: 42/);
+ assert.match(elements['#results'].textContent,/Synthetic-Sysmon/);
 })().catch(e=>{console.error(e);process.exit(1)});
 '''
         result = subprocess.run(['node', '-e', harness, script], capture_output=True, text=True)

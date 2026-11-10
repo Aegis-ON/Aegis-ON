@@ -57,12 +57,14 @@ class SQLiteHistory:
             with self._identity_lock:
                 if self._identity is not None and not os.path.exists(self.path):
                     raise HistoryError('History storage unavailable')
+                created = False
                 try:
                     fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
                 except FileExistsError:
                     pass
                 else:
                     os.close(fd)
+                    created = True
                 if os.path.islink(self.path):
                     raise HistoryError('History storage unavailable')
                 st = os.stat(self.path)
@@ -79,6 +81,11 @@ class SQLiteHistory:
             conn.execute('BEGIN IMMEDIATE')
             version = conn.execute('PRAGMA user_version').fetchone()[0]
             if version == 0:
+                # Existing empty/truncated files are not evidence of a first
+                # run. Only the process that exclusively created the file may
+                # initialize it. A racing first request can retry after 503.
+                if not created:
+                    raise HistoryError('History storage unavailable')
                 objects = conn.execute(
                     "SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1"
                 ).fetchone()

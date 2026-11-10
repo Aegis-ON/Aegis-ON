@@ -145,9 +145,9 @@ def _pii_inspect(events: list[dict[str, Any]], indices: list[int]):
             value = value.replace(token, '[REDACTED_SECRET]') if token else value
             return secret.sub(lambda m: m.group(1) + '=[REDACTED_SECRET]', value)
         def safe_mask(value: str) -> str:
-            return strip_secrets(mask(value))
+            return strip_secrets(mask(strip_secrets(value)))
         def safe_host(value: str) -> str:
-            return strip_secrets(getattr(mask, 'host', mask)(value))
+            return strip_secrets(getattr(mask, 'host', mask)(strip_secrets(value)))
         safe_mask.host = safe_host
         return pii, safe_mask
     except InvalidPIIInput:

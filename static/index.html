@@ -296,15 +296,29 @@
           for (const analysis of data.analyses) {
             const button = createText('button', `${displayValue(analysis.analyzed_at)} · ${displayValue(analysis.input_type)} · 탐지 ${(analysis.detection_ids || []).length}건`, 'action');
             button.type = 'button';
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
               const selected = beginAnalysis();
-              const ids = new Set(analysis.detection_ids || []);
-              const detections = data.detections.filter(d => ids.has(d.detection_id));
-              const sources = analysis.source_events && analysis.source_events.length ? analysis.source_events : (analysis.event_refs || []);
-              summary.textContent = `저장된 ${displayValue(analysis.input_type)} 분석 · ${displayValue(analysis.analyzed_at)} · 승인 조치는 시뮬레이션입니다.`;
-              if (analysis.summary) setStats(analysis.summary, detections.length);
-              renderAttackModel(analysis.attack_model);
-              renderDetections(detections, sources, selected);
+              const token = askToken(); if (!token) return;
+              try {
+                const response = await fetch('/api/v1/history', {headers:{Authorization:`Bearer ${token}`}, signal:selected.signal});
+                const current = await readResponse(response, '이력 상세 조회');
+                if (!isCurrent(selected)) return;
+                const latest = current.analyses.find(item => item.analysis_id === analysis.analysis_id);
+                if (!latest) { summary.textContent = '해당 분석 이력을 찾을 수 없습니다. 목록을 다시 불러와 주세요.'; return; }
+                const ids = new Set(latest.detection_ids || []);
+                const detections = current.detections.filter(d => ids.has(d.detection_id));
+                const sources = latest.source_events && latest.source_events.length ? latest.source_events : (latest.event_refs || []);
+                summary.textContent = `저장된 ${displayValue(latest.input_type)} 분석 · ${displayValue(latest.analyzed_at)} · 승인 조치는 시뮬레이션입니다.`;
+                if (latest.summary) setStats(latest.summary, detections.length);
+                renderAttackModel(latest.attack_model);
+                if (sources.length) {
+                  const list = document.createElement('details'); list.className = 'event-list'; list.open = true;
+                  list.append(createText('summary', `저장된 이벤트 식별 정보 ${sources.length}건`));
+                  for (const event of sources) list.append(sourceDetail(event));
+                  results.append(list);
+                }
+                renderDetections(detections, sources, selected);
+              } catch (error) { if (isCurrent(selected)) summary.textContent = `이력 상세 조회 실패: ${error.message}`; }
             });
             list.append(button);
           }

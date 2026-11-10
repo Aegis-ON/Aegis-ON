@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 from aegis_on import api
 from aegis_on.attack_model import AttackModel
 from aegis_on.history_store import SQLiteHistory, HistoryError
-from aegis_on.pii import PIIDetector
+from aegis_on.pii import PIIDetector, Span
 from aegis_on.service import DetectionService
 from test_sysmon_api import make_event
 from test_pii_verified_hosts import SurnameModel
@@ -134,6 +134,69 @@ class HistoryTests(unittest.TestCase):
         self.path.unlink()
         self.assertEqual(self.client.get('/api/v1/history', headers=self.headers).status_code, 503)
         self.assertFalse(self.path.exists())
+
+
+    def test_truncated_database_is_not_reinitialized(self):
+        self.create()
+        self.path.write_bytes(b'')
+        self.assertEqual(self.client.get('/api/v1/history', headers=self.headers).status_code, 503)
+        self.assertEqual(self.path.stat().st_size, 0)
+        api.service = DetectionService(SQLiteHistory(self.path))
+        self.assertEqual(self.client.get('/api/v1/history', headers=self.headers).status_code, 503)
+        self.assertEqual(self.path.stat().st_size, 0)
+
+    def test_locked_database_returns_503_without_modifying_history(self):
+        result = self.create()
+        api.service.history.timeout = 0.05
+        conn = sqlite3.connect(self.path, isolation_level=None)
+        try:
+            conn.execute('BEGIN EXCLUSIVE')
+            response = self.client.get('/api/v1/history', headers=self.headers)
+            self.assertEqual(response.status_code, 503)
+        finally:
+            conn.rollback()
+            conn.close()
+        history = self.client.get('/api/v1/history', headers=self.headers).json()
+        self.assertEqual(history['analyses'][0]['analysis_id'], result['analysis_id'])
+
+    def test_killed_writer_rolls_back_incomplete_batch(self):
+        result = self.create()
+        script = '''import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1], isolation_level=None)
+conn.execute("BEGIN IMMEDIATE")
+conn.execute("INSERT INTO analyses(payload) VALUES (?)", ('{"analysis_id":"incomplete"}',))
+print("inserted", flush=True)
+sys.stdin.read()
+'''
+        process = subprocess.Popen([sys.executable, '-c', script, str(self.path)], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(process.stdout.readline().strip(), 'inserted')
+            process.kill()
+            process.wait(timeout=5)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            process.stdin.close(); process.stdout.close(); process.stderr.close()
+        history = self.client.get('/api/v1/history', headers=self.headers).json()
+        self.assertEqual([a['analysis_id'] for a in history['analyses']], [result['analysis_id']])
+        self.assertTrue(history['detections'])
+
+    def test_secret_key_is_not_broken_by_pii_mask_before_redaction(self):
+        class PartialKeyModel:
+            def find(self, text):
+                start = text.find('password=')
+                return [Span(start, start + 4, 'USERNAME', 'model')] if start >= 0 else []
+        api.pii_detector = PIIDetector(PartialKeyModel())
+        result = self.create()
+        detection = result['detections'][0]['detection_id']
+        response = self.client.post('/api/v1/detections/' + detection + '/approval', headers=self.headers,
+                                    json={'analyst':'analyst-1', 'rationale':'password=FAKE_SECRET_8675309'})
+        self.assertEqual(response.status_code, 200)
+        history = self.client.get('/api/v1/history', headers=self.headers)
+        for text in (response.text, history.text, self.path.read_bytes().decode('latin1')):
+            self.assertNotIn('FAKE_SECRET_8675309', text)
 
     def test_snapshot_never_separates_batch_and_detections_during_writes(self):
         store = SQLiteHistory(self.path)
