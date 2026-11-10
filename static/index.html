@@ -12,20 +12,33 @@
       .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat,.panel,.card,.batch,.event-list{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius)}.stat{padding:17px 18px;min-height:96px}.stat-label{color:#b7bfcb;font-size:12px}.stat-value{font-size:26px;font-weight:750;letter-spacing:-.04em;margin-top:10px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start;margin-top:20px}.panel{padding:18px}.panel-title{margin:0 0 5px;font-size:15px;font-weight:750}.panel-desc{margin:0;color:#b7bfcb;font-size:12px;line-height:1.5}.scenarios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:15px}.scenario{min-height:76px;text-align:left;background:#2c3139;border:1px solid #49515f;border-radius:10px;padding:12px;color:#edf0f4}.scenario:hover,.action:hover{border-color:#8c9fbe;background:#39414d}.scenario strong{display:block;font-size:12px;margin-bottom:6px}.scenario small{color:#c1c9d5;line-height:1.4}.secondary{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.action,.file-button{border:1px solid #4d5664;border-radius:8px;padding:9px 12px;background:#30353d;color:#eef2f7;font-weight:650;font-size:12px}.primary{background:#3e526f;color:#fff;border-color:#667d9e}.primary:hover{background:#506789;color:white}.file-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}.file-row input{font-size:12px;min-width:0;max-width:100%;color:#dce2ea}.divider{height:1px;background:var(--line);margin:17px 0}.note-line{font-size:12px;line-height:1.65;color:#c1c8d2}.note-line strong{color:#e3e8ef}
       #summary{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);background:#292e35;border-radius:10px;color:#d0d7e1;font-size:12px;line-height:1.55}.results-head{display:flex;align-items:baseline;justify-content:space-between;margin:27px 0 10px}.results-head h2{margin:0;font-size:16px}.results-head small{color:var(--sub)}.batch,.event-list,.card,.pii-summary{margin:10px 0;padding:15px}.pii-summary{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);overflow-wrap:anywhere}.pii-summary h3{font-size:14px;margin:0 0 8px}.pii-summary p{font-size:12px;line-height:1.6;margin:7px 0}.pii-summary .pii-warning{color:#e8caa0}.batch strong,.event-list strong{font-size:13px}.items{margin:10px 0 0;padding-left:20px;color:#c1c8d2;font-size:12px;line-height:1.8;overflow-wrap:anywhere}.card{border-left:4px solid #91a8c7;overflow-wrap:anywhere}.card.high{border-left-color:#f29989}.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.badge{font-size:11px;font-weight:700;border-radius:99px;padding:3px 8px;background:#354356;color:#d6e4fa}.badge.high{background:#4b3432;color:#ffc2b5}.score{margin-left:auto;color:#bbc4d1;font-size:12px}.card p{font-size:12px;line-height:1.6}.source-event{border-top:1px solid #3b424d;margin-top:10px;padding-top:10px;overflow-wrap:anywhere}.source-event p{margin:4px 0}.source-event strong{font-size:12px}.approval-line{color:#c1c8d2;font-size:12px;margin:8px 0}.approval-button:disabled{opacity:1;cursor:not-allowed;background:#2a2e34;color:#9ea6b1;border-color:#454b55}.event-list summary{cursor:pointer;font-weight:700}.empty{padding:30px 16px;text-align:center;border:1px dashed #535b68;border-radius:12px;color:#b8c1cd;font-size:13px}.foot{margin-top:26px;color:#b1bac7;font-size:11px;line-height:1.6}
       @media(max-width:1000px){.layout{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.app{display:block}.sidebar{border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}.brand{padding:0 0 10px}.nav-label,.side-note{display:none}.nav-links{display:flex;gap:5px;overflow:auto}.nav-link{white-space:nowrap;padding:8px}.topbar{padding:0 18px;height:50px}.content{padding:22px 16px}.heading{align-items:start}.heading h1{font-size:22px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.scenarios{grid-template-columns:1fr}.scenario{min-height:auto}.score{margin-left:0}}
+
+      /* Operational workspace: high-contrast labels and a compact, consistent grid. */
+      :root{--ink:#edf3fa;--sub:#b9c7d6;--line:#334458;--surface:#142335;--muted:#101d2c;--accent:#88c8f2;--radius:10px}
+      html{scroll-behavior:smooth} body{background:#0b1521;font-size:14px;line-height:1.5} button,input{font:inherit} textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #91d4ff;outline-offset:3px}
+      .skip-link{position:absolute;top:-100px;left:12px;z-index:5;background:#edf3fa;color:#101d2c;padding:8px 14px}.skip-link:focus{top:8px}
+      .app{grid-template-columns:224px minmax(0,1fr)}.sidebar{background:#101c2b;border-color:#293b50;position:sticky;top:0;height:100vh;overflow-y:auto}.brand{color:#f5f9ff;letter-spacing:0}.brand-mark{background:#164c6f;color:#bce7ff}.nav-label{letter-spacing:.09em;color:#a9bbce}.nav-link{color:#c5d4e2;border:1px solid transparent}.nav-link:hover,.nav-link:focus-visible{background:#1c334b}.nav-link.active{background:#1c3b55;border-color:#315a78;color:#edf8ff}.side-note{border-top:1px solid #334458;padding-top:18px;color:#b9c7d6}
+      .topbar{background:#101d2b;border-color:#293b50;color:#c4d2e1}.topbar strong{color:#edf4fb}.tag{border-color:#41607a;background:#142c40;color:#c0e1f8}.content{max-width:1480px;padding:30px 36px 56px}.heading h1{font-size:28px}.eyebrow{color:#8bc8ef}.hint,.meta,.panel-desc,.stat-label{color:#b9c7d6}.hint,.panel-desc,.note-line,.card p,.approval-line,.pii-summary p{font-size:13px}.notice{background:#132d40;border-color:#2e5a74;color:#d4ebf9;font-size:13px}
+      .stats{gap:12px}.stat{background:#142436;padding:16px 18px;min-height:100px}.stat-value{font-size:28px;color:#f2f7fc}.stat-label{font-weight:650}.layout{grid-template-columns:minmax(0,1fr) minmax(250px,320px);gap:16px}.panel{padding:20px}.panel-title{font-size:17px}.scenarios{gap:10px}.scenario{background:#192d41;border-color:#3c5870;color:#f4f8fc;min-height:82px}.scenario small{color:#c4d4e3}.scenario:hover,.action:hover{background:#254259;border-color:#81badb}.action,.file-button{background:#1b3248;border-color:#4b6a82;color:#f0f6fb;font-size:13px;min-height:40px}.primary{background:#156b98;border-color:#65b6df}.primary:hover{background:#2084b7}.file-row input{font-size:13px}.note-line{color:#c6d4e0}.note-line strong{color:#f0f6fb}#summary{background:#10283a;border-color:#31536b;color:#d9ebf7;font-size:13px}
+      #result-section{scroll-margin-top:18px}.results-head{margin:28px 0 12px}.results-head h2{font-size:19px}.card,.batch,.event-list,.pii-summary{padding:18px;margin:12px 0;background:#142335}.card{border-left-color:#76b1dc}.card.high{border-left-color:#ff9e8f}.card.medium{border-left-color:#f1bf68}.card.low{border-left-color:#81cbb0}.badge{font-size:12px}.badge.high{background:#56312d;color:#ffe0d9}.badge.medium{background:#59431e;color:#ffe8b9}.badge.low{background:#1d493e;color:#d1ffed}.badge.status{background:#28415a;color:#d7ecff}.badge.approved{background:#1e4d42;color:#d4ffef}.score{color:#c2d2df}.source-event{border-color:#3b536a;background:#101e2c;padding:12px;margin-top:10px;border-radius:7px}.approval-line{color:#d1dfeb}.event-list summary{padding:2px}.items{font-size:13px;line-height:1.75}.empty{background:#111f2e;border-color:#496178;color:#ccdae7;padding:26px 18px}.foot{font-size:12px}.history-actions{margin-top:14px}#history{margin-top:26px;scroll-margin-top:18px}#history-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;color:#c6d4e0}#history-list .empty{width:100%}
+      @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:sticky}.content{padding:24px}}
+      @media(max-width:700px){.sidebar{position:static;height:auto}.content{padding:22px 16px 40px}.heading h1{font-size:24px}.nav-link{padding:9px 10px}.topbar{padding:0 16px}.scenario{min-height:64px}.stats{gap:8px}.stat{padding:13px;min-height:88px}.stat-value{font-size:24px}.card,.panel,.batch,.event-list,.pii-summary{padding:15px}.results-head{align-items:flex-start;gap:8px;flex-wrap:wrap}.file-row{align-items:flex-start;flex-direction:column}.file-row input{width:100%}}
+      @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#analysis">분석으로 건너뛰기</a>
     <div class="app">
       <aside class="sidebar" aria-label="주 메뉴">
         <div class="brand"><span class="brand-mark">A</span>Aegis-ON</div>
-        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>시나리오 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a><a class="nav-link" href="#history"><span>◷</span>분석 이력</a></nav>
+        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>로그 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a><a class="nav-link" href="#history"><span>◷</span>분석 이력</a></nav>
         <p class="side-note">로컬 분석 데모<br />자동 차단은 수행하지 않습니다.</p>
       </aside>
       <div class="main">
         <div class="topbar"><strong>보안 이벤트 분석</strong><span class="tag">로컬 데모 · 수동 분석</span></div>
         <main class="content" id="overview">
           <div class="heading"><div><div class="eyebrow">SECURITY EVENT OVERVIEW</div><h1>분석 개요</h1><p class="hint">Sysmon 이벤트와 탐지 근거를 한눈에 확인합니다.</p></div></div>
-          <div class="notice">샘플은 합성 데이터이며 버튼을 누르면 실제 탐지 API로 분석합니다. 현재 점수는 규칙과 휴리스틱 기준선의 결과이며 AI 모델 성능이나 공격 확정을 의미하지 않습니다.</div>
+          <div class="notice">샘플은 합성 데이터이며 버튼을 누르면 실제 탐지 API로 분석합니다. 규칙·키워드 및 선택적 실험용 모델 결과를 구분하며, 탐지 점수는 공격 확정을 의미하지 않습니다.</div>
           <section class="stats" aria-label="마지막 분석 요약">
             <div class="stat"><div class="stat-label">전체 입력</div><div class="stat-value" id="stat-total">—</div></div>
             <div class="stat"><div class="stat-label">처리한 이벤트</div><div class="stat-value" id="stat-processed">—</div></div>
@@ -33,15 +46,15 @@
             <div class="stat"><div class="stat-label">탐지 결과</div><div class="stat-value" id="stat-detections">—</div></div>
           </section>
           <div class="layout" id="analysis">
-            <section class="panel"><h2 class="panel-title">분석 시작</h2><p class="panel-desc">시나리오를 누르면 인증 후 즉시 샘플을 불러와 분석합니다.</p>
+            <section class="panel"><h2 class="panel-title">분석 시작</h2><p class="panel-desc">합성 시나리오 또는 Sysmon JSON 파일을 선택하세요. 분석 요청에는 API 토큰이 필요합니다.</p>
               <div class="scenarios"><button class="scenario" id="scenario-a" type="button"><strong>A · 정상 프로세스</strong><small>메모장 실행 이벤트</small></button><button class="scenario" id="scenario-b" type="button"><strong>B · 의심 다운로드 명령</strong><small>curl 명령 문자열 탐지</small></button><button class="scenario" id="scenario-c" type="button"><strong>C · 다수 목적지 연결</strong><small>발신 연결 3건 상관분석</small></button></div>
               <div class="divider"></div><p class="panel-desc">직접 수집한 Sysmon Event ID 1·3 JSON 파일 (최대 2 MiB, 1,000건)</p><div class="file-row"><label for="sysmon-file" class="hint">파일 선택</label><input id="sysmon-file" type="file" accept=".json,application/json" /><button class="action primary" id="run-sysmon" type="button">파일 분석</button></div><div class="secondary"><button class="action" id="run-demo" type="button">기존 JSON 데모 분석</button></div>
               <section id="summary" aria-live="polite">준비됨 — 분석할 시나리오나 파일을 선택하세요.</section>
             </section>
             <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />명령줄 분석은 규칙·키워드 기준선과 선택적 실험용 BERT 모델을 구분합니다. 키워드 기준선은 BERT가 아닙니다. 개인정보 탐지는 별도 기능입니다.</p><p class="note-line"><strong>개인정보 탐지의 한계</strong><br />탐지 및 가명처리는 모든 개인정보를 보호하지 못하며 누락될 수 있습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
           </div>
-          <section id="history" class="panel"><h2 class="panel-title">로컬 분석 이력</h2><p class="panel-desc">이력에는 가명처리된 식별 정보와 승인 시뮬레이션이 저장됩니다. 실제 차단은 수행하지 않습니다.</p><button class="action" id="load-history" type="button">이력 불러오기</button><div id="history-list" aria-live="polite">인증 후 이전 분석을 조회할 수 있습니다.</div></section>
-          <section id="result-section"><div class="results-head"><h2>탐지 및 이벤트</h2><small>선택한 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
+          <section id="result-section" tabindex="-1"><div class="results-head"><h2>탐지 및 이벤트</h2><small>선택한 분석 결과</small></div><div id="results"><div class="empty">분석을 시작하면 결과와 이벤트 근거가 여기에 표시됩니다.</div></div></section>
+          <section id="history" class="panel"><h2 class="panel-title">로컬 분석 이력</h2><p class="panel-desc">이력에는 가명처리된 식별 정보와 승인 시뮬레이션이 저장됩니다. 실제 차단은 수행하지 않습니다.</p><div class="history-actions"><button class="action" id="load-history" type="button">이력 불러오기</button></div><div id="history-list" aria-live="polite">인증 후 이전 분석을 조회할 수 있습니다.</div></section>
           <p class="foot">로컬 이력은 민감할 수 있습니다. 원본 로그 전체는 저장하지 않지만 개인정보 탐지의 누락으로 일부 값이 남을 수 있습니다.</p>
         </main>
       </div>
@@ -51,6 +64,17 @@
       const results = document.querySelector('#results');
       const sysmonFile = document.querySelector('#sysmon-file');
       const stats = {total:document.querySelector('#stat-total'), processed:document.querySelector('#stat-processed'), excluded:document.querySelector('#stat-excluded'), detections:document.querySelector('#stat-detections')};
+      const navLinks = document.querySelectorAll ? Array.from(document.querySelectorAll('.nav-link')) : [];
+      function selectNav(hash) {
+        for (const link of navLinks) {
+          const selected = link.getAttribute('href') === hash;
+          link.classList.toggle('active', selected);
+          if (selected) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        }
+      }
+      selectNav(window.location?.hash || '#overview');
+      window.addEventListener?.('hashchange', () => selectNav(window.location.hash || '#overview'));
       const MAX_FILE_BYTES = 2 * 1024 * 1024;
       let activeRequest = null;
 
@@ -113,10 +137,13 @@
         if (!token || !token.trim()) { summary.textContent = 'API 토큰이 입력되지 않아 분석하지 않았습니다.'; return null; }
         return token;
       }
+      function sourceLabel(source) {
+        return ({rule:'규칙', 'semantic-baseline':'키워드 기준선', correlation:'이벤트 상관분석'})[source] || displayValue(source);
+      }
       function severity(score) {
         if (score >= 70) return {text:'높음', css:'high'};
-        if (score >= 40) return {text:'중간', css:''};
-        return {text:'낮음', css:''};
+        if (score >= 40) return {text:'중간', css:'medium'};
+        return {text:'낮음', css:'low'};
       }
       function renderDetections(detections, sourceEvents = [], request = activeRequest) {
         if (!detections.length) { results.append(createText('p', '탐지 결과가 없습니다.', 'empty')); return; }
@@ -134,11 +161,14 @@
           const heading = document.createElement('div'); heading.className = 'card-head';
           heading.append(createText('span', level.text, `badge ${level.css}`));
           heading.append(createText('strong', `${displayValue(detection.technique)} · ${displayValue(detection.title)}`));
-          heading.append(createText('span', `위험 점수 ${displayValue(detection.score)} · ${displayValue(detection.source)}`, 'score'));
+          const statusBadge = createText('span', detection.status === 'approved_for_simulated_response' ? '시뮬레이션 승인됨' : detection.status === 'pending_review' ? '검토 대기' : displayValue(detection.status), `badge status${detection.status === 'approved_for_simulated_response' ? ' approved' : ''}`);
+          heading.append(statusBadge);
+          heading.append(createText('span', `위험 점수 ${displayValue(detection.score)} · ${sourceLabel(detection.source)}`, 'score'));
           card.append(heading);
           card.append(createText('div', `호스트: ${displayValue(detection.host)}`, 'meta'));
           card.append(createText('p', `탐지 근거: ${(detection.evidence || []).join(' · ') || '없음'}`));
           if (sourceEvents.length) {
+            card.append(createText('p', '관련 이벤트 식별 정보 · 가명처리된 메타데이터', 'hint'));
             const ids = detection.event_ids || [];
             const linked = ids.flatMap(id => eventsById.get(id) || []);
             if (!linked.length) card.append(createText('p', '연결된 원본 이벤트 정보를 찾을 수 없습니다.', 'hint'));
@@ -168,6 +198,8 @@
                 return;
               }
               detection.status = approved.detection.status;
+              statusBadge.textContent = '시뮬레이션 승인됨';
+              statusBadge.className = 'badge status approved';
               approvalStatus.textContent = `승인 상태: ${approved.detection.status} · 시뮬레이션만 기록됨 · 실제 차단 없음`;
             } catch (error) {
               if (isCurrent(request)) approvalStatus.textContent = error.message;
@@ -228,8 +260,9 @@
         const counts = data.summary;
         setStats(counts, data.detections.length);
         summary.textContent = `${inputLabel} · 전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
-        renderAttackModel(data.attack_model);
+        renderDetections(data.detections, data.source_events, request);
         renderPii(data.pii);
+        renderAttackModel(data.attack_model);
         const batch = document.createElement('section'); batch.className = 'batch';
         batch.append(createText('strong', '입력 이벤트 처리 결과'));
         const items = document.createElement('ul'); items.className = 'items';
@@ -243,12 +276,11 @@
         }
         batch.append(items); results.append(batch);
         if (data.source_events.length) {
-          const list = document.createElement('details'); list.className = 'event-list'; list.open = true;
-          list.append(createText('summary', `처리된 원본 이벤트 ${data.source_events.length}건`));
+          const list = document.createElement('details'); list.className = 'event-list';
+          list.append(createText('summary', `처리된 원본 이벤트 ${data.source_events.length}건 · 가명처리된 메타데이터`));
           for (const event of data.source_events) list.append(sourceDetail(event));
           results.append(list);
         }
-        renderDetections(data.detections, data.source_events, request);
       }
       async function analyzeSysmon(body, token, request, inputLabel) {
         const response = await fetch('/api/v1/sysmon/analyze', {method:'POST', headers:{'Authorization':`Bearer ${token}`, 'Content-Type':'application/json'}, body, signal:request.signal});
@@ -268,9 +300,9 @@
           const total = sample.events.length;
           setStats({total,processed:total,invalid:0,unsupported:0},data.detections.length);
           summary.textContent = `기존 JSON 데모 · ${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
+          renderDetections(data.detections, data.event_refs || [], request);
+          renderPii(data.pii);
           renderAttackModel(data.attack_model);
-        renderPii(data.pii);
-          renderDetections(data.detections, [], request);
         } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
       document.querySelector('#run-sysmon').addEventListener('click', async () => {
@@ -310,6 +342,7 @@
                 const sources = latest.source_events && latest.source_events.length ? latest.source_events : (latest.event_refs || []);
                 summary.textContent = `저장된 ${displayValue(latest.input_type)} 분석 · ${displayValue(latest.analyzed_at)} · 승인 조치는 시뮬레이션입니다.`;
                 if (latest.summary) setStats(latest.summary, detections.length);
+                renderDetections(detections, sources, selected);
                 renderAttackModel(latest.attack_model);
                 if (sources.length) {
                   const list = document.createElement('details'); list.className = 'event-list'; list.open = true;
@@ -317,7 +350,7 @@
                   for (const event of sources) list.append(sourceDetail(event));
                   results.append(list);
                 }
-                renderDetections(detections, sources, selected);
+                document.querySelector('#result-section')?.focus?.();
               } catch (error) { if (isCurrent(selected)) summary.textContent = `이력 상세 조회 실패: ${error.message}`; }
             });
             list.append(button);
