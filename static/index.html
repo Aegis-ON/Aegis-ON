@@ -64,6 +64,17 @@
       const results = document.querySelector('#results');
       const sysmonFile = document.querySelector('#sysmon-file');
       const stats = {total:document.querySelector('#stat-total'), processed:document.querySelector('#stat-processed'), excluded:document.querySelector('#stat-excluded'), detections:document.querySelector('#stat-detections')};
+      const navLinks = document.querySelectorAll ? Array.from(document.querySelectorAll('.nav-link')) : [];
+      function selectNav(hash) {
+        for (const link of navLinks) {
+          const selected = link.getAttribute('href') === hash;
+          link.classList.toggle('active', selected);
+          if (selected) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        }
+      }
+      selectNav(window.location?.hash || '#overview');
+      window.addEventListener?.('hashchange', () => selectNav(window.location.hash || '#overview'));
       const MAX_FILE_BYTES = 2 * 1024 * 1024;
       let activeRequest = null;
 
