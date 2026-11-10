@@ -25,7 +25,7 @@ class VerifiedHostFailureTests(unittest.TestCase):
                  'process': 'curl', 'event_id': 'id', 'command_line': 'curl example.test'}
         env = {'AEGIS_API_TOKEN': 'test-token', 'AEGIS_ANALYST_NAME': 'analyst',
                'AEGIS_PII_VERIFIED_PUBLIC_HOSTS': json.dumps([host])}
-        with patch.dict('os.environ', env, clear=True), TestClient(api.app) as client:
+        with patch.dict('os.environ', env, clear=True), TestClient(api.app, base_url='https://testserver') as client:
             headers = {'Authorization': 'Bearer test-token'}
             for detector in (PIIDetector(), PIIDetector(state='error', reason='synthetic load failure')):
                 api.pii_detector = detector

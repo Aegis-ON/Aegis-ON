@@ -69,7 +69,7 @@ class VerifiedHostTests(unittest.TestCase):
         api.service, api.pii_detector = DetectionService(), PIIDetector(SurnameModel())
         env = {'AEGIS_API_TOKEN': 'test-token', 'AEGIS_ANALYST_NAME': 'analyst',
                'AEGIS_PII_VERIFIED_PUBLIC_HOSTS': json.dumps(['김치서비스'], ensure_ascii=False)}
-        with patch.dict('os.environ', env, clear=True), TestClient(api.app) as client:
+        with patch.dict('os.environ', env, clear=True), TestClient(api.app, base_url='https://testserver') as client:
             headers = {'Authorization': 'Bearer test-token'}
             event = {'timestamp': '2026-01-01T00:00:00Z', 'host': '김치서비스', 'user': '김',
                      'process': 'curl', 'event_id': 'id-김치서비스', 'command_line': 'curl /Users/김'}

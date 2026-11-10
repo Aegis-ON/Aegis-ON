@@ -38,6 +38,11 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
     and a reference claimed by more than one host is left unassigned.
     """
     by_id = {d.get('detection_id'): d for d in detections if isinstance(d, dict)}
+    scopes: dict[str, set[str]] = {}
+    for batch in analyses:
+        for event in batch.get('source_events') or batch.get('event_refs') or []:
+            if isinstance(event, dict) and isinstance(event.get('event_id'), str):
+                scopes.setdefault(event['event_id'], set()).add(event.get('endpoint_group') or str(batch.get('analysis_id')))
     output: list[dict[str, Any]] = []
     for batch in analyses:
         analysis_id = batch.get('analysis_id')
@@ -46,7 +51,8 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
         kind = batch.get('input_type')
         batch_ids = {e.get('event_id') for e in (batch.get('source_events') or batch.get('event_refs') or []) if isinstance(e, dict)}
         owned = set(batch.get('detection_ids') or [])
-        relevant = [d for d in by_id.values() if d.get('detection_id') in owned or bool(batch_ids.intersection(d.get('event_ids') or []))]
+        relevant = [d for d in by_id.values() if d.get('detection_id') in owned or
+                    any(len(scopes.get(eid, ())) == 1 for eid in batch_ids.intersection(d.get('event_ids') or []))]
         groups: dict[tuple[str, str], dict[str, Any]] = {}
 
         def group(category: str, key: str, host: str | None, certainty: str) -> dict[str, Any]:
@@ -61,7 +67,7 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
                 }
             return groups[group_key]
 
-        if kind == 'sysmon':
+        if kind == 'sysmon' or (kind == 'json' and batch.get('source_events')):
             sources = batch.get('source_events') or []
             for i, source in enumerate(sources):
                 if not isinstance(source, dict):
@@ -75,6 +81,7 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
                 else:
                     # Missing hosts cannot establish that two events are from the same device.
                     target = group('unknown_event', str(i), None, 'unknown')
+                target['collector_id'] = source.get('collector_id')
                 target['events'].append(source)
             for detection in relevant:
                 event_ids = set(detection.get('event_ids') or [])

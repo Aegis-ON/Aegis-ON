@@ -4,8 +4,10 @@ Continuously reads Sysmon Event 1/3 and submits local batches to Aegis-ON.
 .DESCRIPTION
 Experimental: Windows execution has not yet been verified. It reads the local
 Sysmon Operational channel; it does not install Sysmon or change its config.
-Use a private cursor path outside the repository. The API token is read only
-from AEGIS_API_TOKEN and must not be passed on the command line.
+Use a private cursor path outside the repository. Provision the individual
+collector credential once with -InitializeCredential; it is protected by the
+Windows current-user DPAPI and can only be opened by that same Windows account.
+Running as a service therefore requires provisioning as that service identity.
 #>
 [CmdletBinding()]
 param(
@@ -15,12 +17,43 @@ param(
     [ValidateRange(1,100)][int]$BatchSize = 20,
     [ValidateRange(1,65535)][int]$Port = 8000,
     [string]$ServerUrl = '',
-    [switch]$AdoptExistingCursor
+    [switch]$AdoptExistingCursor,
+    [string]$CredentialPath = '',
+    [switch]$InitializeCredential,
+    [switch]$UseLegacySharedToken
 )
 $ErrorActionPreference = 'Stop'
 $channel = 'Microsoft-Windows-Sysmon/Operational'
 $names = @('UtcTime','Image','CommandLine','ParentImage','ParentCommandLine','User','ProcessGuid','ProcessId','SourceIp','SourcePort','DestinationIp','DestinationPort','Initiated')
-if ([string]::IsNullOrWhiteSpace($env:AEGIS_API_TOKEN)) { throw 'Set AEGIS_API_TOKEN in the environment first.' }
+if ($UseLegacySharedToken) {
+    if ($InitializeCredential -or $CredentialPath) { throw 'Legacy token and credential file options cannot be combined.' }
+    if ([string]::IsNullOrWhiteSpace($env:AEGIS_API_TOKEN)) { throw 'Set AEGIS_API_TOKEN for explicitly enabled legacy mode.' }
+    Write-Warning 'Legacy shared-token collection requires explicit server configuration and does not authenticate an individual collector.'
+    $collectorSecret = $env:AEGIS_API_TOKEN
+} else {
+    if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'Collector credential protection requires Windows DPAPI.' }
+    if ([string]::IsNullOrWhiteSpace($CredentialPath)) { throw 'Set CredentialPath to a private location outside the repository.' }
+    $credentialFile = [IO.Path]::GetFullPath($CredentialPath)
+    if ($InitializeCredential) {
+        if ([IO.File]::Exists($credentialFile)) { throw 'Credential file already exists; do not overwrite it.' }
+        $secure = Read-Host 'Enter the collector credential issued by the server' -AsSecureString
+        if ($secure.Length -eq 0) { throw 'Credential cannot be empty.' }
+        # On Windows without -Key, ConvertFrom-SecureString uses current-user DPAPI.
+        $protected = ConvertFrom-SecureString -SecureString $secure
+        $file = [IO.File]::Open($credentialFile, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        try { $writer = [IO.StreamWriter]::new($file, [Text.Encoding]::ASCII); try { $writer.Write($protected) } finally { $writer.Dispose() } }
+        finally { $file.Dispose(); $secure.Dispose() }
+        Write-Host 'Encrypted credential saved for this Windows account. Keep the file private.'
+        exit 0
+    }
+    try {
+        $secure = ConvertTo-SecureString ([IO.File]::ReadAllText($credentialFile).Trim())
+        $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+        try { $collectorSecret = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
+        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr); $secure.Dispose() }
+        if ([string]::IsNullOrWhiteSpace($collectorSecret)) { throw 'Empty credential.' }
+    } catch { throw 'Unable to open collector credential with this Windows account.' }
+}
 if ([string]::IsNullOrWhiteSpace($ServerUrl)) { $ServerUrl = "http://127.0.0.1:$Port" }
 $server = $null
 if (-not [Uri]::TryCreate($ServerUrl, [System.UriKind]::Absolute, [ref]$server) -or
@@ -29,7 +62,7 @@ if (-not [Uri]::TryCreate($ServerUrl, [System.UriKind]::Absolute, [ref]$server) 
     throw 'ServerUrl must be an HTTPS origin or a loopback HTTP origin, without credentials, path, query or fragment.'
 }
 $base = $server.GetLeftPart([System.UriPartial]::Authority).TrimEnd('/')
-$headers = @{ Authorization = "Bearer $env:AEGIS_API_TOKEN" }
+$headers = @{ Authorization = "Bearer $collectorSecret"; 'X-Collector-ID' = $CollectorId }
 $cursor = [IO.Path]::GetFullPath($CursorPath)
 $dir = [IO.Path]::GetDirectoryName($cursor)
 if (-not [IO.Directory]::Exists($dir)) { throw 'Cursor directory does not exist.' }

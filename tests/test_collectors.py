@@ -16,10 +16,12 @@ ROOT = Path(__file__).resolve().parent.parent
 class CollectorTests(unittest.TestCase):
     def test_synthetic_collector_retries_same_batch_until_ack(self):
         requests = []
+        collector_headers = []
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 body = self.rfile.read(int(self.headers['Content-Length']))
                 requests.append((self.path, self.headers.get('Idempotency-Key'), body))
+                collector_headers.append(self.headers.get('X-Collector-ID'))
                 submissions = [x for x in requests if x[0] == '/api/v1/ingest/sysmon']
                 if self.path == '/api/v1/ingest/sysmon' and len(submissions) == 1:
                     self.send_response(503)
@@ -52,6 +54,8 @@ class CollectorTests(unittest.TestCase):
         self.assertNotIn('curl https://example.org', result.stdout + result.stderr)
         heartbeat = [json.loads(x[2]) for x in requests if x[0].endswith('/heartbeat')]
         self.assertEqual([x['state'] for x in heartbeat], ['running', 'error', 'running', 'stopped'])
+        self.assertTrue(collector_headers)
+        self.assertEqual(set(collector_headers), {'synthetic-collector'})
 
     def test_synthetic_collector_reuses_key_when_ack_is_lost(self):
         submissions = []
@@ -92,6 +96,7 @@ class CollectorTests(unittest.TestCase):
         script = (ROOT / 'scripts' / 'collect_sysmon.ps1').read_text(encoding='utf-8')
         self.assertIn("$server.Scheme -ne 'https'", script)
         self.assertIn('$server.IsLoopback', script)
+        self.assertIn("'X-Collector-ID' = $CollectorId", script)
         self.assertEqual(script.count('-MaximumRedirection 0'), 2)
         self.assertIn('$cursor.binding', script)
         self.assertIn('$AdoptExistingCursor', script)

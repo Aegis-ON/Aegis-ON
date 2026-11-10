@@ -48,16 +48,18 @@ def main() -> int:
             or not 0 <= args.retries <= 100 or not 0 <= args.retry_delay <= 60
             or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', args.collector_id)):
         parser.error('invalid port, interval or collector identifier')
-    token = os.environ.get('AEGIS_API_TOKEN', '')
+    # The legacy variable is retained for existing local test tooling only.
+    token = os.environ.get('AEGIS_COLLECTOR_TOKEN') or os.environ.get('AEGIS_API_TOKEN', '')
     if not token:
-        print('AEGIS_API_TOKEN is required.', file=sys.stderr)
+        print('AEGIS_COLLECTOR_TOKEN is required.', file=sys.stderr)
         return 2
     try:
         events = json.loads(FIXTURE.read_text(encoding='utf-8'))['events']
         run = uuid.uuid4().hex
         for attempt in range(args.retries + 1):
             try:
-                post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'running'}, token)
+                post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'running'}, token,
+                     {'X-Collector-ID': args.collector_id})
                 break
             except urllib.error.HTTPError as exc:
                 if exc.code < 500 or attempt == args.retries:
@@ -83,7 +85,8 @@ def main() -> int:
                 print(f'Synthetic event {index + 1} not acknowledged; retrying.', file=sys.stderr)
                 try:
                     post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat',
-                         {'state': 'error', 'error_code': 'send_error'}, token)
+                         {'state': 'error', 'error_code': 'send_error'}, token,
+                         {'X-Collector-ID': args.collector_id})
                 except (OSError, ValueError, urllib.error.URLError):
                     pass
                 time.sleep(args.retry_delay)
@@ -99,12 +102,14 @@ def main() -> int:
             print(f'Synthetic event {index + 1}/{len(events)} acknowledged; processed={processed}, duplicate={duplicate}')
             if attempt:
                 try:
-                    post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'running'}, token)
+                    post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'running'}, token,
+                         {'X-Collector-ID': args.collector_id})
                 except (OSError, ValueError, urllib.error.URLError):
                     print('Collector recovery heartbeat failed.', file=sys.stderr)
             if index + 1 < len(events):
                 time.sleep(args.interval)
-        post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'stopped'}, token)
+        post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat', {'state': 'stopped'}, token,
+             {'X-Collector-ID': args.collector_id})
         return 0
     except urllib.error.HTTPError as exc:
         print(f'Local collector request failed (HTTP {exc.code}).', file=sys.stderr)
@@ -112,7 +117,8 @@ def main() -> int:
         print('Local collector could not read the fixture or connect to the server.', file=sys.stderr)
     try:
         post(args.port, f'/api/v1/collectors/{args.collector_id}/heartbeat',
-             {'state': 'error', 'error_code': 'send_error'}, token)
+             {'state': 'error', 'error_code': 'send_error'}, token,
+             {'X-Collector-ID': args.collector_id})
     except (OSError, ValueError, urllib.error.URLError):
         pass  # The server may be unreachable; do not echo its response.
     return 1

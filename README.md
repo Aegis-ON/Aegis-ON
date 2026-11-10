@@ -1,3 +1,5 @@
+> **중앙 관제 및 로그인:** 분석가 계정, PC별 수집기 등록, Windows 실행과 제한은 [중앙 관제 설정](docs/central_monitoring.md)을 먼저 확인하세요. 실제 Windows Sysmon 수집은 아직 검증되지 않았습니다.
+
 # Aegis-ON
 
 > 개인정보를 외부로 반출하지 않고, 규칙 기반 탐지와 행위 분석을 결합하는 사람 승인형 AI 보안관제 MVP
@@ -20,29 +22,9 @@
 
 ## 빠른 시작
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export AEGIS_API_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-export AEGIS_ANALYST_NAME="analyst-1"
-uvicorn --app-dir src aegis_on.api:app --reload
-```
+브라우저 로그인에 필요한 비밀번호 해시와 환경 변수는 [중앙 관제 설정](docs/central_monitoring.md)에서 안내합니다. Windows 수집기 등록과 실행은 [지속 수집 문서](docs/continuous_collection.md)를 확인하세요. 회원가입이나 실제 차단 기능은 제공하지 않습니다.
 
-브라우저에서 `http://127.0.0.1:8000`을 열고 데모 버튼을 누르면 API 토큰을 입력합니다. 생성된 토큰은 `printf '%s\n' "$AEGIS_API_TOKEN"`으로 확인할 수 있습니다. API 문서는 `http://127.0.0.1:8000/docs`에서 확인하고 Authorize에 토큰을 입력합니다.
-
-Windows PowerShell에서는 저장소 루트에서 다음 명령을 사용합니다. 가상환경을 직접 활성화하지 않아도 됩니다.
-
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-$env:AEGIS_API_TOKEN = (.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))")
-$env:AEGIS_ANALYST_NAME = 'analyst-1'
-Write-Host $env:AEGIS_API_TOKEN
-.\.venv\Scripts\python.exe -m uvicorn --app-dir src aegis_on.api:app --reload
-```
-
-토큰은 서버를 시작한 PowerShell 세션에 설정됩니다. 서버를 종료하려면 `Ctrl+C`를 누릅니다.
+기존 자동화 API를 사용할 경우에만 서버에 `AEGIS_API_TOKEN`을 별도로 설정합니다. 아래는 합성 데이터의 수동 API 예시입니다.
 
 샘플 이벤트 분석:
 
@@ -53,20 +35,15 @@ curl -X POST http://127.0.0.1:8000/api/v1/analyze \
   --data @data/demo_events.json
 ```
 
-분석, 탐지 목록, 승인 API에는 Bearer 토큰이 필요합니다. 토큰 또는 분석가 이름이 설정되지 않으면 API는 요청을 거부합니다. 승인 요청의 `analyst`는 `AEGIS_ANALYST_NAME`과 일치해야 합니다. 현재 인증은 **단일 공유 토큰과 단일 분석가를 위한 MVP**이며 다중 사용자 인증이나 역할 관리를 제공하지 않습니다. 토큰과 이름은 신뢰하는 분석가에게만 제공하고, 네트워크에 노출할 때는 암호화된 연결과 별도의 접근 통제가 필요합니다.
+분석, 탐지 목록, 승인 API는 기존 Bearer 토큰 또는 유효한 분석가 세션을 요구합니다. 승인 요청의 `analyst`는 `AEGIS_ANALYST_NAME`과 일치해야 합니다. 현재 인증은 **운영자가 설정한 단일 분석가 계정과 선택적 API 공유 토큰**을 제공하며 다중 사용자 인증이나 역할 관리를 제공하지 않습니다. 토큰과 이름은 신뢰하는 분석가에게만 제공하고, 네트워크에 노출할 때는 암호화된 연결과 별도의 접근 통제가 필요합니다.
 
-Docker를 사용한다면 환경 변수를 컨테이너에 전달하고 호스트의 루프백에 포트를 연결합니다.
-
-```bash
-docker build -t aegis-on .
-docker run --rm -p 127.0.0.1:8000:8000 -e AEGIS_API_TOKEN -e AEGIS_ANALYST_NAME aegis-on
-```
+Docker에서는 영구 SQLite 볼륨과 서버 인증 설정을 전달해야 합니다. 컨테이너 네트워크에서는 호스트 브라우저가 서버 관점에서 loopback이 아닐 수 있으므로, 브라우저 접근에 신뢰된 HTTPS 종단과 프록시 설정을 준비하세요. 단순 포트 매핑만으로 로컬 HTTP 로그인 동작을 보장하지 않습니다.
 
 분석 결과의 `event_refs`는 요청의 0부터 시작하는 `input_index`와 해당 `event_id`를 연결합니다. ID가 없는 입력도 응답을 통해 원본 입력 위치를 찾을 수 있습니다. 한 요청 안에서 `event_id`가 중복되거나 표시용 가명처리 이후 같아지면 요청이 거부됩니다. 이벤트 원본은 저장하지 않으며, 이력에는 필요한 연결 정보만 가명처리해 저장합니다. 수동 분석 API의 상관분석은 요청 단위이며, 연속 Sysmon 수집의 팬아웃은 여러 배치에 걸쳐 집계됩니다.
 
 ## 로컬 분석 이력
 
-기본 DB는 `~/.aegis-on/history.sqlite3`이며 서버 시작 전 `AEGIS_HISTORY_DB`로 변경할 수 있습니다. 분석 후 관제 화면의 **분석 이력 → 인증하고 불러오기**에서 토큰을 입력하면 이전 결과와 승인 시뮬레이션을 조회할 수 있습니다. API는 인증된 `GET /api/v1/history`를 제공합니다. 분석 응답에 `analysis_id`가 추가됩니다. 저장 실패 시 분석은 503을 반환합니다. 원본 로그나 전체 명령줄은 DB에 자동 저장하지 않지만 가명처리 누락 및 자유 입력 승인 사유에 민감한 내용이 남을 수 있습니다. 비밀값은 입력하지 마세요. 저장 항목, 파일 권한, Docker 볼륨, 삭제 및 제한은 [로컬 이력 문서](docs/local_history.md)를 확인하세요.
+기본 DB는 `~/.aegis-on/history.sqlite3`이며 서버 시작 전 `AEGIS_HISTORY_DB`로 변경할 수 있습니다. 관제 화면에 로그인한 뒤 **분석 이력**에서 이전 결과와 승인 시뮬레이션을 조회할 수 있습니다. API는 인증된 `GET /api/v1/history`를 제공합니다. 분석 응답에 `analysis_id`가 추가됩니다. 저장 실패 시 분석은 503을 반환합니다. 원본 로그나 전체 명령줄은 DB에 자동 저장하지 않지만 가명처리 누락 및 자유 입력 승인 사유에 민감한 내용이 남을 수 있습니다. 비밀값은 입력하지 마세요. 저장 항목, 파일 권한, Docker 볼륨, 삭제 및 제한은 [로컬 이력 문서](docs/local_history.md)를 확인하세요.
 
 회귀 테스트를 포함한 테스트 실행:
 
@@ -157,7 +134,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
 Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 사용자의 실제 로그가 JSON에 들어가므로 파일을 신뢰하는 장소에서만 보관·전송하세요. 위 경로는 저장소 밖에 두기 위한 예시입니다. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 이유를 표시합니다.
 
-1. 빠른 시작의 API 토큰과 분석가 이름을 설정하고 서버를 시작합니다.
+1. 중앙 관제 설정에 따라 분석가 계정과 서버를 설정합니다. API 예시에는 별도 Bearer 토큰이 필요합니다.
 2. 자동 수집을 사용하려면 [지속 수집 안내](docs/continuous_collection.md)를 참고하세요.
 3. 관제 화면에서 저장된 이벤트와 탐지 근거를 확인합니다. `data/demo_sysmon.json`은 합성 예제입니다.
 

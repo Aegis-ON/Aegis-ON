@@ -24,7 +24,7 @@ class EndpointApiTests(unittest.TestCase):
         api.pii_detector = PIIDetector(); api.attack_model = AttackModel()
         config = patch.dict('os.environ', {'AEGIS_API_TOKEN':'endpoint-fake-token', 'AEGIS_ANALYST_NAME':'analyst-1'}, clear=False)
         config.start(); self.addCleanup(config.stop)
-        self.client = TestClient(api.app); self.addCleanup(self.client.close)
+        self.client = TestClient(api.app, base_url='https://testserver'); self.addCleanup(self.client.close)
         self.headers = {'Authorization':'Bearer endpoint-fake-token'}
 
     def test_auth_empty_and_storage_failure(self):

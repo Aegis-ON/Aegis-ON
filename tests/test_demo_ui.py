@@ -105,7 +105,7 @@ function button(label){const b=descendants(elements['#results']).find(e=>e._text
         cases = {}
         with patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst-1'}):
             api.service = DetectionService()
-            with TestClient(api.app) as client:
+            with TestClient(api.app, base_url='https://testserver') as client:
                 headers = {'Authorization': 'Bearer test-secret'}
                 for name in ('a', 'b', 'c'):
                     sample_response = client.get(f'/api/v1/demo/scenarios/{name}', headers=headers)

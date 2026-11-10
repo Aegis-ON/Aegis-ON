@@ -14,7 +14,7 @@ class ApiRegressionTests(unittest.TestCase):
         self.config = patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst-1'}, clear=False)
         self.config.start()
         api.service = DetectionService()
-        self.client = TestClient(api.app)
+        self.client = TestClient(api.app, base_url='https://testserver')
         self.headers = {'Authorization': 'Bearer test-secret'}
         self.events = [
             {'timestamp': '2026-11-09T10:00:00Z', 'host': 'host-1', 'user': 'user-1', 'process': 'p', 'command_line': 'curl https://example.org'},

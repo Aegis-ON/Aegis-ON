@@ -7,6 +7,9 @@ import ipaddress
 import json
 import os
 import re
+import threading
+import time
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +30,8 @@ from .pii_reporting import InvalidPIIInput, inspect_events
 from .sysmon import parse_sysmon
 from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
+from .auth_sessions import AuthSessions, AuthConfigurationError, AuthStorageError
+from .collector_auth import CollectorRegistry, CollectorExists
 
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService(SQLiteHistory(os.environ.get('AEGIS_HISTORY_DB') or str(Path.home() / '.aegis-on' / 'history.sqlite3')))
@@ -34,6 +39,9 @@ pii_detector = PIIDetector.from_environment()
 attack_model = AttackModel.from_environment()
 bearer = HTTPBearer(auto_error=False)
 MAX_SYSMON_BYTES = 2 * 1024 * 1024
+_login_lock = threading.Lock()
+_login_attempts: dict[str, list[float]] = {}
+_login_slots = threading.BoundedSemaphore(2)
 DEMO_SCENARIOS = {
     "a": "data/scenario_a.json",
     "b": "data/scenario_b.json",
@@ -70,18 +78,67 @@ def _display_ip(value: str) -> str:
     return str(address)
 
 
+@lru_cache(maxsize=16)
+def _session_config(*_settings):
+    try:
+        return AuthSessions.from_environment()
+    except (AuthConfigurationError, AuthStorageError):
+        raise HTTPException(status_code=503, detail='login configuration or storage unavailable') from None
+
+
+def _sessions():
+    keys = ('AEGIS_LOGIN_USERNAME', 'AEGIS_LOGIN_PASSWORD_HASH', 'AEGIS_ANALYST_NAME',
+            'AEGIS_AUTH_DB', 'AEGIS_HISTORY_DB', 'AEGIS_SESSION_TTL_SECONDS')
+    return _session_config(*(os.environ.get(key, '') for key in keys))
+
+
+def _same_origin(request: Request) -> None:
+    origin = request.headers.get('origin')
+    if origin and origin != f'{request.url.scheme}://{request.headers.get("host", "")}':
+        raise HTTPException(status_code=403, detail='invalid request origin')
+
+
+def _is_loopback_request(request: Request) -> bool:
+    try:
+        return bool(request.client and ipaddress.ip_address(request.client.host).is_loopback and
+                    request.url.hostname in ('localhost', '127.0.0.1', '::1'))
+    except ValueError:
+        return False
+
+
+@app.middleware('http')
+async def require_secure_credentials(request: Request, call_next):
+    if (request.url.path.startswith('/api/') and request.url.scheme != 'https' and
+            (request.headers.get('authorization') or request.cookies.get('aegis_session')) and
+            not _is_loopback_request(request)):
+        return JSONResponse(status_code=403, content={'detail': 'HTTPS is required for credentials'})
+    return await call_next(request)
+
+
 def authenticated_analyst(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> str:
     token = os.environ.get("AEGIS_API_TOKEN", "")
     analyst = os.environ.get("AEGIS_ANALYST_NAME", "").strip()
-    if not token or not analyst:
-        raise HTTPException(status_code=503, detail="API authentication is not configured")
-    if credentials is None or not hmac.compare_digest(
-        credentials.credentials.encode("utf-8"), token.encode("utf-8")
-    ):
-        raise HTTPException(status_code=401, detail="invalid or missing API token", headers={"WWW-Authenticate": "Bearer"})
-    return analyst
+    if token and analyst and credentials is not None and hmac.compare_digest(credentials.credentials.encode('utf-8'), token.encode('utf-8')):
+        return analyst
+    session_token = request.cookies.get('aegis_session', '')
+    if session_token:
+        try:
+            sessions = _sessions()
+            name = sessions.authenticate(session_token) if sessions else None
+            if name:
+                if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+                    _same_origin(request)
+                    if not sessions.verify_csrf(session_token, request.headers.get('x-csrf-token', '')):
+                        raise HTTPException(status_code=403, detail='invalid CSRF token')
+                return name
+        except AuthStorageError:
+            raise HTTPException(status_code=503, detail='login storage unavailable') from None
+    if not (token and analyst) and not os.environ.get('AEGIS_LOGIN_USERNAME'):
+        raise HTTPException(status_code=503, detail='API authentication is not configured')
+    raise HTTPException(status_code=401, detail='authentication required', headers={'WWW-Authenticate': 'Bearer'})
 
 
 class AnalyzeRequest(BaseModel):
@@ -96,6 +153,83 @@ class ApprovalRequest(BaseModel):
 class CollectorHeartbeat(BaseModel):
     state: str
     error_code: str | None = None
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+class CollectorRegistration(BaseModel):
+    collector_id: str = Field(min_length=1, max_length=64)
+
+
+@app.get('/login', include_in_schema=False)
+def login_page() -> FileResponse:
+    return FileResponse('static/login.html', headers={'Cache-Control': 'no-store'})
+
+
+@app.post('/api/v1/login')
+def login(payload: LoginRequest, request: Request):
+    _same_origin(request)
+    if request.url.scheme != 'https' and not _is_loopback_request(request):
+        raise HTTPException(status_code=403, detail='HTTPS is required for login')
+    now = time.monotonic()
+    ip = request.client.host if request.client else 'unknown'
+    with _login_lock:
+        # Bounded, per-process defence; proxy-level limits remain necessary.
+        for key in list(_login_attempts):
+            _login_attempts[key] = [t for t in _login_attempts[key] if now - t < 60]
+            if not _login_attempts[key]:
+                del _login_attempts[key]
+        if len(_login_attempts) >= 4096 and ip not in _login_attempts:
+            raise HTTPException(status_code=429, detail='login temporarily limited')
+        attempts = _login_attempts.setdefault(ip, [])
+        if len(attempts) >= 10:
+            raise HTTPException(status_code=429, detail='login temporarily limited')
+        attempts.append(now)
+    sessions = _sessions()
+    if not sessions:
+        raise HTTPException(status_code=503, detail='analyst login is not configured')
+    if not _login_slots.acquire(blocking=False):
+        raise HTTPException(status_code=429, detail='login temporarily limited')
+    try:
+        ticket = sessions.login(payload.username, payload.password)
+    except AuthStorageError:
+        raise HTTPException(status_code=503, detail='login storage unavailable') from None
+    finally:
+        _login_slots.release()
+    if ticket is None:
+        raise HTTPException(status_code=401, detail='invalid credentials')
+    response = JSONResponse({'authenticated': True}, headers={'Cache-Control': 'no-store'})
+    response.set_cookie('aegis_session', ticket.session_token, httponly=True,
+                        secure=request.url.scheme == 'https', samesite='strict', path='/')
+    return response
+
+
+@app.get('/api/v1/session')
+def session_info(request: Request, analyst: str = Depends(authenticated_analyst)):
+    token = request.cookies.get('aegis_session', '')
+    sessions = _sessions()
+    try:
+        if not token or not sessions or sessions.authenticate(token) != analyst:
+            raise HTTPException(status_code=401, detail='browser session required')
+    except AuthStorageError:
+        raise HTTPException(status_code=503, detail='login storage unavailable') from None
+    return JSONResponse({'analyst': analyst, 'csrf_token': sessions.csrf_token(token)}, headers={'Cache-Control': 'no-store'})
+
+
+@app.post('/api/v1/logout')
+def logout(request: Request, analyst: str = Depends(authenticated_analyst)):
+    sessions = _sessions()
+    try:
+        if sessions:
+            sessions.logout(request.cookies.get('aegis_session', ''))
+    except AuthStorageError:
+        raise HTTPException(status_code=503, detail='login storage unavailable') from None
+    response = JSONResponse({'logged_out': True}, headers={'Cache-Control': 'no-store'})
+    response.delete_cookie('aegis_session', path='/', httponly=True, samesite='strict', secure=request.url.scheme == 'https')
+    return response
 
 
 @app.get("/", include_in_schema=False)
@@ -158,7 +292,7 @@ def _verified_public_hosts() -> tuple[frozenset[str], str]:
         return frozenset(), 'invalid'
 
 
-def _pii_inspect(events: list[dict[str, Any]], indices: list[int]):
+def _pii_inspect(events: list[dict[str, Any]], indices: list[int], collector_secret: str = ''):
     try:
         verified_hosts, state = _verified_public_hosts()
         pii, mask = inspect_events(events, indices, pii_detector, verified_public_hosts=verified_hosts)
@@ -169,6 +303,7 @@ def _pii_inspect(events: list[dict[str, Any]], indices: list[int]):
         secret = re.compile(r'(?i)\b(password|passwd|pwd|secret|api[_-]?key|token)\s*[:=]\s*[^\s,;]+')
         def strip_secrets(value: str) -> str:
             value = value.replace(token, '[REDACTED_SECRET]') if token else value
+            value = value.replace(collector_secret, '[REDACTED_SECRET]') if collector_secret else value
             return secret.sub(lambda m: m.group(1) + '=[REDACTED_SECRET]', value)
         def safe_mask(value: str) -> str:
             return strip_secrets(mask(strip_secrets(value)))
@@ -243,6 +378,8 @@ def _commit_history(prepared: dict[str, Any], batch: dict[str, Any], collection:
     for source in batch['source_events']:
         if source.get('host'):
             source['host'] = _token('HOST', source['host'], 'aegis-on-demo')
+        if collection is not None:
+            source['collector_id'] = collection['collector_id']
     if collection is not None and collection.get('events') is not None:
         # Display values come only from the conservative allowlisted metadata.
         for entry, source in zip(collection['events'], batch['source_events']):
@@ -258,6 +395,8 @@ def _commit_history(prepared: dict[str, Any], batch: dict[str, Any], collection:
         ids = {r['event_id']: _token('EVENT', r['event_id'], 'aegis-on-demo') for r in batch['event_refs']}
         for ref in batch['event_refs']:
             ref['event_id'] = ids[ref['event_id']]
+        for source in batch['source_events']:
+            source['event_id'] = ids.get(source['event_id'], source['event_id'])
         for result in batch['attack_model']['results']:
             if result.get('event_id') in ids:
                 result['event_id'] = ids[result['event_id']]
@@ -298,7 +437,19 @@ def demo_scenario(scenario: str, analyst: str = Depends(authenticated_analyst)) 
 
 
 def _analyze_json(payload: AnalyzeRequest, collection: dict[str, str] | None = None) -> dict[str, Any]:
-    pii, mask = _pii_inspect(payload.events, list(range(len(payload.events))))
+    if collection is not None:
+        # The same input ID from different PCs or batches is not a shared
+        # event. Namespace it before any detection references are created.
+        events = copy.deepcopy(payload.events)
+        source_ids = [event.get('event_id') for event in events if isinstance(event, dict) and isinstance(event.get('event_id'), str)]
+        if len(source_ids) != len(set(source_ids)):
+            raise HTTPException(status_code=422, detail='duplicate event_id in request')
+        for i, event in enumerate(events):
+            if isinstance(event, dict) and isinstance(event.get('event_id'), str) and event['event_id']:
+                identity = json.dumps([collection['collector_id'], collection['batch_id'], i, event['event_id']], ensure_ascii=True)
+                event['event_id'] = hashlib.sha256(identity.encode()).hexdigest()
+        payload = AnalyzeRequest(events=events)
+    pii, mask = _pii_inspect(payload.events, list(range(len(payload.events))), collection.get('credential', '') if collection else '')
     try:
         prepared = service.prepare_analysis(payload.events, mask=mask)
         detections, event_refs = prepared['display'], prepared['refs']
@@ -310,7 +461,15 @@ def _analyze_json(payload: AnalyzeRequest, collection: dict[str, str] | None = N
         raise HTTPException(status_code=422, detail=message) from None
     _link_pii(pii, event_refs)
     model = _attack_results(payload.events, event_refs)
-    batch = _history_batch('json', prepared, [], {'total': len(payload.events), 'processed': len(payload.events), 'invalid': 0, 'unsupported': 0}, pii, model)
+    sources = []
+    if collection is not None:
+        for event, ref in zip(payload.events, event_refs):
+            host = event.get('host') if isinstance(event.get('host'), str) else ''
+            group = hashlib.sha256(json.dumps([collection['collector_id'], host.casefold()], ensure_ascii=True).encode()).hexdigest() if host else None
+            sources.append({'event_id': ref['event_id'], 'input_index': ref['input_index'],
+                            'host': mask(host) if host else None, 'timestamp': mask(str(event.get('timestamp', ''))),
+                            'log_source': 'json-collector', 'endpoint_group': group})
+    batch = _history_batch('json', prepared, sources, {'total': len(payload.events), 'processed': len(payload.events), 'invalid': 0, 'unsupported': 0}, pii, model)
     saved = _commit_history(prepared, batch, collection)
     if collection is not None:
         return saved
@@ -353,7 +512,7 @@ async def _analyze_sysmon(body: bytes, collection: dict[str, str] | None = None)
         # Collectors can only advance a cursor after the whole batch commits.
         # Invalid/unsupported entries require explicit collector-side handling.
         raise HTTPException(status_code=422, detail='collector batch contains invalid or unsupported events')
-    pii, mask = _pii_inspect(raw_events, processed_indices)
+    pii, mask = _pii_inspect(raw_events, processed_indices, collection.get('credential', '') if collection else '')
     try:
         prepared = service.prepare_analysis(raw_events, allow_empty_command_line=True, mask=mask)
         for ref, input_index in zip(prepared['refs'], processed_indices):
@@ -467,16 +626,32 @@ def _collector_store() -> SQLiteHistory:
     return service.history
 
 
+def _collector_identity(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> str:
+    if credentials is None:
+        raise HTTPException(status_code=401, detail='collector authentication required')
+    collector_id = _collector_name(request.headers.get('x-collector-id'))
+    try:
+        if CollectorRegistry(_collector_store()).authenticate(collector_id, credentials.credentials):
+            return collector_id
+        token = os.environ.get('AEGIS_API_TOKEN', '')
+        if (os.environ.get('AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN') == '1' and token
+                and hmac.compare_digest(credentials.credentials.encode('utf-8'), token.encode('utf-8'))):
+            return collector_id
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='collector storage unavailable') from None
+    raise HTTPException(status_code=401, detail='invalid collector credentials')
+
+
 @app.post('/api/v1/ingest/{kind}')
-async def ingest_batch(kind: str, request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+async def ingest_batch(kind: str, request: Request, collector_id: str = Depends(_collector_identity)) -> dict[str, Any]:
     if kind not in ('json', 'sysmon'):
         raise HTTPException(status_code=404, detail='unsupported ingestion type')
-    collector_id = _collector_name(request.headers.get('x-collector-id'))
     batch_id = _collector_name(request.headers.get('idempotency-key'))
     received_at = datetime.now(timezone.utc).isoformat()
     body = await _bounded_json_body(request)
     collection = {'collector_id': collector_id, 'batch_id': batch_id,
-                  'input_type': kind, 'digest': hashlib.sha256(body).hexdigest(), 'received_at': received_at}
+                  'input_type': kind, 'digest': hashlib.sha256(body).hexdigest(), 'received_at': received_at,
+                  'credential': request.headers.get('authorization', '').partition(' ')[2].strip()}
     store = _collector_store()
     try:
         previous = await run_in_threadpool(store.lookup_collected, collection)
@@ -501,8 +676,10 @@ async def ingest_batch(kind: str, request: Request, analyst: str = Depends(authe
 
 @app.post('/api/v1/collectors/{collector_id}/heartbeat')
 def collector_heartbeat(collector_id: str, payload: CollectorHeartbeat,
-                        analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+                        authenticated_id: str = Depends(_collector_identity)) -> dict[str, Any]:
     collector_id = _collector_name(collector_id)
+    if collector_id != authenticated_id:
+        raise HTTPException(status_code=403, detail='collector identity mismatch')
     codes = {'read_error', 'export_error', 'send_error', 'invalid_input', 'other'}
     if payload.state not in {'running','stopped','error'} or (
             payload.state == 'error' and payload.error_code not in codes) or (
@@ -518,11 +695,36 @@ def collector_heartbeat(collector_id: str, payload: CollectorHeartbeat,
 @app.get('/api/v1/collectors')
 def collectors(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
     try:
-        records = _collector_store().list_collectors()
+        store = _collector_store()
+        records = [{**record, 'registered': True} for record in CollectorRegistry(store).list_collectors()]
+        registered = {record['collector_id'] for record in records}
+        records += [{**record, 'registered': False} for record in store.list_collectors() if record['collector_id'] not in registered]
     except HistoryError:
         raise HTTPException(status_code=503, detail='history storage unavailable') from None
     return {'collectors': records,
             'note': 'Reported state and timestamps are not a live connectivity guarantee.'}
+
+
+@app.post('/api/v1/collectors/register')
+def register_collector(payload: CollectorRegistration, request: Request, analyst: str = Depends(authenticated_analyst)):
+    sessions = _sessions()
+    session_token = request.cookies.get('aegis_session', '')
+    try:
+        if not sessions or sessions.authenticate(session_token) != analyst:
+            raise HTTPException(status_code=403, detail='analyst session required')
+        _same_origin(request)
+        if not sessions.verify_csrf(session_token, request.headers.get('x-csrf-token', '')):
+            raise HTTPException(status_code=403, detail='invalid CSRF token')
+    except AuthStorageError:
+        raise HTTPException(status_code=503, detail='login storage unavailable') from None
+    collector_id = _collector_name(payload.collector_id)
+    try:
+        secret = CollectorRegistry(_collector_store()).register(collector_id)
+    except CollectorExists:
+        raise HTTPException(status_code=409, detail='collector identifier already used') from None
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='collector storage unavailable') from None
+    return JSONResponse({'collector_id': collector_id, 'credential': secret}, headers={'Cache-Control': 'no-store'})
 
 
 @app.get("/api/v1/detections")

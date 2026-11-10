@@ -15,7 +15,7 @@ class ConsoleRouteTests(unittest.TestCase):
         api.service = DetectionService(SQLiteHistory(Path(self.tmp.name) / 'history.sqlite3'))
         self.env = patch.dict('os.environ', {'AEGIS_API_TOKEN':'route-test-token','AEGIS_ANALYST_NAME':'test-analyst'})
         self.env.start(); self.addCleanup(self.env.stop)
-        self.client = TestClient(api.app); self.addCleanup(self.client.close)
+        self.client = TestClient(api.app, base_url='https://testserver'); self.addCleanup(self.client.close)
 
     def test_shells_resolve_on_direct_load_and_data_remains_authenticated(self):
         landing = self.client.get('/')

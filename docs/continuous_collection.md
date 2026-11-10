@@ -7,9 +7,9 @@
 `scripts/collect_synthetic.py`는 이 저장소의 가상 `data/demo_sysmon.json`만 읽고 Sysmon 이벤트를 하나씩 시차를 두고 전송합니다. 목적지는 실행 중인 로컬 서버의 `127.0.0.1`로만 제한됩니다. 실사용 로그를 입력받지 않으며 모델 추론 여부는 서버 설정을 따릅니다. 다음 명령에서 서버는 별도 터미널에서 실행 중이어야 합니다.
 
 ```bash
-read -rs AEGIS_API_TOKEN
-export AEGIS_API_TOKEN
-python scripts/collect_synthetic.py --port 8000 --interval 2
+read -rs AEGIS_COLLECTOR_TOKEN
+export AEGIS_COLLECTOR_TOKEN
+python scripts/collect_synthetic.py --port 8000 --collector-id pc-01 --interval 2
 ```
 
 실제 토큰을 셸 명령 기록이나 저장소에 적지 말고 환경에 안전하게 설정하세요. 전송 실패 시 같은 배치 키와 본문으로 기본 10회 재시도하고 성공 응답 이후 다음 이벤트로 넘어갑니다. 재시도 대기 시간과 횟수는 `--retry-delay`와 `--retries`로 조정할 수 있습니다. 재실행은 새 배치 키를 사용하므로 서버가 이벤트 단위로 중복을 인식하는지 확인하는 데 쓸 수 있습니다. 전송이 성공한 합성 사례만 표시하며 원문과 토큰을 출력하지 않습니다. 실사용 이벤트나 실제 Windows Sysmon을 수집하는 도구가 아닙니다.
@@ -18,17 +18,17 @@ python scripts/collect_synthetic.py --port 8000 --interval 2
 
 `scripts/collect_sysmon.ps1`은 Sysmon Operational 채널의 새 Event ID 1·3을 읽습니다. Sysmon 설치 및 설정을 변경하지 않으며 Event ID 3은 Sysmon 설정에서 생성되도록 활성화돼 있어야 합니다. Sysmon이 설치된 실제 Windows에서는 우선 사용자 권한과 기존 설정, 로그 보존 크기 및 Event 3 설정을 확인해야 합니다. 현재 기능의 실제 Windows 실행, PowerShell 구문과 Event Log 동작은 검증하지 못했습니다.
 
-토큰을 화면에 표시하거나 명령 내역에 직접 적지 않도록 PowerShell에서 읽고, 커서는 저장소 밖의 접근이 제한된 폴더에 두세요.
+먼저 관제 개요의 **수집기 등록**에서 개인정보가 없는 고유 ID를 입력합니다. 서버는 수집기별 인증 정보를 한 번만 표시하며 해시만 저장합니다. 전달은 신뢰할 수 있는 안전한 경로를 사용하고, 명령줄·저장소·메신저에 비밀값을 남기지 마세요. 각 PC의 전용 Windows 계정으로 다음을 실행합니다. `InitializeCredential` 단계에서는 발급된 값을 숨겨 입력하며 같은 계정에 묶인 DPAPI 암호 파일을 만듭니다. 해당 폴더의 ACL을 해당 계정과 관리자만 접근하도록 제한하세요. 서비스 계정으로 실행한다면 해당 계정으로 파일을 준비해야 합니다.
 
 ```powershell
-$Secret = Read-Host '서버 API 토큰' -AsSecureString
-$env:AEGIS_API_TOKEN = [System.Net.NetworkCredential]::new('', $Secret).Password
-Remove-Variable Secret
 New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Aegis-ON" | Out-Null
-.\scripts\collect_sysmon.ps1 -CollectorId 'collector-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt"
+.\scripts\collect_sysmon.ps1 -CollectorId 'pc-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt" -CredentialPath "$env:LOCALAPPDATA\Aegis-ON\collector.secret" -InitializeCredential
+.\scripts\collect_sysmon.ps1 -CollectorId 'pc-01' -CursorPath "$env:LOCALAPPDATA\Aegis-ON\cursor.txt" -CredentialPath "$env:LOCALAPPDATA\Aegis-ON\collector.secret" -ServerUrl 'https://soc.example.invalid'
 ```
 
-기본 서버는 같은 컴퓨터의 `http://127.0.0.1:8000`입니다. 별도 관제 서버를 사용할 때는 신뢰할 수 있는 인증서와 접근 제한을 갖춘 **사용자 관리 HTTPS 서버**를 준비하고 `-ServerUrl 'https://관제서버주소:포트'`를 명시해야 합니다. HTTPS 인증서 검증을 비활성화하지 않으며 인증 정보가 다른 주소로 전달되지 않도록 리디렉션을 허용하지 않습니다. HTTP는 loopback 주소에서만 허용됩니다. Aegis-ON 자체가 원격 TLS나 수집기별 개별 인증을 제공하는 것은 아니므로, 신뢰할 수 있는 TLS 종단과 네트워크 접근 제한을 별도로 구성해야 합니다. 실제 로그를 외부 서비스, Colab이나 공용 서버에 전송하지 마세요.
+두 번째 명령은 종료될 때까지 계속 실행됩니다. 자동 시작은 별도로 해당 계정의 Windows 작업 스케줄러나 서비스 관리자가 필요하며 이 저장소가 자동 설치하지 않습니다. 다른 PC에는 서로 다른 ID·자격 파일·커서를 사용합니다. 수집기 ID는 DB에 그대로 저장하므로 실명이나 호스트명 대신 임의 식별자를 사용하세요.
+
+원격 연결은 신뢰할 수 있는 인증서가 있는 HTTPS와 접근 제한이 필요합니다. 서버의 TLS 종단 및 방화벽은 운영자가 구성합니다. 프록시를 사용할 때는 신뢰할 수 있는 프록시에서만 전달한 HTTPS 원본 정보를 ASGI 서버가 받아들이도록 설정하세요. 임의의 외부 `X-Forwarded-*` 헤더는 신뢰하지 마세요. HTTP는 서버와 클라이언트가 모두 같은 호스트의 loopback인 경우에만 사용할 수 있습니다. 리디렉션과 인증서 검증 우회는 지원하지 않습니다. 공유 토큰 수집은 기본 비활성이며 이전 시스템을 이행할 때만 서버에 `AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN=1`, 수집기에 `-UseLegacySharedToken`을 명시할 수 있습니다. 이 모드에서는 PC별 신원이 보장되지 않습니다.
 
 처음 실행하면 현재 채널 끝에서 시작하므로 그 이전의 이벤트는 자동 수집하지 않습니다. 각 배치의 레코드 번호 범위를 `.pending`에 먼저 기록하고 서버가 분석·저장을 확인한 후에만 커서를 갱신합니다. 연결이 끊겨도 같은 범위와 배치 키를 재전송하며, 원본 이벤트가 사라졌거나 재구성한 내용이 기존 요청과 다르면 중단하거나 충돌을 반환해 확인하도록 합니다. 오류 이벤트, 인증 실패, 중복 식별자 충돌 등 서버가 4xx 오류로 배치를 거부하면 수집기는 중단합니다(429는 재시도). 운영자가 커서를 진행하지 않은 상태에서 원인을 확인하고 재처리해야 합니다. 지속된 전송 실패로 로그 보존 범위를 넘어가면 잃은 이벤트는 복구할 수 없습니다.
 

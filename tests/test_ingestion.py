@@ -26,9 +26,9 @@ class IngestionTests(unittest.TestCase):
         old = api.service, api.pii_detector, api.attack_model
         self.addCleanup(lambda: (setattr(api,'service',old[0]),setattr(api,'pii_detector',old[1]),setattr(api,'attack_model',old[2])))
         api.service = DetectionService(SQLiteHistory(self.path)); api.pii_detector = PIIDetector(); api.attack_model = AttackModel()
-        env = patch.dict('os.environ', {'AEGIS_API_TOKEN':'synthetic-token', 'AEGIS_ANALYST_NAME':'analyst-1'}, clear=False)
+        env = patch.dict('os.environ', {'AEGIS_API_TOKEN':'synthetic-token', 'AEGIS_ANALYST_NAME':'analyst-1', 'AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN':'1'}, clear=False)
         env.start(); self.addCleanup(env.stop)
-        self.client = TestClient(api.app); self.addCleanup(self.client.close)
+        self.client = TestClient(api.app, base_url='https://testserver'); self.addCleanup(self.client.close)
         self.headers = {'Authorization':'Bearer synthetic-token','X-Collector-ID':'fixture-collector','Idempotency-Key':'batch-1'}
         self.body = {'events':[make_event()]}
 
