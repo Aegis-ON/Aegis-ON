@@ -1,0 +1,590 @@
+{
+  "cases": 40,
+  "groups": 32,
+  "truth_counts": {
+    "negative": 14,
+    "positive": 12,
+    "unknown": 14
+  },
+  "expected_status_mismatches": [],
+  "exclusions": {
+    "unknown_truth": 8,
+    "input_missing_command": 3,
+    "input_invalid_input": 1,
+    "input_too_long": 2
+  },
+  "scored_cases": 26,
+  "scored_groups": 21,
+  "baseline_all_eligible": {
+    "tp": 2,
+    "fp": 4,
+    "tn": 10,
+    "fn": 10,
+    "support": 26,
+    "positive_support": 12,
+    "negative_support": 14,
+    "precision": {
+      "value": 0.3333333333333333,
+      "numerator": 2,
+      "denominator": 6,
+      "undefined_reason": null
+    },
+    "recall": {
+      "value": 0.16666666666666666,
+      "numerator": 2,
+      "denominator": 12,
+      "undefined_reason": null
+    },
+    "f1": {
+      "value": 0.2222222222222222,
+      "numerator": 4,
+      "denominator": 18,
+      "undefined_reason": null
+    },
+    "case_ids": {
+      "tp": [
+        "holdout-015",
+        "holdout-017"
+      ],
+      "fp": [
+        "holdout-003",
+        "holdout-005",
+        "holdout-039",
+        "holdout-040"
+      ],
+      "tn": [
+        "holdout-001",
+        "holdout-002",
+        "holdout-004",
+        "holdout-006",
+        "holdout-007",
+        "holdout-008",
+        "holdout-009",
+        "holdout-010",
+        "holdout-011",
+        "holdout-012"
+      ],
+      "fn": [
+        "holdout-013",
+        "holdout-014",
+        "holdout-016",
+        "holdout-018",
+        "holdout-019",
+        "holdout-020",
+        "holdout-021",
+        "holdout-022",
+        "holdout-023",
+        "holdout-024"
+      ]
+    }
+  },
+  "baseline_common": {
+    "tp": 2,
+    "fp": 4,
+    "tn": 10,
+    "fn": 10,
+    "support": 26,
+    "positive_support": 12,
+    "negative_support": 14,
+    "precision": {
+      "value": 0.3333333333333333,
+      "numerator": 2,
+      "denominator": 6,
+      "undefined_reason": null
+    },
+    "recall": {
+      "value": 0.16666666666666666,
+      "numerator": 2,
+      "denominator": 12,
+      "undefined_reason": null
+    },
+    "f1": {
+      "value": 0.2222222222222222,
+      "numerator": 4,
+      "denominator": 18,
+      "undefined_reason": null
+    },
+    "case_ids": {
+      "tp": [
+        "holdout-015",
+        "holdout-017"
+      ],
+      "fp": [
+        "holdout-003",
+        "holdout-005",
+        "holdout-039",
+        "holdout-040"
+      ],
+      "tn": [
+        "holdout-001",
+        "holdout-002",
+        "holdout-004",
+        "holdout-006",
+        "holdout-007",
+        "holdout-008",
+        "holdout-009",
+        "holdout-010",
+        "holdout-011",
+        "holdout-012"
+      ],
+      "fn": [
+        "holdout-013",
+        "holdout-014",
+        "holdout-016",
+        "holdout-018",
+        "holdout-019",
+        "holdout-020",
+        "holdout-021",
+        "holdout-022",
+        "holdout-023",
+        "holdout-024"
+      ]
+    }
+  },
+  "model_common": {
+    "tp": 12,
+    "fp": 13,
+    "tn": 1,
+    "fn": 0,
+    "support": 26,
+    "positive_support": 12,
+    "negative_support": 14,
+    "precision": {
+      "value": 0.48,
+      "numerator": 12,
+      "denominator": 25,
+      "undefined_reason": null
+    },
+    "recall": {
+      "value": 1.0,
+      "numerator": 12,
+      "denominator": 12,
+      "undefined_reason": null
+    },
+    "f1": {
+      "value": 0.6486486486486487,
+      "numerator": 24,
+      "denominator": 37,
+      "undefined_reason": null
+    },
+    "case_ids": {
+      "tp": [
+        "holdout-013",
+        "holdout-014",
+        "holdout-015",
+        "holdout-016",
+        "holdout-017",
+        "holdout-018",
+        "holdout-019",
+        "holdout-020",
+        "holdout-021",
+        "holdout-022",
+        "holdout-023",
+        "holdout-024"
+      ],
+      "fp": [
+        "holdout-001",
+        "holdout-002",
+        "holdout-003",
+        "holdout-004",
+        "holdout-005",
+        "holdout-006",
+        "holdout-008",
+        "holdout-009",
+        "holdout-010",
+        "holdout-011",
+        "holdout-012",
+        "holdout-039",
+        "holdout-040"
+      ],
+      "tn": [
+        "holdout-007"
+      ],
+      "fn": []
+    }
+  },
+  "technique_candidate_binary_recall": {
+    "T1685.005": {
+      "denominator": 1,
+      "baseline_flagged": 0,
+      "model_flagged": 1,
+      "baseline_rate": 0.0,
+      "model_rate": 1.0,
+      "cases": [
+        {
+          "id": "holdout-013",
+          "baseline": false,
+          "model": true
+        }
+      ]
+    },
+    "T1685.001": {
+      "denominator": 1,
+      "baseline_flagged": 0,
+      "model_flagged": 1,
+      "baseline_rate": 0.0,
+      "model_rate": 1.0,
+      "cases": [
+        {
+          "id": "holdout-014",
+          "baseline": false,
+          "model": true
+        }
+      ]
+    },
+    "T1218.005": {
+      "denominator": 1,
+      "baseline_flagged": 1,
+      "model_flagged": 1,
+      "baseline_rate": 1.0,
+      "model_rate": 1.0,
+      "cases": [
+        {
+          "id": "holdout-015",
+          "baseline": true,
+          "model": true
+        }
+      ]
+    }
+  },
+  "details": [
+    {
+      "id": "holdout-001",
+      "group": "event-log-maintenance",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.539786
+    },
+    {
+      "id": "holdout-002",
+      "group": "audit-policy",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.560475
+    },
+    {
+      "id": "holdout-003",
+      "group": "integrity-check",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.554057
+    },
+    {
+      "id": "holdout-004",
+      "group": "scheduled-jobs",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.571204
+    },
+    {
+      "id": "holdout-005",
+      "group": "process-management",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.569789
+    },
+    {
+      "id": "holdout-006",
+      "group": "disk-inspection",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.563955
+    },
+    {
+      "id": "holdout-007",
+      "group": "network-diagnostics",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": false,
+      "score": 0.48273
+    },
+    {
+      "id": "holdout-008",
+      "group": "unix-journal-inspection",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.574144
+    },
+    {
+      "id": "holdout-009",
+      "group": "service-operations",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.585605
+    },
+    {
+      "id": "holdout-010",
+      "group": "archive-operations",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.5343
+    },
+    {
+      "id": "holdout-011",
+      "group": "version-check",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.516711
+    },
+    {
+      "id": "holdout-012",
+      "group": "package-inventory",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.553395
+    },
+    {
+      "id": "holdout-013",
+      "group": "event-log-maintenance",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.509823
+    },
+    {
+      "id": "holdout-014",
+      "group": "audit-policy",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.577323
+    },
+    {
+      "id": "holdout-015",
+      "group": "proxy-hta-execution",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.5788
+    },
+    {
+      "id": "holdout-016",
+      "group": "recovery-disable",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.562857
+    },
+    {
+      "id": "holdout-017",
+      "group": "backup-catalog-change",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.526779
+    },
+    {
+      "id": "holdout-018",
+      "group": "firewall-profile-change",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.542042
+    },
+    {
+      "id": "holdout-019",
+      "group": "service-operations",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.592755
+    },
+    {
+      "id": "holdout-020",
+      "group": "permission-denial",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.587743
+    },
+    {
+      "id": "holdout-021",
+      "group": "process-management",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.544388
+    },
+    {
+      "id": "holdout-022",
+      "group": "shadow-access-permissions",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.55931
+    },
+    {
+      "id": "holdout-023",
+      "group": "firewall-rule-clearing",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.541435
+    },
+    {
+      "id": "holdout-024",
+      "group": "scheduled-jobs",
+      "truth": "positive",
+      "input_status": "ok",
+      "baseline": false,
+      "model": true,
+      "score": 0.511353
+    },
+    {
+      "id": "holdout-025",
+      "group": "service-operations",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-026",
+      "group": "archive-operations",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-027",
+      "group": "registry-inventory",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-028",
+      "group": "process-management",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": true
+    },
+    {
+      "id": "holdout-029",
+      "group": "dns-lookup",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-030",
+      "group": "service-create",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-031",
+      "group": "python-inline",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": false
+    },
+    {
+      "id": "holdout-032",
+      "group": "powershell-execution-policy",
+      "truth": "unknown",
+      "input_status": "ok",
+      "baseline": true
+    },
+    {
+      "id": "holdout-033",
+      "group": "missing-command",
+      "truth": "unknown",
+      "input_status": "missing_command"
+    },
+    {
+      "id": "holdout-034",
+      "group": "empty-command",
+      "truth": "unknown",
+      "input_status": "missing_command"
+    },
+    {
+      "id": "holdout-035",
+      "group": "whitespace-command",
+      "truth": "unknown",
+      "input_status": "missing_command"
+    },
+    {
+      "id": "holdout-036",
+      "group": "null-command",
+      "truth": "unknown",
+      "input_status": "invalid_input"
+    },
+    {
+      "id": "holdout-037",
+      "group": "oversized-characters",
+      "truth": "unknown",
+      "input_status": "too_long"
+    },
+    {
+      "id": "holdout-038",
+      "group": "oversized-tokens",
+      "truth": "unknown",
+      "input_status": "too_long",
+      "baseline": false
+    },
+    {
+      "id": "holdout-039",
+      "group": "approved-document-download",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.585902
+    },
+    {
+      "id": "holdout-040",
+      "group": "approved-script-inventory",
+      "truth": "negative",
+      "input_status": "ok",
+      "baseline": true,
+      "model": true,
+      "score": 0.55063
+    }
+  ],
+  "dataset_sha256": "569cb879e46a049ad8fe25f2728aab06342a82aca01c4d71b48fca3b631a162b",
+  "model_sha256": "c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28",
+  "model_artifacts_sha256": {
+    "model.safetensors": "c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28",
+    "config.json": "08a04c36528851a1247b8e0e3e06faf738e965b24a9e993d45020d4e4e1de6ae",
+    "tokenizer.json": "f17212c38517cfedc9306b57eeffbaf58c4976fcb42e5a87b405f36a7b9a9eb2",
+    "tokenizer_config.json": "e711904cac23112776b678356ccf702cf934babaa01125f698ac43bf9ad38e73",
+    "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+  },
+  "threshold": 0.5
+}
