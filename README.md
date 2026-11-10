@@ -186,3 +186,13 @@ Sysmon 팬아웃 결과는 **같은 호스트가 10분 이내 서로 다른 목�
 4. 승인된 격리 요청을 EDR/SOAR에 전달하는 어댑터
 
 실제 대응 어댑터는 기본적으로 비활성화하며, 사람의 승인과 대상 범위 확인 없이는 단말·계정·네트워크를 변경하지 않습니다.
+
+## 소개 및 관제 페이지
+
+`/`는 제품 소개이고 **관제 화면 열기**를 선택하면 `/console`로 이동합니다. 콘솔은 `/console/endpoints`(분석별 호스트 관찰), `/console/endpoints/{id}`(관찰 상세), `/console/detections`(탐지·모델 결과), `/console/analysis`(JSON·Sysmon 입력), `/console/history`(분석·승인 시뮬레이션 이력)로 나뉩니다. 각 페이지를 직접 열거나 새로고침할 수 있습니다. 이전 `/#analysis`, `/#result-section`, `/#history`, `/#overview` 링크는 대응하는 화면으로 이동합니다. HTML은 공개 셸이며 데이터 조회와 분석은 기존 Bearer 인증이 필요합니다. 콘솔 각 페이지의 **인증하고 불러오기**에서 토큰을 입력하세요. 토큰을 URL이나 DB에 저장하지 않습니다.
+
+엔드포인트 목록은 실제 자산 목록이나 에이전트 상태가 아닙니다. `GET /api/v1/endpoints`와 `GET /api/v1/endpoints/{id}`는 저장된 가명처리 이력에서 **단일 분석별 관찰 묶음**을 파생합니다. 서로 다른 분석은 병합하지 않으며, 같은 가명도 실제 동일 장치임을 보장하지 않습니다. 짧은 가명은 충돌 가능성이 있고, 요청별 개인정보 후보에 따라 같은 장치의 가명이 달라질 수 있습니다. 호스트가 없는 경우 각 이벤트를 별도 미상으로 표시합니다. 기존 JSON 이력에는 이벤트별 호스트가 저장되지 않아 탐지와 연결된 이벤트만 호스트를 추정할 수 있고, 나머지는 미상입니다. 이벤트 시각이 저장되지 않은 JSON 이력의 마지막 관찰 시각은 확인 불가로 표시합니다. 하나의 탐지가 여러 관찰 묶음에 연결될 수 있어 묶음별 탐지 수의 합은 고유 탐지 수가 아닙니다. 모델 분류는 탐지 목록과 별도로 표시하며 ATT&CK 기법을 예측하지 않습니다.
+
+이벤트 원문·명령줄 전체를 새로 저장하지 않으며 SQLite의 기존 가명처리 한계와 공개 호스트 예외는 [이력 안내](docs/local_history.md)를 따릅니다. 직접 입력한 JSON 원문은 사용자가 지우거나 페이지를 벗어날 때까지 입력창에 남을 수 있습니다. 승인 기록은 실제 차단이 아닌 시뮬레이션입니다. 실제 Windows Sysmon 수집 검증은 아직 수행하지 않았습니다.
+
+소개 화면은 [We.Inc 블랙 그리드 템플릿](https://we.inc/ko/templates/nightwatch-security)의 검은 격자·큰 제목·절제된 강조색을 참고했습니다. 관제의 정보 배치는 [Wazuh 대시보드](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/navigating-the-wazuh-dashboard.html), [Elastic Detection & Response](https://www.elastic.co/docs/solutions/security/dashboards/detection-response-dashboard) 및 [경고 상세](https://www.elastic.co/docs/solutions/security/detect-and-alert/view-detection-alert-details), [Microsoft Defender 사건 조사](https://learn.microsoft.com/en-us/defender-xdr/investigate-incident-cases)의 요약·관련 자산·근거 탐색 흐름을 참고했습니다. 이들 제품의 사건 관리나 실시간 차단 기능을 구현했다는 의미는 아닙니다.

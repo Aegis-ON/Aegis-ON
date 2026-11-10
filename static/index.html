@@ -24,6 +24,11 @@
       @media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:sticky}.content{padding:24px}}
       @media(max-width:700px){.sidebar{position:static;height:auto}.content{padding:22px 16px 40px}.heading h1{font-size:24px}.nav-link{padding:9px 10px}.topbar{padding:0 16px}.scenario{min-height:64px}.stats{gap:8px}.stat{padding:13px;min-height:88px}.stat-value{font-size:24px}.card,.panel,.batch,.event-list,.pii-summary{padding:15px}.results-head{align-items:flex-start;gap:8px;flex-wrap:wrap}.file-row{align-items:flex-start;flex-direction:column}.file-row input{width:100%}}
       @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+      /* Persistent history has its own console page; keep legacy handlers in
+         the DOM for compatibility while focusing this page on analysis. */
+      #history{display:none}
+      /* Match the console's neutral dark workspace and restrained coral accent. */
+      :root{--ink:#eef3f1;--sub:#aab8b9;--line:#2a373d;--surface:#12191e;--muted:#101719;--accent:#f57469}body{background:#0a0e11}.sidebar{background:#0f1518;border-color:#2a373d}.topbar{background:#0e1518;border-color:#2a373d}.brand-mark{background:#201719;color:#f5a39b}.nav-link:hover,.nav-link:focus-visible,.nav-link.active{background:#1b282b;border-color:#35474a}.stat,.panel,.card,.batch,.event-list,.pii-summary{background:#12191e}.scenario,.action{background:#172126;border-color:#405253}.scenario:hover,.action:hover{background:#243739}.primary{background:#ed7167;color:#160e0d;border-color:#ed7167}.primary:hover{background:#ff8d81;color:#160e0d}.notice,#summary{background:#142022;border-color:#324642}.eyebrow{color:#ed8d84}.source-event,.empty{background:#0e171a}.tag{background:#172126;border-color:#405253;color:#c9d9d5}
     </style>
   </head>
   <body>
@@ -31,7 +36,7 @@
     <div class="app">
       <aside class="sidebar" aria-label="주 메뉴">
         <div class="brand"><span class="brand-mark">A</span>Aegis-ON</div>
-        <div class="nav-label">분석</div><nav class="nav-links"><a class="nav-link active" href="#overview"><span>▦</span>분석 개요</a><a class="nav-link" href="#analysis"><span>◇</span>로그 분석</a><a class="nav-link" href="#result-section"><span>☷</span>탐지 결과</a><a class="nav-link" href="#history"><span>◷</span>분석 이력</a></nav>
+        <div class="nav-label">관제 메뉴</div><nav class="nav-links"><a class="nav-link" href="/console"><span>▦</span>관제 개요</a><a class="nav-link" href="/console/endpoints"><span>◇</span>엔드포인트</a><a class="nav-link" href="/console/detections"><span>☷</span>탐지 결과</a><a class="nav-link active" href="/console/analysis"><span>⊕</span>로그 분석</a><a class="nav-link" href="/console/history"><span>◷</span>분석 이력</a></nav>
         <p class="side-note">로컬 분석 데모<br />자동 차단은 수행하지 않습니다.</p>
       </aside>
       <div class="main">
@@ -48,7 +53,7 @@
           <div class="layout" id="analysis">
             <section class="panel"><h2 class="panel-title">분석 시작</h2><p class="panel-desc">합성 시나리오 또는 Sysmon JSON 파일을 선택하세요. 분석 요청에는 API 토큰이 필요합니다.</p>
               <div class="scenarios"><button class="scenario" id="scenario-a" type="button"><strong>A · 정상 프로세스</strong><small>메모장 실행 이벤트</small></button><button class="scenario" id="scenario-b" type="button"><strong>B · 의심 다운로드 명령</strong><small>curl 명령 문자열 탐지</small></button><button class="scenario" id="scenario-c" type="button"><strong>C · 다수 목적지 연결</strong><small>발신 연결 3건 상관분석</small></button></div>
-              <div class="divider"></div><p class="panel-desc">직접 수집한 Sysmon Event ID 1·3 JSON 파일 (최대 2 MiB, 1,000건)</p><div class="file-row"><label for="sysmon-file" class="hint">파일 선택</label><input id="sysmon-file" type="file" accept=".json,application/json" /><button class="action primary" id="run-sysmon" type="button">파일 분석</button></div><div class="secondary"><button class="action" id="run-demo" type="button">기존 JSON 데모 분석</button></div>
+              <div class="divider"></div><p class="panel-desc">직접 수집한 Sysmon Event ID 1·3 JSON 파일 (최대 2 MiB, 1,000건)</p><div class="file-row"><label for="sysmon-file" class="hint">파일 선택</label><input id="sysmon-file" type="file" accept=".json,application/json" /><button class="action primary" id="run-sysmon" type="button">파일 분석</button></div><div class="secondary"><button class="action" id="run-demo" type="button">기존 JSON 데모 분석</button></div><div class="divider"></div><label for="json-input" class="panel-desc">기존 JSON 이벤트 직접 입력 · {"events":[...]} (최대 2 MiB)</label><textarea id="json-input" rows="5" spellcheck="false" style="display:block;width:100%;margin:10px 0;background:#101e2c;color:#edf3fa;border:1px solid #496178;border-radius:6px;padding:12px;resize:vertical" placeholder='{"events": []}'></textarea><button class="action" id="run-json" type="button">JSON 분석</button>
               <section id="summary" aria-live="polite">준비됨 — 분석할 시나리오나 파일을 선택하세요.</section>
             </section>
             <aside class="panel"><h2 class="panel-title">분석 안내</h2><p class="panel-desc">결과를 해석하기 전에 확인하세요.</p><div class="divider"></div><p class="note-line"><strong>탐지 방식</strong><br />명령줄 분석은 규칙·키워드 기준선과 선택적 실험용 BERT 모델을 구분합니다. 키워드 기준선은 BERT가 아닙니다. 개인정보 탐지는 별도 기능입니다.</p><p class="note-line"><strong>개인정보 탐지의 한계</strong><br />탐지 및 가명처리는 모든 개인정보를 보호하지 못하며 누락될 수 있습니다.</p><p class="note-line"><strong>연결 상관분석</strong><br />같은 호스트가 10분 이내 서로 다른 목적지 3곳 이상에 발신한 이벤트를 표시합니다. 수신·방향 미상은 제외하며 스캔이나 공격을 확정하지 않습니다.</p><p class="note-line"><strong>승인</strong><br />승인은 시뮬레이션 상태만 기록합니다. 단말 격리나 네트워크 차단은 수행하지 않습니다.</p></aside>
@@ -73,8 +78,9 @@
           else link.removeAttribute('aria-current');
         }
       }
-      selectNav(window.location?.hash || '#overview');
-      window.addEventListener?.('hashchange', () => selectNav(window.location.hash || '#overview'));
+      const currentNav = () => window.location?.pathname === '/console/analysis' ? '/console/analysis' : (window.location?.hash || '#overview');
+      selectNav(currentNav());
+      window.addEventListener?.('hashchange', () => selectNav(currentNav()));
       const MAX_FILE_BYTES = 2 * 1024 * 1024;
       let activeRequest = null;
 
@@ -287,6 +293,22 @@
         const data = await readResponse(response, 'Sysmon 분석 요청');
         if (isCurrent(request)) renderSysmon(data, request, inputLabel);
       }
+      document.querySelector('#run-json')?.addEventListener('click', async () => {
+        const request = beginAnalysis(); const raw = document.querySelector('#json-input').value;
+        if (new TextEncoder().encode(raw).length > MAX_FILE_BYTES) { summary.textContent = 'JSON 입력은 2 MiB를 초과할 수 없습니다.'; return; }
+        let sample;
+        try { sample = JSON.parse(raw); if (!Array.isArray(sample.events) || !sample.events.length) throw new Error(); }
+        catch (_) { summary.textContent = 'JSON 형식과 비어 있지 않은 events 배열을 확인해 주세요.'; return; }
+        const token = askToken(); if (!token) return;
+        try {
+          summary.textContent = 'JSON 이벤트를 분석하고 있습니다…';
+          const response = await fetch('/api/v1/analyze', {method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify(sample), signal:request.signal});
+          const data = await readResponse(response, '분석 요청'); if (!isCurrent(request)) return;
+          setStats({total:sample.events.length,processed:sample.events.length,invalid:0,unsupported:0},data.detections.length);
+          summary.textContent = `JSON 분석 완료 · 탐지 ${data.detections.length}건 · 분석 ID ${displayValue(data.analysis_id)} · 실제 차단 없음`;
+          renderDetections(data.detections, data.event_refs || [], request); renderPii(data.pii); renderAttackModel(data.attack_model);
+        } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
+      });
       document.querySelector('#run-demo').addEventListener('click', async () => {
         const request = beginAnalysis(); const token = askToken(); if (!token) return;
         try {

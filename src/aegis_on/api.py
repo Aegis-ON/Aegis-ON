@@ -25,6 +25,7 @@ from .pii import PIIDetector
 from .pii_reporting import InvalidPIIInput, inspect_events
 from .sysmon import parse_sysmon
 from .history_store import SQLiteHistory, HistoryError
+from .endpoint_views import build_endpoint_groups
 
 app = FastAPI(title="Aegis-ON API", version="0.1.0")
 service = DetectionService(SQLiteHistory(os.environ.get('AEGIS_HISTORY_DB') or str(Path.home() / '.aegis-on' / 'history.sqlite3')))
@@ -93,7 +94,25 @@ class ApprovalRequest(BaseModel):
 
 @app.get("/", include_in_schema=False)
 def dashboard() -> FileResponse:
-    return FileResponse("static/index.html")
+    return FileResponse("static/landing.html")
+
+
+@app.get('/console/analysis', include_in_schema=False)
+def analysis_console() -> FileResponse:
+    return FileResponse('static/index.html')
+
+
+@app.get('/console', include_in_schema=False)
+@app.get('/console/endpoints', include_in_schema=False)
+@app.get('/console/detections', include_in_schema=False)
+@app.get('/console/history', include_in_schema=False)
+def console_page() -> FileResponse:
+    return FileResponse('static/console.html')
+
+
+@app.get('/console/endpoints/{endpoint_id}', include_in_schema=False)
+def endpoint_console_page(endpoint_id: str) -> FileResponse:
+    return FileResponse('static/console.html')
 
 
 @app.get("/api/v1/health")
@@ -390,6 +409,38 @@ def list_history(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any
         return {'analyses': analyses, 'detections': detections}
     except HistoryError:
         raise HTTPException(status_code=503, detail='history storage unavailable') from None
+
+
+def _endpoint_snapshot() -> list[dict[str, Any]]:
+    try:
+        # Deliberately use the conservative stored host representation, even
+        # if an operator has configured an optional display exception.
+        analyses, detections = service.list_snapshot()
+        return build_endpoint_groups(analyses, detections)
+    except HistoryError:
+        raise HTTPException(status_code=503, detail='history storage unavailable') from None
+
+
+@app.get('/api/v1/endpoints')
+def list_endpoints(analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    groups = _endpoint_snapshot()
+    return {'endpoints': [{k: v for k, v in g.items() if k not in ('events', 'detections')} for g in groups],
+            'limitations': [
+                'single_analysis: groups are not stable device identities or merged across analyses',
+                'pseudonyms can collide or vary; no connection or online status is collected',
+                'legacy JSON events without linked detections have unknown hosts',
+            ]}
+
+
+@app.get('/api/v1/endpoints/{endpoint_id}')
+def get_endpoint(endpoint_id: str, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
+    if not re.fullmatch(r'[0-9a-f]{64}', endpoint_id):
+        raise HTTPException(status_code=404, detail='endpoint observation not found')
+    for group in _endpoint_snapshot():
+        if group['endpoint_id'] == endpoint_id:
+            return {'endpoint': {k: v for k, v in group.items() if k not in ('events', 'detections')},
+                    'events': group['events'], 'detections': group['detections']}
+    raise HTTPException(status_code=404, detail='endpoint observation not found')
 
 
 @app.post("/api/v1/detections/{detection_id}/approval")
