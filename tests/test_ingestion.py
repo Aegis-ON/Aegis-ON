@@ -154,6 +154,28 @@ print(json.dumps(r,sort_keys=True))
                 self.assertNotIn(b'198.51.100.',path.read_bytes())
                 self.assertNotIn(b'LAB-01',path.read_bytes())
 
+    def test_conflicting_unmapped_sysmon_field_is_not_silently_deduplicated(self):
+        event = make_event(1, 900)
+        event['EventData']['Hashes'] = 'SHA256=synthetic-first'
+        first = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers=self.headers)
+        self.assertEqual(first.status_code, 200, first.text)
+        event['EventData']['Hashes'] = 'SHA256=synthetic-second'
+        other = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers={**self.headers, 'Idempotency-Key':'other'})
+        self.assertEqual(other.status_code, 409, other.text)
+        self.assertEqual(len(self.client.get('/api/v1/history',headers=self.headers).json()['analyses']), 1)
+        self.assertNotIn('synthetic-second', other.text)
+
+    def test_legacy_unversioned_event_fingerprint_fails_closed(self):
+        event = make_event(1, 901)
+        first = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers=self.headers)
+        self.assertEqual(first.status_code, 200, first.text)
+        with sqlite3.connect(self.path) as db:
+            db.execute('UPDATE stream_events SET fingerprint=?', ('a' * 64,))
+        retry = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers={**self.headers, 'Idempotency-Key':'legacy-retry'})
+        self.assertEqual(retry.status_code, 409)
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute('SELECT fingerprint FROM stream_events').fetchone()[0], 'a' * 64)
+
     def test_inbound_and_late_events_do_not_inflate(self):
         for i,(minute,ip,direction) in enumerate([(2,1,'true'),(3,2,'false'),(0,3,'true'),(1,4,'true')]):
             event=make_event(3,200+i);event['EventData']['UtcTime']=f'2026-11-09 10:0{minute}:00.000'

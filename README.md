@@ -189,10 +189,10 @@ Sysmon 팬아웃 결과는 **같은 호스트가 10분 이내 서로 다른 목�
 
 ## 관제 화면과 연속 수집
 
-첫 화면 `/`과 `/console`은 관제 개요입니다. `/console/endpoints` 및 `/console/endpoints/{id}`는 호스트 관찰, `/console/detections`는 경고, `/console/events`는 수집 이벤트, `/console/history`는 이력입니다. 수동 파일 업로드와 직접 입력 화면은 제공하지 않습니다. 기존 JSON·Sysmon 분석 API는 유지합니다. 이전 `/console/analysis`는 이벤트 화면으로 이동합니다. 각 화면의 데이터 조회에는 기존 Bearer 인증이 필요합니다. 개요와 이벤트 화면은 인증 후 5초마다 폴링하며 상세 열람·키보드 포커스가 표 안에 있는 동안 갱신을 일시 중지합니다. 연결 실패와 재시도를 표시합니다.
+첫 화면 `/`과 `/console`은 관제 개요입니다. `/console/endpoints` 및 `/console/endpoints/{id}`는 호스트 관찰, `/console/detections`는 경고, `/console/events`는 수집 이벤트, `/console/history`는 이력입니다. 수동 파일 업로드와 직접 입력 화면은 제공하지 않습니다. 기존 JSON·Sysmon 분석 API는 유지합니다. 이전 `/console/analysis`는 이벤트 화면으로 이동합니다. 각 화면의 데이터 조회에는 기존 Bearer 인증이 필요합니다. 개요와 이벤트 화면은 인증 후 5초마다 폴링하며 상세 열람·키보드 포커스가 표 안에 있는 동안 목록 갱신을 일시 중지하지만 연결과 수집기 보고는 계속 확인합니다. 연결 실패와 재시도를 표시합니다.
 
 Windows 수집기, 로컬 전용 합성 수집기, 인증·HTTPS 요구 사항과 재시작·중복·롤오버 한계는 [지속 수집 안내](docs/continuous_collection.md)에 설명합니다. Windows 수집기는 **실제 Windows에서 실행하지 않았습니다**. 수집기 상태는 호스트 온라인 상태가 아닙니다. 원문 로그나 전체 명령줄을 새로 저장하지 않지만 가명처리 미탐과 지문 대조 위험이 있습니다.
 
-발신 Sysmon Event ID 3의 다수 목적지 연결은 같은 수집기·호스트의 10분 범위에서 목적지 3개 이상인 경우 여러 수집 배치에 걸쳐 분석합니다. 이벤트 발생 시각 기준이며 재시작 후에도 저장된 정보가 사용됩니다. 다른 수집기의 같은 이벤트와 v3 이전 이력 중복, 로그 재설정, 롤오버는 완전히 판별하지 못합니다. JSON 수집은 이벤트 단위 중복 제거 없이 동일 배치 재전송만 방지합니다. 겹치는 창에서 기존 경고와 관련된 일부 새 경고가 생략될 수 있습니다. 공격 확정이 아닙니다. 호스트 묶음은 수집기와 호스트 이름의 지문을 사용하며 실제 장치 동일성은 보장하지 않습니다. 인증·PII·SQLite와 승인 시뮬레이션은 유지됩니다.
+발신 Sysmon Event ID 3의 다수 목적지 연결은 같은 수집기·호스트의 10분 범위에서 목적지 3개 이상인 경우 여러 수집 배치에 걸쳐 분석합니다. 이벤트 발생 시각 기준이며 재시작 후에도 저장된 정보가 사용됩니다. 다른 수집기의 같은 이벤트와 v3 이전 이력 중복, 로그 재설정, 롤오버는 완전히 판별하지 못합니다. 이전 v3 이벤트의 구형 지문은 전체 원본을 검증할 수 없어 새 배치 키로 재전송하면 409로 중단합니다. JSON 수집은 이벤트 단위 중복 제거 없이 동일 배치 재전송만 방지합니다. 겹치는 창에서 기존 경고와 관련된 일부 새 경고가 생략될 수 있습니다. 공격 확정이 아닙니다. 호스트 묶음은 수집기와 호스트 이름의 지문을 사용하며 실제 장치 동일성은 보장하지 않습니다. 인증·PII·SQLite와 승인 시뮬레이션은 유지됩니다.
 
 화면은 [Wazuh](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/navigating-the-wazuh-dashboard.html), [Elastic Security](https://www.elastic.co/docs/solutions/security/dashboards/detection-response-dashboard), [Microsoft Defender](https://learn.microsoft.com/en-us/defender-xdr/investigate-incident-cases), [ARTEX Global](https://github.com/jiwoochris/artex-global/tree/main/screenshots/en)의 정보 탐색 흐름을 참고했습니다.

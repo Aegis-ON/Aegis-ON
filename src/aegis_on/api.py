@@ -279,7 +279,7 @@ def _commit_history(prepared: dict[str, Any], batch: dict[str, Any], collection:
     try:
         return service.commit_analysis(prepared, batch, collection) if collection is not None else service.commit_analysis(prepared, batch)
     except BatchConflict:
-        raise HTTPException(status_code=409, detail='idempotency key reused with different input') from None
+        raise HTTPException(status_code=409, detail='batch key or source event identity conflicts with stored input') from None
     except HistoryError:
         raise HTTPException(status_code=503, detail='history storage unavailable') from None
 
@@ -418,7 +418,7 @@ async def _analyze_sysmon(body: bytes, collection: dict[str, str] | None = None)
     batch = _history_batch('sysmon', prepared, history_sources, summary, pii, model)
     if collection is not None:
         entries = []
-        for event in raw_events:
+        for event, input_index in zip(raw_events, processed_indices):
             meta = event['source_metadata']
             record_id = meta['record_id']
             if record_id is None:
@@ -427,9 +427,11 @@ async def _analyze_sysmon(body: bytes, collection: dict[str, str] | None = None)
                 return hashlib.sha256(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             host_key = digest([collection['collector_id'], event['host'].casefold()])
             identity = digest([collection['collector_id'], event['host'].casefold(), meta['log_source'].casefold(), record_id])
-            content = {k: v for k, v in event.items() if k != 'event_id'}
+            # Bind the identity to the full source object, including fields
+            # that are not currently mapped by the normalizer. Never store it.
+            content = payload['events'][input_index]
             destination = _display_ip(meta['destination_ip']) if meta['destination_ip'] else None
-            entries.append({'event_key': identity, 'fingerprint':digest(content), 'host_key':host_key,
+            entries.append({'event_key': identity, 'fingerprint':'full-v1:' + digest(content), 'host_key':host_key,
                             'occurred':event['timestamp'], 'destination_key':digest(destination) if destination else None,
                             'outbound':meta['sysmon_event_id'] == 3 and meta['initiated'] is True,
                             'event_id':event['event_id'], 'host_display':''})
@@ -492,7 +494,7 @@ async def ingest_batch(kind: str, request: Request, analyst: str = Depends(authe
             raise HTTPException(status_code=422, detail='invalid collector JSON batch') from None
         return await run_in_threadpool(_analyze_json, valid, collection)
     except BatchConflict:
-        raise HTTPException(status_code=409, detail='idempotency key reused with different input') from None
+        raise HTTPException(status_code=409, detail='batch key or source event identity conflicts with stored input') from None
     except HistoryError:
         raise HTTPException(status_code=503, detail='history storage unavailable') from None
 
