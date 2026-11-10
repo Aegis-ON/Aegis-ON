@@ -16,6 +16,8 @@
 - [decision][refs:2][last_referenced:2026-11-10][last_verified:2026-11-10] PII NER is optional and local-only, separate from the keyword threat baseline and its evaluation; regex-only operation and model failure must be explicit, and undetected PII can remain visible. Pinned model and tokenizer hashes were checked against revision metadata. The real model was integrated with the PR loader and synthetic JSON/Sysmon API tests on Colab Linux; actual Mac/Windows inference and browser flow remain unverified. Small synthetic model-only scores are not combined-system or real-world performance. Evidence: src/aegis_on/pii.py, tests/test_pii_real_model.py, docs/pii_model.md and docs/pii_evaluation.md.
 - [decision][refs:1][last_referenced:2026-11-10][last_verified:2026-11-10] Repeated PII values are masked conservatively by default. An operator may explicitly register exact, verified public host values to suppress only indirect embedded one-syllable Korean surname matches in host display; direct detections, other fields and ambiguous unregistered hosts stay masked. A mistaken registration may expose PII. Evidence: src/aegis_on/pii_reporting.py, src/aegis_on/api.py and docs/pii_model.md.
 
+- [decision][refs:1][last_referenced:2026-11-10][last_verified:2026-11-10] Command attack models are separate from PII NER and the rule/keyword baseline. A local optional Google BERT-Tiny command classifier was experimentally fine-tuned on small synthetic data; it is not validated for operational use. Distinguish model outputs, rule heuristics, and PII NER; preserve missing, oversize and failure states. Evidence: docs/command_attack_research.md and src/aegis_on/attack_research.py.
+
 ## Cold Memory
 
 ## Archived Decisions
