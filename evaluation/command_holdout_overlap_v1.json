@@ -1,0 +1,370 @@
+[
+  {
+    "id": "holdout-001",
+    "group": "event-log-maintenance",
+    "exact_matches": [],
+    "nearest_prior": "v2:test-sus-certutil-2",
+    "template_similarity": 0.4194,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-002",
+    "group": "audit-policy",
+    "exact_matches": [],
+    "nearest_prior": "v2:ambiguous-amb-admin-2",
+    "template_similarity": 0.383,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-003",
+    "group": "integrity-check",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-service-get",
+    "template_similarity": 0.562,
+    "same_tool_prior_ids": [
+      "pr4:dev-powershell-unknown",
+      "pr4:eval-iwr",
+      "pr4:eval-service-get",
+      "pr4:eval-stop-service",
+      "v2:ambiguous-amb-admin-1",
+      "v2:ambiguous-amb-admin-2",
+      "v2:train-suspicious-defense-1",
+      "v2:train-suspicious-defense-2",
+      "v2:train-suspicious-download-1",
+      "v2:train-suspicious-download-2",
+      "v2:train-suspicious-encoded-1",
+      "v2:train-suspicious-encoded-2"
+    ]
+  },
+  {
+    "id": "holdout-004",
+    "group": "scheduled-jobs",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-tasklist-2",
+    "template_similarity": 0.5789,
+    "same_tool_prior_ids": [
+      "v2:validation-sus-scheduled-1",
+      "v2:validation-sus-scheduled-2"
+    ]
+  },
+  {
+    "id": "holdout-005",
+    "group": "process-management",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-service-get",
+    "template_similarity": 0.4331,
+    "same_tool_prior_ids": [
+      "pr4:dev-powershell-unknown",
+      "pr4:eval-iwr",
+      "pr4:eval-service-get",
+      "pr4:eval-stop-service",
+      "v2:ambiguous-amb-admin-1",
+      "v2:ambiguous-amb-admin-2",
+      "v2:train-suspicious-defense-1",
+      "v2:train-suspicious-defense-2",
+      "v2:train-suspicious-download-1",
+      "v2:train-suspicious-download-2",
+      "v2:train-suspicious-encoded-1",
+      "v2:train-suspicious-encoded-2"
+    ]
+  },
+  {
+    "id": "holdout-006",
+    "group": "disk-inspection",
+    "exact_matches": [],
+    "nearest_prior": "v2:test-sus-certutil-2",
+    "template_similarity": 0.3636,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-007",
+    "group": "network-diagnostics",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-copy-2",
+    "template_similarity": 0.4242,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-008",
+    "group": "unix-journal-inspection",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-download-2",
+    "template_similarity": 0.3619,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-009",
+    "group": "service-operations",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-stop-1",
+    "template_similarity": 0.5075,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-010",
+    "group": "archive-operations",
+    "exact_matches": [],
+    "nearest_prior": "pr4:dev-rm-single",
+    "template_similarity": 0.8462,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-011",
+    "group": "version-check",
+    "exact_matches": [],
+    "nearest_prior": "v2:validation-normal-ipconfig-2",
+    "template_similarity": 0.3333,
+    "same_tool_prior_ids": [
+      "pr4:eval-python-rmtree"
+    ]
+  },
+  {
+    "id": "holdout-012",
+    "group": "package-inventory",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-tasklist-1",
+    "template_similarity": 0.4186,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-013",
+    "group": "event-log-maintenance",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-wget-info",
+    "template_similarity": 0.4,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-014",
+    "group": "audit-policy",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-defense-1",
+    "template_similarity": 0.3594,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-015",
+    "group": "proxy-hta-execution",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-wget-info",
+    "template_similarity": 0.56,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-016",
+    "group": "recovery-disable",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-defense-2",
+    "template_similarity": 0.3168,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-017",
+    "group": "backup-catalog-change",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-backup-1",
+    "template_similarity": 0.6875,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-018",
+    "group": "firewall-profile-change",
+    "exact_matches": [],
+    "nearest_prior": "v2:ambiguous-amb-admin-2",
+    "template_similarity": 0.4615,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-019",
+    "group": "service-operations",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-sc-stop",
+    "template_similarity": 0.4,
+    "same_tool_prior_ids": [
+      "pr4:eval-sc-query",
+      "pr4:eval-sc-stop",
+      "v2:train-suspicious-stop-1",
+      "v2:train-suspicious-stop-2"
+    ]
+  },
+  {
+    "id": "holdout-020",
+    "group": "permission-denial",
+    "exact_matches": [],
+    "nearest_prior": "v2:validation-sus-scheduled-2",
+    "template_similarity": 0.425,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-021",
+    "group": "process-management",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-tasklist-1",
+    "template_similarity": 0.4706,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-022",
+    "group": "shadow-access-permissions",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-copy-2",
+    "template_similarity": 0.7059,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-023",
+    "group": "firewall-rule-clearing",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-tasklist-2",
+    "template_similarity": 0.4545,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-024",
+    "group": "scheduled-jobs",
+    "exact_matches": [],
+    "nearest_prior": "v2:ambiguous-amb-net-2",
+    "template_similarity": 0.4545,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-025",
+    "group": "service-operations",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-stop-1",
+    "template_similarity": 0.5263,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-026",
+    "group": "archive-operations",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-copy-2",
+    "template_similarity": 0.75,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-027",
+    "group": "registry-inventory",
+    "exact_matches": [],
+    "nearest_prior": "v2:validation-sus-registry-2",
+    "template_similarity": 0.4071,
+    "same_tool_prior_ids": [
+      "v2:validation-sus-registry-1",
+      "v2:validation-sus-registry-2"
+    ]
+  },
+  {
+    "id": "holdout-028",
+    "group": "process-management",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-service-get",
+    "template_similarity": 0.5113,
+    "same_tool_prior_ids": [
+      "pr4:dev-powershell-unknown",
+      "pr4:eval-iwr",
+      "pr4:eval-service-get",
+      "pr4:eval-stop-service",
+      "v2:ambiguous-amb-admin-1",
+      "v2:ambiguous-amb-admin-2",
+      "v2:train-suspicious-defense-1",
+      "v2:train-suspicious-defense-2",
+      "v2:train-suspicious-download-1",
+      "v2:train-suspicious-download-2",
+      "v2:train-suspicious-encoded-1",
+      "v2:train-suspicious-encoded-2"
+    ]
+  },
+  {
+    "id": "holdout-029",
+    "group": "dns-lookup",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-suspicious-stop-1",
+    "template_similarity": 0.3721,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-030",
+    "group": "service-create",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-del-one",
+    "template_similarity": 0.5938,
+    "same_tool_prior_ids": [
+      "pr4:eval-sc-query",
+      "pr4:eval-sc-stop",
+      "v2:train-suspicious-stop-1",
+      "v2:train-suspicious-stop-2"
+    ]
+  },
+  {
+    "id": "holdout-031",
+    "group": "python-inline",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-python-rmtree",
+    "template_similarity": 0.4878,
+    "same_tool_prior_ids": [
+      "pr4:eval-python-rmtree"
+    ]
+  },
+  {
+    "id": "holdout-032",
+    "group": "powershell-execution-policy",
+    "exact_matches": [],
+    "nearest_prior": "pr4:dev-powershell-unknown",
+    "template_similarity": 0.6053,
+    "same_tool_prior_ids": [
+      "pr4:dev-powershell-unknown",
+      "pr4:eval-iwr",
+      "pr4:eval-service-get",
+      "pr4:eval-stop-service",
+      "v2:ambiguous-amb-admin-1",
+      "v2:ambiguous-amb-admin-2",
+      "v2:train-suspicious-defense-1",
+      "v2:train-suspicious-defense-2",
+      "v2:train-suspicious-download-1",
+      "v2:train-suspicious-download-2",
+      "v2:train-suspicious-encoded-1",
+      "v2:train-suspicious-encoded-2"
+    ]
+  },
+  {
+    "id": "holdout-038",
+    "group": "oversized-tokens",
+    "exact_matches": [],
+    "nearest_prior": "pr4:eval-service-get",
+    "template_similarity": 0.0259,
+    "same_tool_prior_ids": []
+  },
+  {
+    "id": "holdout-039",
+    "group": "approved-document-download",
+    "exact_matches": [],
+    "nearest_prior": "v2:train-normal-copy-2",
+    "template_similarity": 0.5417,
+    "same_tool_prior_ids": [
+      "pr4:eval-curl-maint",
+      "pr4:eval-curl-tool"
+    ]
+  },
+  {
+    "id": "holdout-040",
+    "group": "approved-script-inventory",
+    "exact_matches": [],
+    "nearest_prior": "pr4:dev-powershell-unknown",
+    "template_similarity": 0.7937,
+    "same_tool_prior_ids": [
+      "pr4:dev-powershell-unknown",
+      "pr4:eval-iwr",
+      "pr4:eval-service-get",
+      "pr4:eval-stop-service",
+      "v2:ambiguous-amb-admin-1",
+      "v2:ambiguous-amb-admin-2",
+      "v2:train-suspicious-defense-1",
+      "v2:train-suspicious-defense-2",
+      "v2:train-suspicious-download-1",
+      "v2:train-suspicious-download-2",
+      "v2:train-suspicious-encoded-1",
+      "v2:train-suspicious-encoded-2"
+    ]
+  }
+]

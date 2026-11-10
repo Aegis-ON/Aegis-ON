@@ -29,3 +29,28 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
 The model is separate from PII NER; local inference sends no commands to an external API. Do not feed real logs to this synthetic evaluator. A metadata file stored beside the model can itself be modified; separately protect the expected hashes. Seeded re-training does not guarantee identical weights. The base BERT-Tiny model card states Apache-2.0; base corpus permissions and model distribution rights are separate questions. New cases are project-authored and contain no real secrets, but their labels require human review and have not been validated against actual incidents.
+
+## Frozen experiment: observed result
+
+The protocol/data/evaluator were committed at `df098b3593f6130d5fb519895a16a53869c4ee1d` **before** actual model evaluation. macOS arm64, Python 3.12.2, PyTorch 2.7.0 and Transformers 4.41.2 loaded the original Colab-exported model using its six-file manifest. Two runs produced identical report SHA-256 `274891a7b0aa6206e1e3134caf163414b57ffe265c438f1ac0edeb3f6a2ce80d`. The Drive ZIP was not downloaded and hash-checked; the model came from the original Colab export, not a verified Drive round trip. The stored [report](../evaluation/command_holdout_report_v1.json) contains only synthetic case IDs, groups and predictions, not real logs.
+
+26 labeled cases from 21 manually assigned groups were scored in common (12 positive, 14 negative). The rest: 8 unknown truth, 3 missing or blank, 1 invalid type and 2 length limits. All six boundary input statuses matched expectations. The comparison concerns the product's unmodified existing baseline and the actual model, not a combined prediction. The overall eligible baseline happens to have the same 26 cases as the common set.
+
+Boundary statuses are checked by direct `AttackModel.predict` calls; a missing key is passed as the empty string. This does not test JSON/Sysmon HTTP validation, which can reject or normalize input differently. The eight valid unknown cases have their input status recorded, but this report intentionally does not retain their model labels or scores; it cannot measure abstention or ambiguity handling.
+
+| Method | TP | FP | TN | FN | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Existing rules and keyword baseline | 2 | 4 | 10 | 10 | 0.333 | 0.167 | 0.222 |
+| Original actual BERT model | 12 | 13 | 1 | 0 | 0.480 | 1.000 | 0.649 |
+
+The model flagged 25/26 inputs and 13/14 synthetic negative cases. The review-candidate labels depend on hypothetical context unavailable to either input. This very high false-positive count makes the model unsuitable to present as an independently validated operational detector. As context only, flagging every one of these 26 cases would yield F1 0.632; neither that reference nor the model score represents real deployment performance. Baseline FPs: `holdout-003`, `holdout-005`, `holdout-039`, `holdout-040`. Baseline FNs: `holdout-013`, `014`, `016`, and `018`–`024`. Model FPs: `001`–`006`, `008`–`012`, `039`, `040`; no labeled FNs. Full IDs and numeric scores are in the report. No rules, model weights or threshold were tuned after seeing these results.
+
+| Annotated candidate | Cases | Baseline flagged for any reason | Binary model flagged |
+| --- | ---: | ---: | ---: |
+| T1685.005 (clear Windows event logs) | 1 | 0/1 | 1/1 |
+| T1685.001 (modify Windows event logging) | 1 | 0/1 | 1/1 |
+| T1218.005 (mshta proxy execution) | 1 | 1/1 | 1/1 |
+
+Each candidate has only one example. These are binary review flags, not ATT&CK identification; in particular the baseline may flag another feature, such as a URL. The source mapping is MITRE ATT&CK's current technique descriptions, which do not prove attack intent in these hypothetical cases.
+
+Full macOS suite: 153 tests run, 150 passed and three opt-in real-model tests skipped. The actual attack model integration test was run separately and passed. The prior PII ONNX Colab test is documented in the merged PR; it was not rerun here. Real Windows Sysmon, browser flow, production infrastructure and GitHub-hosted Actions are unverified. The existing PII workflow last failed before starting because GitHub reported payment or spending limits.
