@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from .pii import PIIDetector, redact_spans
@@ -52,15 +53,43 @@ def inspect_events(events: list[dict[str, Any]], indices: list[int], detector: P
             finding_spans.append((value, span))
     # Look ahead at every position so matches starting inside another candidate
     # are not skipped. Longer alternatives at the same position cover shorter ones.
+    # Correlation evidence serializes parsed event times using isoformat(), so a
+    # detected timestamp may reappear with Z rewritten to +00:00 (or a UTC
+    # suffix added). Associate that spelling with the original candidate token.
+    for raw, token in list(replacements.items()):
+        if len(raw) < 8:
+            continue
+        try:
+            timestamp = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+        except ValueError:
+            continue
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        replacements.setdefault(timestamp.isoformat(), token)
     ordered = sorted(replacements, key=lambda item: (-len(item), item))
     if len(ordered) > 5000:
         raise ValueError("PII analysis exceeds the candidate limit")
-    pattern = re.compile("(?=(" + "|".join(map(re.escape, ordered)) + "))") if ordered else None
+    pattern = re.compile("(?=(" + "|".join(map(re.escape, ordered)) + "))", re.IGNORECASE) if ordered else None
+    by_casefold: dict[str, str] = {}
+    for raw in ordered:
+        by_casefold.setdefault(raw.casefold(), replacements[raw])
+
+    def replacement_for(matched: str) -> str:
+        token = by_casefold.get(matched.casefold())
+        if token is not None:
+            return token
+        # Python's Unicode IGNORECASE includes a few special cases whose
+        # casefold strings differ (for example dotted/dotless I). Preserve
+        # privacy for those matches without ever returning the raw value.
+        for raw in ordered:
+            if re.fullmatch(re.escape(raw), matched, re.IGNORECASE):
+                return replacements[raw]
+        raise ValueError('PII replacement lookup failed')
 
     def mask_segments(text: str) -> list[tuple[int, int, str]]:
         if not pattern:
             return []
-        matches = [(match.start(), match.start() + len(match.group(1)), replacements[match.group(1)])
+        matches = [(match.start(), match.start() + len(match.group(1)), replacement_for(match.group(1)))
                    for match in pattern.finditer(text)]
         merged: list[tuple[int, int, str]] = []
         for start, end, token in matches:

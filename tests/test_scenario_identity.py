@@ -16,7 +16,7 @@ const ids=['#summary','#results','#sysmon-file','#run-demo','#run-sysmon','#scen
 const el=Object.fromEntries(ids.map(id=>[id,new Element()])),document={querySelector:id=>el[id],createElement:()=>new Element()};
 let token='token',calls=[],wait=false,pending=[];
 const window={prompt:()=>token};
-const sample={events:[{sample:'example'}]},data={summary:{total:1,processed:1,invalid:0,unsupported:0},items:[{input_index:0,status:'processed'}],source_events:[],detections:[]};
+const sample={events:[{sample:'example'}]},data={summary:{total:1,processed:1,invalid:0,unsupported:0},items:[{input_index:0,status:'processed'}],source_events:[],detections:[],pii:{state:'disabled',findings:[{input_index:0,field:'user',type:'EMAIL',source:'regex',token:'[EMAIL:synthetic]'}]}};
 const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>body});
 let shouldFail=false;
 const fetch=async(url,opts)=>{calls.push({url,opts});if(shouldFail)return response({},401);if(url==='/api/v1/sysmon/analyze'&&wait)return new Promise(resolve=>pending.push(resolve));if(url==='/api/v1/sysmon/analyze')return response(data);if(url==='/api/v1/analyze')return response({model_state:'semantic-baseline',detections:[]});return response(sample)};
@@ -26,8 +26,11 @@ const click=id=>el[id].handlers.click();
  for(const [name,label] of [['a','시나리오 A · 정상 프로세스'],['b','시나리오 B · 의심 다운로드 명령'],['c','시나리오 C · 다수 목적지 연결']]){
   await click('#scenario-'+name); assert.ok(el['#summary'].textContent.includes(label),el['#summary'].textContent);
  }
- el['#sysmon-file'].files=[{name:'<img onerror=evil>.json',size:100}];await click('#run-sysmon');
- assert.ok(el['#summary'].textContent.includes('<img onerror=evil>.json'));
+ el['#sysmon-file'].files=[{name:'alice@example.com.json',size:100}];await click('#run-sysmon');
+ assert.match(el['#summary'].textContent,/사용자 선택 파일/);
+ assert.doesNotMatch(el['#summary'].textContent,/alice@example\.com/);
+ assert.match(el['#results'].textContent,/\[EMAIL:synthetic\]/);
+ assert.doesNotMatch(el['#results'].textContent,/alice@example\.com/);
  assert.ok(!el['#summary'].textContent.includes('시나리오 C'));
  await click('#run-demo');assert.match(el['#summary'].textContent,/기존 JSON 데모/);
  token=null;await click('#scenario-a');assert.match(el['#summary'].textContent,/토큰이 입력되지/);assert.doesNotMatch(el['#summary'].textContent,/기존 JSON 데모/);

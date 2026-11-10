@@ -91,7 +91,13 @@
           if (response.status === 401) throw new Error('인증 실패: API 토큰을 확인해 주세요.');
           if (response.status === 403) throw new Error('권한 또는 분석가 이름을 확인해 주세요.');
           if (response.status === 409) throw new Error('이미 처리된 요청입니다. 현재 상태를 확인해 주세요.');
-          if (response.status === 503) throw new Error('API 인증이 설정되지 않았습니다.');
+          if (response.status === 503) {
+            let detail;
+            try { detail = (await response.json()).detail; } catch (_) { /* Keep unknown errors generic. */ }
+            if (detail === 'PII model inference failed') throw new Error('개인정보 모델 추론에 실패했습니다. 서버 상태를 확인해 주세요.');
+            if (detail === 'API authentication is not configured') throw new Error('API 인증이 설정되지 않았습니다.');
+            throw new Error('서비스를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+          }
           throw new Error(`${operation} 실패 (HTTP ${response.status})`);
         }
         return response.json();
@@ -246,7 +252,7 @@
         if (!file.name.toLowerCase().endsWith('.json')) { summary.textContent = '.json 파일을 선택해 주세요.'; return; }
         if (file.size > MAX_FILE_BYTES) { summary.textContent = '파일이 2 MiB를 초과해 전송하지 않았습니다.'; return; }
         const token = askToken(); if (!token) return;
-        try { summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…'; await analyzeSysmon(file, token, request, `파일: ${file.name}`); }
+        try { summary.textContent = 'Sysmon 이벤트를 분석하고 있습니다…'; await analyzeSysmon(file, token, request, '사용자 선택 파일'); }
         catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });
       const scenarioLabels = {a:'시나리오 A · 정상 프로세스', b:'시나리오 B · 의심 다운로드 명령', c:'시나리오 C · 다수 목적지 연결'};

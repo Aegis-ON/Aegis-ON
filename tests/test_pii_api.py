@@ -45,6 +45,20 @@ class NumericModel:
         return [Span(m.start(), m.end(), 'ACCOUNTNUM', 'model') for m in re.finditer('1234567890', text)]
 
 
+class CaseVariantModel:
+    def find(self, text):
+        return [Span(m.start(), m.end(), 'GIVENNAME', 'model') for m in re.finditer('ERASE', text)]
+
+
+class TimestampModel:
+    def __init__(self, value='2026-01-01T00:00:00Z'):
+        self.value = value
+
+    def find(self, text):
+        return [Span(m.start(), m.end(), 'DATEOFBIRTH', 'model')
+                for m in re.finditer(re.escape(self.value), text)]
+
+
 class Ipv6FragmentModel:
     def find(self, text):
         return [Span(0, 4, 'IDCARD', 'model')] if text == '2001' else []
@@ -197,6 +211,49 @@ class PiiApiTests(unittest.TestCase):
         self.assertNotIn('DoeLee', response.text)
         self.assertNotIn('Lee-PC', response.text)
         self.assertNotIn('Lee-PC', self.client.get('/api/v1/detections', headers=self.headers).text)
+
+    def test_detected_value_is_masked_when_engine_lowercases_evidence(self):
+        api.pii_detector = PIIDetector(CaseVariantModel())
+        event = self.event()
+        event.update(host='LAB', user='safe', process='p', event_id='safe-id', command_line='notify ERASE')
+        response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(f['source'] == 'model' for f in response.json()['pii']['findings']))
+        self.assertNotIn('erase', response.text.lower())
+        self.assertNotIn('erase', self.client.get('/api/v1/detections', headers=self.headers).text.lower())
+
+    def test_detected_timestamp_is_masked_after_correlation_normalizes_it(self):
+        api.pii_detector = PIIDetector(TimestampModel())
+        events = []
+        for i in range(3):
+            event = self.event()
+            event.update(host='LAB', user='safe', process='p', event_id=f'id-{i}',
+                         timestamp='2026-01-01T00:00:00Z',
+                         command_line='notify 2026-01-01T00:00:00Z', destination=f'192.0.2.{i+1}')
+            events.append(event)
+        response = self.client.post('/api/v1/analyze', json={'events': events}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(d['source'] == 'correlation' for d in response.json()['detections']))
+        self.assertTrue(any(f['type'] == 'DATEOFBIRTH' for f in response.json()['pii']['findings']))
+        for text in (response.text, self.client.get('/api/v1/detections', headers=self.headers).text):
+            self.assertNotIn('2026-01-01T00:00:00Z', text)
+            self.assertNotIn('2026-01-01T00:00:00+00:00', text)
+
+    def test_detected_basic_iso_date_is_masked_after_correlation_normalizes_it(self):
+        api.pii_detector = PIIDetector(TimestampModel('20260101'))
+        events = []
+        for i in range(3):
+            event = self.event()
+            event.update(host='LAB', user='safe', process='p', event_id=f'id-{i}',
+                         timestamp='20260101', command_line='notify 20260101',
+                         destination=f'192.0.2.{i+1}')
+            events.append(event)
+        response = self.client.post('/api/v1/analyze', json={'events': events}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(d['source'] == 'correlation' for d in response.json()['detections']))
+        for text in (response.text, self.client.get('/api/v1/detections', headers=self.headers).text):
+            self.assertNotIn('20260101', text)
+            self.assertNotIn('2026-01-01T00:00:00+00:00', text)
 
     def test_display_token_matches_final_global_overlap_replacement(self):
         event = self.event()

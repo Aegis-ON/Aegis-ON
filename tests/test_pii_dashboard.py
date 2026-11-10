@@ -75,6 +75,23 @@ const run=async pii=>{const action=click('#run-sysmon'); requests.at(-1).resolve
   oldRequest.resolve(response({state:'error',reason:'오래된 오류',findings:[]})); await old;
   assert.doesNotMatch(output(),/오래된 오류/);
   assert.match(output(),/개인정보 탐지 결과가 없습니다/);
+  const failure=async body=>{
+    const action=click('#run-sysmon');
+    requests.at(-1).resolve({ok:false,status:503,json:async()=>body});
+    await action;
+    assert.equal(output(),'');
+    return elements['#summary'].textContent;
+  };
+  assert.match(await failure({detail:'PII model inference failed'}),/개인정보 모델 추론에 실패/);
+  assert.match(await failure({detail:'API authentication is not configured'}),/API 인증이 설정되지 않았습니다/);
+  const unknown=await failure({detail:'secret alice@example.com'});
+  assert.match(unknown,/서비스를 사용할 수 없습니다/);
+  assert.doesNotMatch(unknown,/secret|alice@example\.com|API 인증/);
+  const malformed=click('#run-sysmon');
+  requests.at(-1).resolve({ok:false,status:503,json:async()=>{throw Error('private body')}});
+  await malformed;
+  assert.match(elements['#summary'].textContent,/서비스를 사용할 수 없습니다/);
+  assert.doesNotMatch(elements['#summary'].textContent,/private body/);
   console.log('PII dashboard checks passed');
 })().catch(error=>{console.error(error);process.exit(1)});
 '''
