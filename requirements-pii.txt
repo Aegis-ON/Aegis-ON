@@ -1,0 +1,4 @@
+# Optional local-only ONNX PII detection; the model files are provisioned separately.
+numpy>=1.26,<3
+onnxruntime>=1.18,<2
+transformers>=4.44,<5

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime, timezone
 from threading import Lock
-from typing import Any
+from typing import Any, Callable
 
 from .engine import DetectionPipeline
 from .models import Detection, SecurityEvent, validate_unicode
@@ -21,20 +21,28 @@ class DetectionService:
         return detections
 
     def analyze_with_event_refs(
-        self, raw_events: list[dict[str, Any]], *, allow_empty_command_line: bool = False
+        self, raw_events: list[dict[str, Any]], *, allow_empty_command_line: bool = False,
+        mask: Callable[[str], str] | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        mask = mask or (lambda value: value)
         events = [SecurityEvent.from_mapping(event, allow_empty_command_line=allow_empty_command_line) for event in raw_events]
         event_ids = [event.event_id for event in events]
         if len(event_ids) != len(set(event_ids)):
             raise ValueError("duplicate event_id in request")
         event_refs = redact_for_display([
-            {"input_index": index, "event_id": event.event_id}
+            {"input_index": index, "event_id": mask(event.event_id)}
             for index, event in enumerate(events)
         ])
         display_ids = [ref["event_id"] for ref in event_refs]
         if len(display_ids) != len(set(display_ids)):
             raise ValueError("duplicate event_id after display redaction")
         detections = self.pipeline.analyze(events)
+        # Store only display-safe detection text so later list/approval responses
+        # cannot reveal candidate values after the request's mask is discarded.
+        for detection in detections:
+            detection.host = mask(detection.host)
+            detection.event_ids = [mask(value) for value in detection.event_ids]
+            detection.evidence = [mask(value) for value in detection.evidence]
         with self._lock:
             for detection in detections:
                 self._detections[detection.detection_id] = detection
