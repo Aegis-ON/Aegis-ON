@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import os
 from pathlib import Path
@@ -31,6 +32,11 @@ class AttackModel:
             names=('model.safetensors','config.json','tokenizer.json','tokenizer_config.json','special_tokens_map.json','vocab.txt')
             if any(not (root/name).is_file() for name in names): raise ValueError('missing model artifacts')
             artifacts={name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}
+            manifest = os.environ.get('AEGIS_ATTACK_MODEL_MANIFEST', '')
+            if manifest:
+                expected = json.loads(Path(manifest).read_text()).get('sha256')
+                if not isinstance(expected, dict) or set(expected) != set(names) or expected != artifacts:
+                    raise ValueError('artifact integrity mismatch')
             digest = artifacts['model.safetensors']
             tokenizer = AutoTokenizer.from_pretrained(root, local_files_only=True, trust_remote_code=False)
             model = AutoModelForSequenceClassification.from_pretrained(root, local_files_only=True, trust_remote_code=False, use_safetensors=True)

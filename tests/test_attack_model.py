@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import tempfile
 import unittest
@@ -92,3 +93,27 @@ class AttackModelTests(unittest.TestCase):
         self.assertEqual(r['reports']['test']['model']['support'],0)
         self.assertEqual(r['reports']['test']['baseline']['support'],0)
         self.assertTrue(all(x['status']=='inference_error' for x in r['reports']['test']['details']))
+
+    def test_evaluation_reports_actual_input_hash_separately(self):
+        class Fake:
+            def predict(self,command): return {'status':'inference_error'}
+        path=Path('evaluation/command_synthetic_v2.json')
+        with patch('builtins.print'):
+            r=evaluate(path,'unused',report={'dataset_sha256':'0'*64},predictor=Fake())
+        self.assertEqual(r['evaluation_dataset_sha256'],hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertFalse(r['training_dataset_matches'])
+
+    def test_manifest_rejects_changed_artifacts_before_model_load(self):
+        names=('model.safetensors','config.json','tokenizer.json','tokenizer_config.json','special_tokens_map.json','vocab.txt')
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for name in names: (root/name).write_text('original')
+            hashes={name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}
+            manifest=root/'manifest.json'; manifest.write_text(json.dumps({'sha256':hashes}))
+            (root/'vocab.txt').write_text('changed')
+            with patch.dict('os.environ',{'AEGIS_ATTACK_MODEL_DIR':folder,'AEGIS_ATTACK_MODEL_MANIFEST':str(manifest)},clear=True):
+                with patch('transformers.AutoTokenizer.from_pretrained') as loader:
+                    result=AttackModel.from_environment()
+                    self.assertEqual(result.state,'error')
+                    loader.assert_not_called()
+            self.assertNotIn(folder,json.dumps(result.status()))

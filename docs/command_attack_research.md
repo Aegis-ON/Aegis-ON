@@ -38,6 +38,21 @@ export AEGIS_ATTACK_MODEL_DIR=/tmp/aegis-attack-model
 
 서버를 재시작하면 설정한 로컬 safetensors·토크나이저를 CPU로 로드합니다. 별도 실모델 테스트는 `AEGIS_ATTACK_INTEGRATION=1 PYTHONPATH=src python -m unittest discover -s tests -p test_attack_real_model.py -v`로 실행합니다. 모델 파일은 Git에 넣지 않습니다. 모델은 별도 신뢰 가능한 위치에서 준비해야 하며, 표시되는 각 파일 SHA-256은 식별을 돕지만 신뢰할 수 있는 원본과 대조하지 않으면 진위나 학습 출처를 증명하지 않습니다. 파일 교체 권한을 제한하세요. 명령에 한해 공백·누락, 잘못된 자료형, 20,000자 또는 128 토큰 초과, 추론 실패를 별도 상태로 표시하며 잘라서 정상 처리하지 않습니다. 0.5 미만은 **기준 미충족**이지 안전 판정이 아닙니다. 모델이 모호한 맥락을 자동으로 판별하거나 보류할 수 있다고 주장하지 않습니다.
 
+### 기존 모델 보존과 재평가
+
+이 실험의 원래 가중치와 설정·토크나이저 여섯 파일, 합성 데이터 및 생성 설정과 파일별 SHA-256을 비공개 보존 ZIP에 넣었습니다. 모델 폴더와 메타데이터는 별도 신뢰 위치에서 보호하세요. 이 기록은 실제 Colab 학습 셀을 PR 학습 스크립트가 실행된 것으로 주장하지 않습니다. 재학습해도 환경과 연산 차이로 같은 가중치 해시를 보장하지 않으며 옵티마이저·난수 상태를 보존하지 않아 중단된 학습을 이어가는 체크포인트가 아닙니다.
+
+보존 ZIP을 저장소 외부의 새 디렉터리에 풀고, `metadata.json`의 `sha256` 항목을 별도로 신뢰한 값과 비교하세요. 아래처럼 지정하면 로더도 여섯 파일과 해당 목록을 대조해 불일치 시 로드를 실패시킵니다. 목록까지 함께 변조될 수 있으므로 독립적으로 보호된 원본 해시와 비교해야 하며 해시 자체가 출처나 라이선스를 인증하지는 않습니다. 변수 미설정 시 기존처럼 해시를 식별용으로만 표시합니다.
+
+```bash
+export AEGIS_ATTACK_MODEL_DIR=/path/to/unpacked/model
+export AEGIS_ATTACK_MODEL_MANIFEST=/path/to/unpacked/metadata.json
+AEGIS_ATTACK_INTEGRATION=1 PYTHONPATH=src python -m unittest discover -s tests -p test_attack_real_model.py -v
+PYTHONPATH=src python -c "import json,os; from aegis_on.attack_experiment import evaluate; m=json.load(open(os.environ['AEGIS_ATTACK_MODEL_MANIFEST'])); evaluate('evaluation/command_synthetic_v2.json',os.environ['AEGIS_ATTACK_MODEL_DIR'],report=m)"
+```
+
+평가 출력의 `evaluation_dataset_sha256`은 실제 입력 파일의 해시이고 `training_dataset_matches`는 학습 당시 사용한 전체 데이터셋 JSON 파일의 해시와 바이트 단위로 비교한 결과입니다. 전체 파일에는 학습·검증·시험·판단 불가 분할이 모두 포함됩니다. `false`면 서로 다른 파일이며 `null`이면 학습 데이터 해시가 없어 비교할 수 없습니다. 이는 유사 명령의 누출이나 데이터 출처를 검증하지 않습니다. 이 모델은 PII NER 모델과 별개입니다.
+
 ## 실제 Colab 측정
 
 Colab Linux x86-64 Python 3.13.18, PyTorch 2.14.1+cpu, Transformers 4.57.6. 기반 revision의 세 파일은 HF revision metadata와 무결성을 대조했고, 위와 같은 설정으로 별도 notebook 셀에서 실제 학습해 validation loss 기준 6 epoch를 선택했습니다. 학습한 `model.safetensors` SHA-256은 `c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28`입니다. 학습 셀은 저장소의 재현 스크립트와 같은 설정을 사용했지만 **스크립트 자체를 실행한 것은 아닙니다**. 저장된 모델을 PR 로더 소스의 SHA-256을 확인한 후 CPU에 다시 로드했습니다.

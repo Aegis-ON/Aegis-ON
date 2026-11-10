@@ -105,7 +105,8 @@ def train(args):
 
 def evaluate(path, model_dir, report=None, predictor=None):
     from .attack_model import AttackModel
-    data=json.loads(Path(path).read_text()); validate_data(data)
+    dataset_bytes=Path(path).read_bytes()
+    data=json.loads(dataset_bytes); validate_data(data)
     if predictor is None:
         previous=os.environ.get('AEGIS_ATTACK_MODEL_DIR')
         try:
@@ -127,7 +128,11 @@ def evaluate(path, model_dir, report=None, predictor=None):
             if row['label']!='unknown':
                 truth=row['label']=='positive'; brec.append((row['id'],truth,b));mrec.append((row['id'],truth,pred))
         reports[split]={'baseline':_metrics(brec),'model':_metrics(mrec),'details':details}
-    output={'experiment':report or json.loads((Path(model_dir)/'experiment.json').read_text()),'reports':reports}
+    experiment=report if report is not None else json.loads((Path(model_dir)/'experiment.json').read_text())
+    evaluation_sha=hashlib.sha256(dataset_bytes).hexdigest()
+    training_sha=experiment.get('dataset_sha256') or experiment.get('training',{}).get('dataset_sha256')
+    output={'experiment':experiment,'evaluation_dataset_sha256':evaluation_sha,
+            'training_dataset_matches':evaluation_sha == training_sha if training_sha else None,'reports':reports}
     print('EXPERIMENT_REPORT '+json.dumps(output,sort_keys=True,allow_nan=False),flush=True)
     return output
 
