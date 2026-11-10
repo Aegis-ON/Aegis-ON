@@ -70,6 +70,10 @@ pip install -r requirements-dev.txt
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
+## 명령줄 공격 모델 연구
+
+공격 BERT 모델은 아직 연결되지 않았으며 현재 명령줄 위협 분석은 규칙과 키워드 기준선입니다. 모델 후보, 도입 보류 사유, dev 데이터 준비와 비교 기준은 [명령줄 공격 분석 연구](docs/command_attack_research.md)에 정리했습니다. 개인정보 NER과 공격 분류는 서로 다른 기능입니다.
+
 ## 탐지 평가
 
 합성 Sysmon 사례를 이용해 현재 규칙과 키워드 기준선을 재현 가능하게 평가할 수 있습니다. 명령 이벤트와 다중 목적지 연결 배치는 서로 다른 단위로 집계합니다.

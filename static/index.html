@@ -173,6 +173,13 @@
           results.append(card);
         }
       }
+      function renderAttackModel(model) {
+        const section = document.createElement('section'); section.className = 'pii-summary';
+        section.append(createText('h3', '명령줄 공격 분석 모델'));
+        section.append(createText('p', model && model.state === 'unavailable' ? '모델 미준비 · 모델 분석 결과 없음. 명령줄은 규칙과 키워드 기준선으로 분석하며 네트워크 상관분석은 별도로 실행됩니다.' : '모델 상태를 확인할 수 없습니다.'));
+        section.append(createText('p', '개인정보 NER 모델은 공격 행위 분류에 사용되지 않습니다.', 'hint'));
+        results.append(section);
+      }
       function renderPii(pii) {
         const section = document.createElement('section'); section.className = 'pii-summary';
         section.append(createText('h3', '개인정보 탐지 요약'));
@@ -205,6 +212,7 @@
         const counts = data.summary;
         setStats(counts, data.detections.length);
         summary.textContent = `${inputLabel} · 전체 ${counts.total}건 · 처리 ${counts.processed}건 · 유효하지 않음 ${counts.invalid}건 · 미지원 ${counts.unsupported}건 · 탐지 ${data.detections.length}건 · 실제 차단은 수행하지 않습니다.`;
+        renderAttackModel(data.attack_model);
         renderPii(data.pii);
         const batch = document.createElement('section'); batch.className = 'batch';
         batch.append(createText('strong', '입력 이벤트 처리 결과'));
@@ -244,7 +252,8 @@
           const total = sample.events.length;
           setStats({total,processed:total,invalid:0,unsupported:0},data.detections.length);
           summary.textContent = `기존 JSON 데모 · ${data.detections.length}건 탐지됨 · 모델 상태: ${data.model_state} · 실제 차단은 수행하지 않습니다.`;
-          renderPii(data.pii);
+          renderAttackModel(data.attack_model);
+        renderPii(data.pii);
           renderDetections(data.detections, [], request);
         } catch (error) { if (isCurrent(request)) summary.textContent = error.message; }
       });

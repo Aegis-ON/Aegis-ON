@@ -92,6 +92,15 @@ def health() -> dict[str, str]:
     return {"status": "ok", "model_state": "semantic-baseline"}
 
 
+def _attack_model_status() -> dict[str, str]:
+    return {"state": "unavailable", "reason": "no verified attack model integrated"}
+
+
+@app.get("/api/v1/attack-model/status")
+def attack_model_status(analyst: str = Depends(authenticated_analyst)) -> dict[str, str]:
+    return _attack_model_status()
+
+
 @app.get("/api/v1/pii/status")
 def pii_status(analyst: str = Depends(authenticated_analyst)) -> dict[str, str]:
     _, state = _verified_public_hosts()
@@ -159,7 +168,7 @@ def analyze(payload: AnalyzeRequest, analyst: str = Depends(authenticated_analys
             message = "invalid event"
         raise HTTPException(status_code=422, detail=message) from None
     _link_pii(pii, event_refs)
-    return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs, "pii": pii}
+    return {"model_state": "semantic-baseline", "detections": detections, "event_refs": event_refs, "pii": pii, "attack_model": _attack_model_status()}
 
 
 @app.post("/api/v1/sysmon/analyze")
@@ -245,7 +254,7 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
     return {
         "model_state": "semantic-baseline", "summary": summary,
         "items": redact_for_display(items), "source_events": source_events,
-        "detections": detections, "pii": pii,
+        "detections": detections, "pii": pii, "attack_model": _attack_model_status(),
     }
 
 
