@@ -22,11 +22,12 @@ class ConsoleRouteTests(unittest.TestCase):
         self.assertEqual(landing.status_code, 200)
         self.assertIn('관제 메뉴', landing.text)
         self.assertNotIn('제품 소개', landing.text)
-        for path in ['/console','/console/endpoints','/console/endpoints/'+'a'*64,'/console/detections','/console/history']:
+        for path in ['/console','/console/endpoints','/console/endpoints/'+'a'*64,'/console/detections','/console/events','/console/history']:
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
             self.assertIn('관제 메뉴', response.text)
-        self.assertIn('JSON 이벤트 직접 입력', self.client.get('/console/analysis').text)
+        self.assertNotIn('JSON 이벤트 직접 입력', self.client.get('/console/analysis').text)
+        self.assertIn('수집 이벤트', self.client.get('/console/events').text)
         self.assertEqual(self.client.get('/console/no-such-page').status_code, 404)
         self.assertEqual(self.client.get('/api/v1/history').status_code, 401)
         self.assertEqual(self.client.get('/api/v1/endpoints').status_code, 401)

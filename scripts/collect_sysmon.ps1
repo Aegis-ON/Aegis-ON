@@ -13,13 +13,22 @@ param(
     [Parameter(Mandatory=$true)][string]$CursorPath,
     [ValidateRange(1,60)][int]$IntervalSeconds = 5,
     [ValidateRange(1,100)][int]$BatchSize = 20,
-    [ValidateRange(1,65535)][int]$Port = 8000
+    [ValidateRange(1,65535)][int]$Port = 8000,
+    [string]$ServerUrl = '',
+    [switch]$AdoptExistingCursor
 )
 $ErrorActionPreference = 'Stop'
 $channel = 'Microsoft-Windows-Sysmon/Operational'
 $names = @('UtcTime','Image','CommandLine','ParentImage','ParentCommandLine','User','ProcessGuid','ProcessId','SourceIp','SourcePort','DestinationIp','DestinationPort','Initiated')
 if ([string]::IsNullOrWhiteSpace($env:AEGIS_API_TOKEN)) { throw 'Set AEGIS_API_TOKEN in the environment first.' }
-$base = "http://127.0.0.1:$Port"
+if ([string]::IsNullOrWhiteSpace($ServerUrl)) { $ServerUrl = "http://127.0.0.1:$Port" }
+$server = $null
+if (-not [Uri]::TryCreate($ServerUrl, [System.UriKind]::Absolute, [ref]$server) -or
+    ($server.Scheme -ne 'https' -and -not ($server.Scheme -eq 'http' -and $server.IsLoopback)) -or
+    $server.UserInfo -or $server.Query -or $server.Fragment -or $server.AbsolutePath -ne '/') {
+    throw 'ServerUrl must be an HTTPS origin or a loopback HTTP origin, without credentials, path, query or fragment.'
+}
+$base = $server.GetLeftPart([System.UriPartial]::Authority).TrimEnd('/')
 $headers = @{ Authorization = "Bearer $env:AEGIS_API_TOKEN" }
 $cursor = [IO.Path]::GetFullPath($CursorPath)
 $dir = [IO.Path]::GetDirectoryName($cursor)
@@ -28,7 +37,7 @@ if (-not [IO.Directory]::Exists($dir)) { throw 'Cursor directory does not exist.
 $lease = [IO.File]::Open("$cursor.lock", [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 function Send-Heartbeat([string]$state, [string]$code = $null) {
     $body = @{state=$state; error_code=$code} | ConvertTo-Json -Compress
-    try { Invoke-RestMethod -Method Post -Uri "$base/api/v1/collectors/$CollectorId/heartbeat" -Headers $headers -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 10 | Out-Null } catch { Write-Warning 'Collector heartbeat failed; retrying.' }
+    try { Invoke-RestMethod -Method Post -Uri "$base/api/v1/collectors/$CollectorId/heartbeat" -Headers $headers -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 10 -MaximumRedirection 0 | Out-Null } catch { Write-Warning 'Collector heartbeat failed; retrying.' }
 }
 function Write-Cursor([long]$id) {
     $temporary = "$cursor.tmp"
@@ -48,6 +57,31 @@ function Get-ChannelEdge([switch]$Oldest) {
 }
 $reportedFailure = $false
 try {
+    # Bind the checkpoint to its collector identity and destination. Reusing a
+    # cursor for a different server would silently skip the earlier records.
+    $binding = "$cursor.binding"
+    $hadBinding = [IO.File]::Exists($binding)
+    $hasCursor = [IO.File]::Exists($cursor)
+    $hasPending = [IO.File]::Exists("$cursor.pending")
+    if (-not $hasCursor -and ($hadBinding -or $hasPending)) {
+        throw 'Checkpoint is missing while binding or pending metadata exists; investigate before resuming.'
+    }
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        $bindingBytes = [Text.Encoding]::UTF8.GetBytes("$CollectorId`n$base")
+        $expectedBinding = ([BitConverter]::ToString($hash.ComputeHash($bindingBytes))).Replace('-', '').ToLowerInvariant()
+    } finally { $hash.Dispose() }
+    if ($hadBinding) {
+        if ([IO.File]::ReadAllText($binding).Trim() -ne $expectedBinding) {
+            throw 'Checkpoint belongs to a different collector or server; use a separate checkpoint.'
+        }
+    } else {
+        if ($hasCursor -and -not $AdoptExistingCursor) {
+            throw 'Existing checkpoint has no binding; verify its original server and collector, then use -AdoptExistingCursor.'
+        }
+        if ($hasCursor) { Write-Warning 'Adopting a legacy cursor; the operator must verify its original collector and server.' }
+        [IO.File]::WriteAllText($binding, $expectedBinding, [Text.Encoding]::ASCII)
+    }
     if ([IO.File]::Exists($cursor)) {
         $text = [IO.File]::ReadAllText($cursor).Trim()
         [long]$last = 0
@@ -60,6 +94,7 @@ try {
         Write-Host 'Initialized at the current channel position. Earlier records were not collected.'
     }
     while ($true) {
+        $failureCode = 'read_error'
         try {
             $newest = Get-ChannelEdge
             $oldest = Get-ChannelEdge -Oldest
@@ -94,21 +129,36 @@ try {
                 })
                 $json = ConvertTo-Json -InputObject ([ordered]@{events=$events}) -Depth 6 -Compress
                 $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-                if ($bytes.Length -gt 2097152) { [IO.File]::Delete($pending); Send-Heartbeat 'error' 'export_error'; throw 'Batch exceeds 2 MiB; reduce batch size and investigate.' }
+                if ($bytes.Length -gt 2097152) { [IO.File]::Delete($pending); $failureCode = 'export_error'; throw 'Batch exceeds 2 MiB; reduce batch size and investigate.' }
                 $first = $records[0].RecordId; $end = $records[-1].RecordId
                 $requestHeaders = @{Authorization=$headers.Authorization; 'X-Collector-ID'=$CollectorId; 'Idempotency-Key'="sysmon-$first-$end"}
                 # Retry an identical batch on the next loop after failure; never advance before ACK.
-                try { $response = Invoke-RestMethod -Method Post -Uri "$base/api/v1/ingest/sysmon" -Headers $requestHeaders -ContentType 'application/json' -Body $bytes -TimeoutSec 30 }
-                catch { Send-Heartbeat 'error' 'send_error'; Write-Warning 'Submission failed; the checkpoint was not advanced. Retrying.'; Start-Sleep -Seconds $IntervalSeconds; continue }
+                try { $response = Invoke-RestMethod -Method Post -Uri "$base/api/v1/ingest/sysmon" -Headers $requestHeaders -ContentType 'application/json' -Body $bytes -TimeoutSec 30 -MaximumRedirection 0 }
+                catch {
+                    $httpCode = 0
+                    if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                        $httpCode = [int]$_.Exception.Response.StatusCode
+                    }
+                    if ($httpCode -ge 400 -and $httpCode -lt 500 -and $httpCode -ne 429) {
+                        $failureCode = 'invalid_input'
+                        throw 'Server rejected the batch or authentication; checkpoint unchanged. Investigate before retrying.'
+                    }
+                    Send-Heartbeat 'error' 'send_error'; Write-Warning 'Submission failed; the checkpoint was not advanced. Retrying.'; Start-Sleep -Seconds $IntervalSeconds; continue
+                }
                 if (-not $response.analysis_id) { throw 'Server did not acknowledge analysis; checkpoint unchanged.' }
                 Write-Cursor $end; $last = $end; [IO.File]::Delete($pending)
                 Write-Host "Acknowledged $($records.Count) events; checkpoint advanced."
             }
             Send-Heartbeat 'running'
         } catch {
-            $reportedFailure = $true; Send-Heartbeat 'error' 'read_error'
+            $reportedFailure = $true; Send-Heartbeat 'error' $failureCode
             throw 'Collection stopped. Check channel availability, rollover, input size and checkpoint; no raw log was printed.'
         }
         Start-Sleep -Seconds $IntervalSeconds
     }
+} catch {
+    if (-not $reportedFailure) { Send-Heartbeat 'error' 'read_error' }
+    $reportedFailure = $true
+    throw
 } finally { if (-not $reportedFailure) { Send-Heartbeat 'stopped' }; $lease.Dispose() }
+

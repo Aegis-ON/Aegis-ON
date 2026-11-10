@@ -97,4 +97,18 @@ const tick=()=>new Promise(r=>setImmediate(r));
         result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required')
+    def test_cross_batch_evidence_shows_all_related_events(self):
+        harness = r"""
+const assert=require('assert'),vm=require('vm'),fs=require('fs');let root;
+class E{constructor(tag='div'){this.tag=tag;this.children=[];this.handlers={};this._text='';this.value='';this.className='';this.attrs={};this.classList={add:()=>{}};this.style={};this.id='';}set textContent(x){this._text=String(x);this.children=[]}get textContent(){return this._text+this.children.map(x=>x.textContent).join('')}get childNodes(){return this.children}append(...items){for(const x of items){x.parent=this;this.children.push(x)}if(this.tag==='select'&&!this.value&&this.children[0])this.value=this.children[0].value}replaceChildren(...items){this._text='';this.children=[];this.append(...items)}addEventListener(k,v){this.handlers[k]=v}setAttribute(k,v){this.attrs[k]=v}scrollIntoView(){}remove(){if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this)}}
+const entries=Object.fromEntries(['#kicker','#title','#subtitle','#status','#view','#load'].map(k=>[k,new E()]));root=entries['#view'];function walk(e,p){if(p(e))return e;for(const c of e.children){let x=walk(c,p);if(x)return x}return null}
+const document={querySelector:q=>entries[q]||(q.startsWith('#')?walk(root,e=>e.id===q.slice(1)):null),createElement:tag=>new E(tag)};const window={prompt:()=> 'temporary-token'},location={pathname:'/console/detections'};
+const data={analyses:['e1','e2','e3'].map((id,i)=>({analysis_id:'a'+i,received_at:'receipt-'+i,detection_ids:i===2?['d']:[],source_events:[{event_id:id,timestamp:'time-'+i,log_source:'sysmon'}]})),detections:[{detection_id:'d',title:'fanout',technique:'T1595',source:'correlation',score:70,host:'[HOST:masked]',event_ids:['e1','e2','e3'],evidence:['condition'],status:'pending_review'}]};const fetch=async()=>({ok:true,json:async()=>data});
+const code=fs.readFileSync('static/console.html','utf8').split('<script>')[1].split('</script>')[0];vm.runInNewContext(code,{document,window,location,fetch,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array});
+(async()=>{entries['#load'].handlers.click();await new Promise(r=>setImmediate(r));await walk(root,e=>e.tag==='button'&&e.textContent.includes('fanout')).handlers.click();const detail=walk(root,e=>e.id==='detail');assert(detail);for(const x of ['e1','e2','e3','receipt-0','receipt-1','receipt-2'])assert(detail.textContent.includes(x),x)})().catch(e=>{console.error(e);process.exit(1)});
+"""
+        result = subprocess.run(['node', '-e', harness], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 if __name__ == '__main__': unittest.main()

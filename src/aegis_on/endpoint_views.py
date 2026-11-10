@@ -1,7 +1,7 @@
 """Conservative, read-only endpoint observations derived from sanitized history.
 
-A pseudonym is not a device identifier. Groups are scoped to one analysis,
-never merged across batches. All inputs come from the existing sanitized store.
+A pseudonym is not a device identifier. Stream groups use a collector-scoped
+host-name digest; legacy observations remain scoped to one analysis.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def _last_seen(events: list[dict[str, Any]]) -> str | None:
 def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Derive observation groups without storing new raw or pseudonymous data.
 
-    Sysmon events carry a sanitized host; JSON history records only event IDs.
+    Sysmon events carry a sanitized host and may carry a collector-scoped key; JSON history records only event IDs.
     For JSON, only references associated with a detection can be attributed,
     and a reference claimed by more than one host is left unassigned.
     """
@@ -44,7 +44,9 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
         if not isinstance(analysis_id, str) or not analysis_id:
             continue
         kind = batch.get('input_type')
-        relevant = [by_id[id_] for id_ in batch.get('detection_ids', []) if id_ in by_id]
+        batch_ids = {e.get('event_id') for e in (batch.get('source_events') or batch.get('event_refs') or []) if isinstance(e, dict)}
+        owned = set(batch.get('detection_ids') or [])
+        relevant = [d for d in by_id.values() if d.get('detection_id') in owned or bool(batch_ids.intersection(d.get('event_ids') or []))]
         groups: dict[tuple[str, str], dict[str, Any]] = {}
 
         def group(category: str, key: str, host: str | None, certainty: str) -> dict[str, Any]:
@@ -64,8 +66,11 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
             for i, source in enumerate(sources):
                 if not isinstance(source, dict):
                     continue
+                source = {**source, 'received_at': batch.get('received_at')}
                 host = source.get('host')
-                if isinstance(host, str) and host:
+                if isinstance(source.get('endpoint_group'), str) and source['endpoint_group']:
+                    target = group('stream', source['endpoint_group'], host if isinstance(host, str) else None, 'collector_host')
+                elif isinstance(host, str) and host:
                     target = group('host', host, host, 'source_metadata')
                 else:
                     # Missing hosts cannot establish that two events are from the same device.
@@ -74,7 +79,7 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
             for detection in relevant:
                 event_ids = set(detection.get('event_ids') or [])
                 matches = [g for g in groups.values() if any(e.get('event_id') in event_ids for e in g['events'])]
-                if not matches:
+                if not matches and detection.get('detection_id') in owned:
                     ident = str(detection.get('detection_id', ''))
                     matches = [group('unlinked_detection', ident, None, 'unknown')]
                 for target in matches:
@@ -108,4 +113,31 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
             item['highest_score'] = max(scores) if scores else None
             item['last_seen'] = _last_seen(item['events'])
             output.append(item)
-    return output
+    # Stream observations carry a collector-scoped pseudonymous grouping key.
+    # Merge only those explicit keys, never infer identity from a display name.
+    merged: list[dict[str, Any]] = []
+    streams: dict[str, dict[str, Any]] = {}
+    for item in output:
+        keys = {event.get('endpoint_group') for event in item['events']}
+        key = next(iter(keys)) if len(keys) == 1 else None
+        if not isinstance(key, str) or not key:
+            merged.append(item)
+            continue
+        if key not in streams:
+            item['endpoint_id'] = _group_id('stream', 'collector_host', key)
+            item['identity_scope'] = 'collector_host_observation'
+            item['analysis_ids'] = [item['analysis_id']]
+            streams[key] = item
+            merged.append(item)
+        else:
+            target = streams[key]
+            target['analysis_ids'].append(item['analysis_id'])
+            target['events'].extend(item['events'])
+            known = {d.get('detection_id') for d in target['detections']}
+            target['detections'].extend(d for d in item['detections'] if d.get('detection_id') not in known)
+            target['event_count'] = len(target['events'])
+            target['detection_count'] = len(target['detections'])
+            scores = [d.get('score') for d in target['detections'] if type(d.get('score')) in (float,int)]
+            target['highest_score'] = max(scores) if scores else None
+            target['last_seen'] = _last_seen(target['events'])
+    return merged

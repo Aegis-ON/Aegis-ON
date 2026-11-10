@@ -114,6 +114,31 @@ class EndpointAggregationTests(unittest.TestCase):
         self.assertEqual([x['event_id'] for x in unknown['events']], ['e1'])
         self.assertTrue(all(not g['events'] for g in groups if g['host'] is not None))
 
+    def test_cross_batch_detection_is_linked_to_each_observation(self):
+        analyses = [{'analysis_id':'a','input_type':'sysmon','detection_ids':[],
+                     'source_events':[{'event_id':'one','host':'[HOST:1]'}]},
+                    {'analysis_id':'b','input_type':'sysmon','detection_ids':['d'],
+                     'source_events':[{'event_id':'two','host':'[HOST:1]'}]}]
+        detections = [{'detection_id':'d','host':'[HOST:1]','event_ids':['one','two'],'score':70}]
+        groups = build_endpoint_groups(analyses,detections)
+        self.assertEqual(len(groups),2)
+        self.assertTrue(all(g['detection_count']==1 for g in groups))
+        self.assertEqual({g['events'][0]['event_id'] for g in groups},{'one','two'})
+
+    def test_stream_host_group_merges_batches_only_for_same_collector_key(self):
+        analyses = [{'analysis_id':'a','input_type':'sysmon','detection_ids':[],
+                     'source_events':[{'event_id':'one','host':'[HOST:1]','endpoint_group':'key-a'}]},
+                    {'analysis_id':'b','input_type':'sysmon','detection_ids':['d'],
+                     'source_events':[{'event_id':'two','host':'[HOST:1]','endpoint_group':'key-a'},
+                                      {'event_id':'three','host':'[HOST:1]','endpoint_group':'key-b'}]}]
+        detections = [{'detection_id':'d','host':'[HOST:1]','event_ids':['one','two'],'score':70}]
+        groups=build_endpoint_groups(analyses,detections)
+        self.assertEqual(len(groups),2)
+        combined=next(g for g in groups if g['event_count']==2)
+        self.assertEqual(combined['detection_count'],1)
+        self.assertEqual(set(combined['analysis_ids']),{'a','b'})
+        self.assertEqual(combined['identity_scope'],'collector_host_observation')
+
     def test_missing_sysmon_hosts_are_not_combined(self):
         batch = {'analysis_id':'a', 'input_type':'sysmon', 'detection_ids':[],
                  'source_events':[{'event_id':'e1'}, {'event_id':'e2'}]}

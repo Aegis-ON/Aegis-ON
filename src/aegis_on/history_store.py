@@ -6,13 +6,14 @@ calling this module. This layer does not inspect or sanitize its inputs.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import os
 from pathlib import Path
 import sqlite3
 from threading import Lock
 from typing import Any, Iterator
+from uuid import uuid4
 
 
 class HistoryError(Exception):
@@ -121,7 +122,27 @@ class SQLiteHistory:
                                  'analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), '
                                  'PRIMARY KEY(collector_id,batch_id))')
                     conn.execute('PRAGMA user_version = 2')
-                elif version != 2:
+                    version = 2
+                if version == 2:
+                    required_v2 = {
+                        'analyses': {'sequence', 'payload'},
+                        'detections': {'sequence', 'analysis_sequence', 'detection_id', 'payload', 'approval'},
+                        'collectors': {'collector_id', 'last_received_at', 'last_heartbeat_at', 'reported_state', 'last_error_at', 'last_error_code'},
+                        'collected_batches': {'collector_id', 'batch_id', 'input_type', 'digest', 'analysis_sequence'},
+                    }
+                    for table, columns in required_v2.items():
+                        if not columns.issubset({row[1] for row in conn.execute(f'PRAGMA table_info({table})')}):
+                            raise HistoryError('History storage unavailable')
+                    conn.execute('CREATE TABLE stream_events (event_key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, '
+                                 'collector_id TEXT NOT NULL, host_key TEXT NOT NULL, occurred TEXT NOT NULL, '
+                                 'destination_key TEXT, outbound INTEGER NOT NULL, event_id TEXT NOT NULL, '
+                                 'host_display TEXT NOT NULL)')
+                    conn.execute('CREATE INDEX stream_host_time ON stream_events(collector_id,host_key,occurred)')
+                    conn.execute('CREATE TABLE stream_alerts (collector_id TEXT NOT NULL, host_key TEXT NOT NULL, '
+                                 'detection_id TEXT NOT NULL UNIQUE REFERENCES detections(detection_id), '
+                                 'event_ids TEXT NOT NULL)')
+                    conn.execute('PRAGMA user_version = 3')
+                elif version != 3:
                     raise HistoryError('History storage unavailable')
                 conn.execute('COMMIT')
                 self._pending_identity = None
@@ -153,6 +174,91 @@ class SQLiteHistory:
             detection['approval'] = data
         return detection
 
+    @staticmethod
+    def _stream_fanout(conn, sequence, batch, collection, novel):
+        """Correlate sanitized event identities in an atomic SQLite transaction.
+
+        Only outbound ID 3 events participate. No raw host, address or command
+        is retained. Late events are sorted by occurrence time, not arrival time.
+        """
+        hosts = {item['host_key'] for item in novel if item['outbound'] and item['destination_key']}
+        for host_key in hosts:
+            times = [datetime.fromisoformat(item['occurred']) for item in novel
+                     if item['host_key'] == host_key and item['outbound'] and item['destination_key']]
+            try:
+                lower, upper = min(times) - timedelta(minutes=10), max(times) + timedelta(minutes=10)
+            except OverflowError:
+                raise HistoryError('History storage unavailable') from None
+            rows = conn.execute('SELECT occurred,destination_key,event_id,host_display FROM stream_events '
+                                'WHERE collector_id=? AND host_key=? AND outbound=1 '
+                                'AND occurred>=? AND occurred<=? ORDER BY occurred,event_id LIMIT 50001',
+                                (collection['collector_id'], host_key, lower.isoformat(), upper.isoformat())).fetchall()
+            # Fail closed rather than silently omit evidence in a pathological window.
+            if len(rows) > 50000:
+                raise HistoryError('History storage unavailable')
+            existing = conn.execute('SELECT detection_id,event_ids FROM stream_alerts '
+                                    'WHERE collector_id=? AND host_key=? ORDER BY rowid DESC',
+                                    (collection['collector_id'], host_key)).fetchall()
+            alerts = [(d, set(json.loads(ids))) for d, ids in existing]
+            index = 0
+            end = 0
+            counts = {}
+            while index < len(rows):
+                start = datetime.fromisoformat(rows[index][0])
+                while end < len(rows) and datetime.fromisoformat(rows[end][0]) - start <= timedelta(minutes=10):
+                    destination = rows[end][1]
+                    counts[destination] = counts.get(destination, 0) + 1
+                    end += 1
+                if len(counts) < 3:
+                    destination = rows[index][1]
+                    counts[destination] -= 1
+                    if counts[destination] == 0:
+                        del counts[destination]
+                    index += 1
+                    continue
+                window = rows[index:end]
+                destinations = set(counts)
+                ids = [r[2] for r in window]
+                evidence = [f'{len(destinations)} unique destinations in ten minutes',
+                            f'observed period: {window[0][0]} to {window[-1][0]}',
+                            f'related connection events: {len(window)}',
+                            'condition: same host, at least 3 unique destinations within 10 minutes, outbound connections only',
+                            'multiple connections are not proof of scanning or attack']
+                match = next((d for d, old_ids in alerts if old_ids.intersection(ids)), None)
+                if match:
+                    previous_ids = next(old_ids for d, old_ids in alerts if d == match)
+                    if not previous_ids.issubset(ids):
+                        # Do not replace a prior complete alert with a partial overlapping window.
+                        index = end
+                        counts = {}
+                        continue
+                    row = conn.execute('SELECT payload FROM detections WHERE detection_id=?', (match,)).fetchone()
+                    old = json.loads(row[0])
+                    # An approval covers exactly the earlier evidence. New
+                    # related events require a new, pending simulation review.
+                    if old.get('status') == 'approved_for_simulated_response' and set(ids) != previous_ids:
+                        match = None
+                if match:
+                    old.update(score=min(85,48+8*len(destinations)), evidence=evidence, event_ids=ids)
+                    conn.execute('UPDATE detections SET payload=? WHERE detection_id=?', (_encode(old),match))
+                    conn.execute('UPDATE stream_alerts SET event_ids=? WHERE detection_id=?', (_encode(ids),match))
+                    alerts = [(d, set(ids) if d == match else old_ids) for d, old_ids in alerts]
+                else:
+                    detection_id = str(uuid4())
+                    detection = {'technique':'T1595', 'title':'Potential multiple-destination connections',
+                                 'score':min(85,48+8*len(destinations)), 'source':'correlation',
+                                 'evidence':evidence, 'event_ids':ids, 'host':window[0][3],
+                                 'requires_human_approval':False, 'status':'pending_review',
+                                 'detection_id':detection_id}
+                    conn.execute('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
+                                 (sequence,detection_id,_encode(detection)))
+                    conn.execute('INSERT INTO stream_alerts VALUES (?,?,?,?)',
+                                 (collection['collector_id'],host_key,detection_id,_encode(ids)))
+                    batch['detection_ids'].append(detection_id)
+                    alerts.append((detection_id,set(ids)))
+                index = end
+                counts = {}
+
     def save_analysis(self, batch: dict[str, Any], detections: list[dict[str, Any]], collection: dict[str, str] | None = None) -> dict[str, Any] | None:
         try:
             if not isinstance(batch, dict) or not isinstance(detections, list):
@@ -183,9 +289,40 @@ class SQLiteHistory:
                     saved = json.loads(row[2])
                     conn.execute('COMMIT')
                     return {'analysis_id': saved['analysis_id'], 'summary': saved['summary'], 'replayed': True}
+            stream = collection.get('events') if collection else None
+            novel = []
+            if stream is not None:
+                duplicate_ids = set()
+                for item in stream:
+                    previous = conn.execute('SELECT fingerprint FROM stream_events WHERE event_key=?',
+                                            (item['event_key'],)).fetchone()
+                    if previous:
+                        if previous[0] != item['fingerprint']:
+                            raise BatchConflict()
+                        duplicate_ids.add(item['event_id'])
+                    else:
+                        novel.append(item)
+                batch['source_events'] = [s for s in batch['source_events'] if s['event_id'] not in duplicate_ids]
+                batch['event_refs'] = [s for s in batch['event_refs'] if s['event_id'] not in duplicate_ids]
+                batch['attack_model']['results'] = [s for s in batch['attack_model']['results'] if s['event_id'] not in duplicate_ids]
+                detections = [d for d in detections if d['source'] != 'correlation' and
+                              not any(i in duplicate_ids for i in d['event_ids'])]
+                batch['summary']['duplicate'] = len(duplicate_ids)
+                batch['summary']['processed'] = len(novel)
+                batch['detection_ids'] = [d['detection_id'] for d in detections]
+                encoded_batch = _encode(batch)
+                encoded_detections = [(d['detection_id'], _encode(d)) for d in detections]
             sequence = conn.execute('INSERT INTO analyses(payload) VALUES (?)', (encoded_batch,)).lastrowid
             conn.executemany('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
                              [(sequence, detection_id, payload) for detection_id, payload in encoded_detections])
+            if stream is not None:
+                for item in novel:
+                    conn.execute('INSERT INTO stream_events VALUES (?,?,?,?,?,?,?,?,?)',
+                                 (item['event_key'], item['fingerprint'], collection['collector_id'],
+                                  item['host_key'], item['occurred'], item['destination_key'],
+                                  item['outbound'], item['event_id'], item['host_display']))
+                self._stream_fanout(conn, sequence, batch, collection, novel)
+                conn.execute('UPDATE analyses SET payload=? WHERE sequence=?', (_encode(batch), sequence))
             if collection is not None:
                 received = datetime.now(timezone.utc).isoformat()
                 conn.execute('INSERT INTO collected_batches(collector_id,batch_id,input_type,digest,analysis_sequence) '
