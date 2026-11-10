@@ -1,5 +1,8 @@
 import os
+import hashlib
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 try:
@@ -7,7 +10,7 @@ try:
 except ImportError:
     np = None
 
-from aegis_on.pii import MODEL_LABELS, PIIDetector, Span, _LocalModel, redact_spans, regex_spans
+from aegis_on.pii import MODEL_LABELS, PIIDetector, Span, _LocalModel, _verify_model_files, redact_spans, regex_spans
 from aegis_on.privacy import redact_text
 
 
@@ -49,6 +52,27 @@ class PIITests(unittest.TestCase):
             self.assertEqual(detector.status()['state'], 'error')
             self.assertIn('dependencies', detector.status()['reason'])
             self.assertNotIn('secret', str(detector.status()))
+
+    def test_graph_and_every_tokenizer_asset_must_match_revision_hashes(self):
+        contents = {'config.json': b'config', 'tokenizer.json': b'tokenizer',
+                    'tokenizer_config.json': b'tokenizer config', 'special_tokens_map.json': b'special',
+                    'vocab.txt': b'vocabulary', 'onnx/model_quantized.onnx': b'graph'}
+        hashes = {name: hashlib.sha256(value).hexdigest() for name, value in contents.items()}
+        graph_hash = hashes.pop('onnx/model_quantized.onnx')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, value in contents.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(value)
+            with patch('aegis_on.pii.MODEL_SHA256', graph_hash), patch('aegis_on.pii.MODEL_ASSET_SHA256', hashes):
+                _verify_model_files(root)
+                for name, value in contents.items():
+                    with self.subTest(file=name):
+                        (root / name).write_bytes(value + b'changed')
+                        with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                            _verify_model_files(root)
+                        (root / name).write_bytes(value)
 
     def test_regex_offsets_and_compatible_ip_tokens(self):
         samples = ["host:2001:db8::1.", "mapped ::ffff:192.0.2.1 connected",

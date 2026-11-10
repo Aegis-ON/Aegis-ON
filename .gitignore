@@ -5,3 +5,7 @@ __pycache__/
 .env
 sysmon-export.json
 Aegis-ON-Logs/
+# Large local model files must not be committed.
+models/
+*.onnx
+*.safetensors

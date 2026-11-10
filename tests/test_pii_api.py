@@ -25,6 +25,26 @@ class UUIDModel:
         return [Span(m.start(), m.end(), 'IDCARD', 'model') for m in re.finditer(pattern, text)]
 
 
+class ContextNameModel:
+    def find(self, text):
+        return [Span(m.start(), m.end(), 'GIVENNAME', 'model')
+                for m in re.finditer('JaneDoe', text) if '@' in text]
+
+
+class CrossFieldOverlapModel:
+    def find(self, text):
+        if text == 'JaneDoe':
+            return [Span(0, 7, 'GIVENNAME', 'model')]
+        if text == 'curl DoeLee':
+            return [Span(5, 11, 'SURNAME', 'model')]
+        return []
+
+
+class NumericModel:
+    def find(self, text):
+        return [Span(m.start(), m.end(), 'ACCOUNTNUM', 'model') for m in re.finditer('1234567890', text)]
+
+
 class PiiApiTests(unittest.TestCase):
     def setUp(self):
         self.env = patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-token', 'AEGIS_ANALYST_NAME': 'analyst'}, clear=False)
@@ -135,6 +155,91 @@ class PiiApiTests(unittest.TestCase):
         response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
         self.assertEqual(response.status_code, 413)
         self.assertEqual(api.service.list_detections(), [])
+
+    def test_overlapping_candidates_mask_repeated_values_in_other_fields(self):
+        event = self.event()
+        event.update(host='h01012345678', user='safe', process='curl', event_id='safe-id',
+                     command_line='curl 01012345678@example.test')
+        response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('01012345678', response.text)
+        self.assertNotIn('01012345678', self.client.get('/api/v1/detections', headers=self.headers).text)
+        found = response.json()['pii']['findings']
+        self.assertEqual({f['type'] for f in found}, {'EMAIL', 'TELEPHONENUM'})
+        self.assertTrue(next(f for f in found if f['type'] == 'EMAIL')['token'].startswith('[EMAIL:'))
+        self.assertTrue(next(f for f in found if f['type'] == 'TELEPHONENUM')['token'].startswith('[PHONE:'))
+
+    def test_overlap_model_candidate_masks_repeated_value_not_detected_in_isolation(self):
+        api.pii_detector = PIIDetector(ContextNameModel())
+        event = self.event()
+        event.update(host='JaneDoe-PC', user='safe', process='curl', event_id='safe-id',
+                     command_line='curl JaneDoe@example.test')
+        response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(f['type'] == 'GIVENNAME' and f['source'] == 'model' for f in response.json()['pii']['findings']))
+        self.assertNotIn('JaneDoe', response.text)
+        self.assertNotIn('JaneDoe', self.client.get('/api/v1/detections', headers=self.headers).text)
+
+    def test_overlapping_repeated_values_mask_their_entire_union_in_output(self):
+        api.pii_detector = PIIDetector(CrossFieldOverlapModel())
+        event = self.event()
+        event.update(host='JaneDoeLee-PC', user='JaneDoe', process='curl', event_id='safe-id',
+                     command_line='curl DoeLee')
+        response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual({f['type'] for f in response.json()['pii']['findings']}, {'GIVENNAME', 'SURNAME'})
+        self.assertNotIn('JaneDoe', response.text)
+        self.assertNotIn('DoeLee', response.text)
+        self.assertNotIn('Lee-PC', response.text)
+        self.assertNotIn('Lee-PC', self.client.get('/api/v1/detections', headers=self.headers).text)
+
+    def test_display_token_matches_final_global_overlap_replacement(self):
+        event = self.event()
+        event.update(host='a@b.co@c.io', user='b.co@c.io', process='curl', event_id='safe-id',
+                     command_line='curl safe')
+        response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        host_finding = next(f for f in data['pii']['findings'] if f['field'] == 'host')
+        self.assertEqual(host_finding['display_token'], data['detections'][0]['host'])
+        self.assertNotIn('a@b.co', response.text)
+
+    def test_approval_analyst_is_pseudonymized_when_detected_in_rationale(self):
+        api.pii_detector = PIIDetector(ContextNameModel())
+        with patch.dict('os.environ', {'AEGIS_ANALYST_NAME': 'JaneDoe'}):
+            event = self.event()
+            event.update(host='safe-host', user='safe', process='curl', event_id='safe-id', command_line='curl safe')
+            response = self.client.post('/api/v1/analyze', json={'events': [event]}, headers=self.headers)
+            detection_id = response.json()['detections'][0]['detection_id']
+            approved = self.client.post('/api/v1/detections/' + detection_id + '/approval', headers=self.headers,
+                                        json={'analyst': 'JaneDoe', 'rationale': 'approved JaneDoe@example.test'})
+            self.assertEqual(approved.status_code, 200)
+            self.assertNotIn('JaneDoe', approved.text)
+            self.assertNotIn('JaneDoe', self.client.get('/api/v1/detections', headers=self.headers).text)
+
+    def test_detected_candidate_is_masked_in_sysmon_metadata(self):
+        api.pii_detector = PIIDetector(UUIDModel())
+        guid = '12345678-1234-1234-1234-123456789abc'
+        event = {'System': {'Provider': 'Microsoft-Windows-Sysmon', 'EventID': 1,
+                            'TimeCreated': '2026-01-01T00:00:00Z', 'Computer': 'LAB',
+                            'Channel': 'Microsoft-Windows-Sysmon/Operational'},
+                 'EventData': {'Image': r'C:\curl.exe', 'CommandLine': 'curl ' + guid, 'ProcessGuid': guid}}
+        response = self.client.post('/api/v1/sysmon/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(f['type'] == 'IDCARD' for f in response.json()['pii']['findings']))
+        self.assertNotIn(guid, response.text)
+
+    def test_detected_numeric_candidate_is_masked_in_sysmon_metadata(self):
+        api.pii_detector = PIIDetector(NumericModel())
+        event = {'System': {'Provider': 'Microsoft-Windows-Sysmon', 'EventID': 1,
+                            'EventRecordID': 1234567890,
+                            'TimeCreated': '2026-01-01T00:00:00Z', 'Computer': 'LAB',
+                            'Channel': 'Microsoft-Windows-Sysmon/Operational'},
+                 'EventData': {'Image': r'C:\curl.exe', 'CommandLine': 'curl 1234567890', 'ProcessId': 1234567890}}
+        response = self.client.post('/api/v1/sysmon/analyze', json={'events': [event]}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(f['type'] == 'ACCOUNTNUM' for f in response.json()['pii']['findings']))
+        self.assertNotIn('1234567890', response.text)
 
 
 if __name__ == '__main__':

@@ -19,12 +19,30 @@ from .privacy import EMAIL_RE, PHONE_RE, IP_RE, IPV6_CANDIDATE_RE, _token
 
 MODEL_REVISION = "3a1d4f61e156035a22d820b59c78e4d5e5cc6f6f"
 MODEL_SHA256 = "8cb91734f9a559c8a2dd127484582b9bc7c43bae21cc44b6c893321030ae3de3"
+# SHA-256 calculated from the files downloaded at MODEL_REVISION. The small
+# files' Git blob IDs were also checked against Hugging Face revision metadata.
+MODEL_ASSET_SHA256 = {
+    "config.json": "704c0412effea86fca8f9dfc61c45b83ebba27a09dde1e697b29bfc2a9b835a3",
+    "tokenizer.json": "68376ce5e989db0c0bdb282422a99e12e449c1f97a1a18daf705626db0d57b83",
+    "tokenizer_config.json": "cbef04fcea9edfbabfe9d20fde7eda79a5a6932d057308bb2b021dd7afd5ccab",
+    "special_tokens_map.json": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a",
+    "vocab.txt": "fe0fda7c425b48c516fc8f160d594c8022a0808447475c1a7c6d6479763f310c",
+}
 MODEL_TYPES = (
     "GIVENNAME", "SURNAME", "USERNAME", "EMAIL", "TELEPHONENUM", "DATEOFBIRTH",
     "CREDITCARDNUMBER", "IDCARD", "STREET", "CITY", "ZIPCODE", "BUILDINGNUM",
     "IP_ADDRESS", "PASSWORD", "ACCOUNTNUM", "DRIVERLICENSENUM", "TIME", "COMPANY",
 )
 MODEL_LABELS = ("O",) + tuple(f"{prefix}-{kind}" for kind in MODEL_TYPES for prefix in ("B", "I"))
+
+
+def _verify_model_files(root: Path) -> None:
+    """Verify the graph and tokenizer assets before loading any model files."""
+    for name, expected in {"onnx/model_quantized.onnx": MODEL_SHA256, **MODEL_ASSET_SHA256}.items():
+        with (root / name).open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if digest != expected:
+            raise ValueError("local model file checksum mismatch")
 
 
 @dataclass(frozen=True)
@@ -145,10 +163,7 @@ class _LocalModel:
         if not root.is_dir():
             raise ValueError("invalid model directory")
         graph = root / "onnx" / "model_quantized.onnx"
-        with graph.open("rb") as stream:
-            digest = hashlib.file_digest(stream, "sha256").hexdigest()
-        if digest != MODEL_SHA256:
-            raise ValueError("model checksum mismatch")
+        _verify_model_files(root)
         with (root / "config.json").open(encoding="utf-8") as stream:
             config = json.load(stream)
         labels = config["id2label"]

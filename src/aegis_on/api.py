@@ -183,16 +183,27 @@ async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_
             continue
         event = by_id[item["event_id"]]
         metadata = event["source_metadata"]
-        source_events.append({
-            "input_index": item["input_index"], "event_id": mask(event["event_id"]),
-            "host": mask(event["host"]), "timestamp": event["timestamp"],
+        source = {
+            "input_index": item["input_index"], "event_id": event["event_id"],
+            "host": event["host"], "timestamp": event["timestamp"],
             **{key: metadata.get(key) for key in (
                 "sysmon_event_id", "record_id", "log_source", "process_guid", "process_id",
                 "source_port", "destination_port", "initiated"
             )},
             "source_ip": _display_ip(metadata["source_ip"]),
             "destination_ip": _display_ip(metadata["destination_ip"]),
-        })
+        }
+        # Numeric identifiers and ports are not separately scanned, but an
+        # already-detected value may also appear there. Preserve numbers unless
+        # a candidate is actually present; structural event indexes stay numeric.
+        def display_source_value(key: str, value: Any) -> Any:
+            if isinstance(value, str):
+                return mask(value)
+            if key in {'record_id', 'process_id', 'source_port', 'destination_port'} and type(value) is int:
+                masked = mask(str(value))
+                return value if masked == str(value) else masked
+            return value
+        source_events.append({key: display_source_value(key, value) for key, value in source.items()})
     for item in items:
         if item["status"] == "processed":
             item["event_id"] = mask(item["event_id"])
@@ -220,10 +231,10 @@ def approve(
     if payload.analyst != analyst:
         raise HTTPException(status_code=403, detail="analyst does not match the configured identity")
     try:
-        rationale, _ = pii_detector.redact(payload.rationale)
-        detection = service.approve(detection_id, payload.analyst, rationale)
-    except RuntimeError:
-        raise HTTPException(status_code=503, detail="PII model inference failed") from None
+        _, mask = _pii_inspect([{"user": payload.analyst, "command_line": payload.rationale}], [0])
+        safe_analyst = redact_for_display(mask(payload.analyst))
+        rationale = redact_for_display(mask(payload.rationale))
+        detection = service.approve(detection_id, safe_analyst, rationale)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="detection not found") from exc
     except ValueError as exc:

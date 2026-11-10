@@ -184,7 +184,8 @@
             const list = document.createElement('ul'); list.className = 'items';
             for (const finding of findings) {
               const source = finding.source === 'regex' ? '정규식' : finding.source === 'model' ? '모델' : '출처 미상';
-              list.append(createText('li', `입력 ${displayValue(finding.input_index)} · 필드: ${displayValue(finding.field)} · 유형: ${displayValue(finding.type)} · 방식: ${source} · 대체 토큰: ${displayValue(finding.token)}`));
+              const combined = finding.display_token && finding.display_token !== finding.token ? ` · 겹친 구간 표시 토큰: ${displayValue(finding.display_token)}` : '';
+              list.append(createText('li', `입력 ${displayValue(finding.input_index)} · 필드: ${displayValue(finding.field)} · 유형: ${displayValue(finding.type)} · 방식: ${source} · 대체 토큰: ${displayValue(finding.token)}${combined}`));
             }
             section.append(list);
           }
