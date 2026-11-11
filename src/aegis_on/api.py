@@ -28,6 +28,7 @@ from .privacy import redact_for_display, _token
 from .pii import PIIDetector
 from .pii_reporting import InvalidPIIInput, inspect_events
 from .sysmon import parse_sysmon
+from .auth_log import normalize_auth, correlate_auth
 from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
 from .auth_sessions import AuthSessions, AuthConfigurationError, AuthStorageError
@@ -605,6 +606,24 @@ async def _analyze_sysmon(body: bytes, collection: dict[str, str] | None = None)
     }
 
 
+def _analyze_auth(body: bytes, collection: dict[str, str]) -> dict[str, Any]:
+    try:
+        payload = json.loads(body.decode('utf-8-sig'), object_pairs_hook=_unique_object,
+                             parse_constant=_reject_nonfinite)
+        events, entries = normalize_auth(payload, collection['collector_id'])
+    except (ValueError, TypeError, UnicodeDecodeError, RecursionError, OverflowError):
+        raise HTTPException(status_code=422, detail='invalid normalized authentication batch') from None
+    detections = correlate_auth(events)
+    sources = [{k: v for k, v in e.items() if k != 'group'} for e in events]
+    refs = [{'input_index': e['input_index'], 'event_id': e['event_id']} for e in events]
+    prepared = {'refs': refs, 'conservative': detections, 'overrides': {}}
+    summary = {'total': len(events), 'processed': len(events), 'invalid': 0, 'unsupported': 0}
+    model = {'state': 'disabled', 'results': []}
+    batch = _history_batch('auth', prepared, sources, summary, {'state': 'not_applicable'}, model)
+    batch['model_state'] = 'not_applicable'
+    return _commit_history(prepared, batch, {**collection, 'events': entries})
+
+
 @app.post("/api/v1/sysmon/analyze")
 async def analyze_sysmon(request: Request, analyst: str = Depends(authenticated_analyst)) -> dict[str, Any]:
     return await _analyze_sysmon(await _bounded_json_body(request))
@@ -641,7 +660,7 @@ def _collector_identity(request: Request, credentials: HTTPAuthorizationCredenti
 
 @app.post('/api/v1/ingest/{kind}')
 async def ingest_batch(kind: str, request: Request, collector_id: str = Depends(_collector_identity)) -> dict[str, Any]:
-    if kind not in ('json', 'sysmon'):
+    if kind not in ('json', 'sysmon', 'auth'):
         raise HTTPException(status_code=404, detail='unsupported ingestion type')
     batch_id = _collector_name(request.headers.get('idempotency-key'))
     received_at = datetime.now(timezone.utc).isoformat()
@@ -656,6 +675,8 @@ async def ingest_batch(kind: str, request: Request, collector_id: str = Depends(
             return previous
         if kind == 'sysmon':
             return await _analyze_sysmon(body, collection)
+        if kind == 'auth':
+            return await run_in_threadpool(_analyze_auth, body, collection)
         try:
             payload = json.loads(body.decode('utf-8-sig'), object_pairs_hook=_unique_object,
                                  parse_constant=_reject_nonfinite)

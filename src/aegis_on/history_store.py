@@ -302,10 +302,15 @@ class SQLiteHistory:
                         duplicate_ids.add(item['event_id'])
                     else:
                         novel.append(item)
+                # A mixed retry would discard a same-batch authentication alert
+                # if some of its evidence were silently removed. Require the
+                # sender to submit only novel observations in a separate batch.
+                if collection['input_type'] == 'auth' and duplicate_ids and novel:
+                    raise BatchConflict()
                 batch['source_events'] = [s for s in batch['source_events'] if s['event_id'] not in duplicate_ids]
                 batch['event_refs'] = [s for s in batch['event_refs'] if s['event_id'] not in duplicate_ids]
                 batch['attack_model']['results'] = [s for s in batch['attack_model']['results'] if s['event_id'] not in duplicate_ids]
-                detections = [d for d in detections if d['source'] != 'correlation' and
+                detections = [d for d in detections if (collection['input_type'] == 'auth' or d['source'] != 'correlation') and
                               not any(i in duplicate_ids for i in d['event_ids'])]
                 batch['summary']['duplicate'] = len(duplicate_ids)
                 batch['summary']['processed'] = len(novel)

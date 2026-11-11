@@ -173,3 +173,5 @@ Windows 수집기, 로컬 전용 합성 수집기, 인증·HTTPS 요구 사항�
 발신 Sysmon Event ID 3의 다수 목적지 연결은 같은 수집기·호스트의 10분 범위에서 목적지 3개 이상인 경우 여러 수집 배치에 걸쳐 분석합니다. 이벤트 발생 시각 기준이며 재시작 후에도 저장된 정보가 사용됩니다. 다른 수집기의 같은 이벤트와 v3 이전 이력 중복, 로그 재설정, 롤오버는 완전히 판별하지 못합니다. 이전 v3 이벤트의 구형 지문은 전체 원본을 검증할 수 없어 새 배치 키로 재전송하면 409로 중단합니다. JSON 수집은 이벤트 단위 중복 제거 없이 동일 배치 재전송만 방지합니다. 겹치는 창에서 기존 경고와 관련된 일부 새 경고가 생략될 수 있습니다. 공격 확정이 아닙니다. 호스트 묶음은 수집기와 호스트 이름의 지문을 사용하며 실제 장치 동일성은 보장하지 않습니다. 인증·PII·SQLite와 승인 시뮬레이션은 유지됩니다.
 
 화면은 [Wazuh](https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/navigating-the-wazuh-dashboard.html), [Elastic Security](https://www.elastic.co/docs/solutions/security/dashboards/detection-response-dashboard), [Microsoft Defender](https://learn.microsoft.com/en-us/defender-xdr/investigate-incident-cases), [ARTEX Global](https://github.com/jiwoochris/artex-global/tree/main/screenshots/en)의 정보 탐색 흐름을 참고했습니다.
+
+다중 로그 프로토타입의 구현 범위와 인증 입력 형식, 모델 및 검증 한계는 [다중 로그 관제 문서](docs/multisource_prototype.md)를 참고하세요.

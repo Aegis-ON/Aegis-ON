@@ -25,8 +25,8 @@ def post(port: int, path: str, body: object, token: str, headers: dict[str, str]
         f'http://127.0.0.1:{port}{path}', data=data, method='POST',
         headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json', **(headers or {})},
     )
-    # No redirects: never forward the bearer token to another host.
-    opener = urllib.request.build_opener(_NoRedirect())
+    # No environment proxy or redirects: keep the bearer on loopback.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
     with opener.open(request, timeout=15) as response:
         return json.load(response)
 
