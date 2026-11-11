@@ -29,6 +29,9 @@ def normalize_auth(payload, collector):
             raise ValueError('invalid auth record')
         if record['outcome'] not in ('success', 'failure'):
             raise ValueError('invalid auth outcome')
+        if any(not record[k].strip() or record[k].strip().casefold() in {'-', 'unknown', 'n/a'}
+               for k in ('host', 'account')):
+            raise ValueError('unknown authentication identity')
         timestamp = datetime.fromisoformat(record['timestamp'].replace('Z', '+00:00'))
         if timestamp.tzinfo is None:
             raise ValueError('timestamp must have offset')
@@ -36,6 +39,8 @@ def normalize_auth(payload, collector):
         address = ipaddress.ip_address(record['source_ip'])
         if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
             address = address.ipv4_mapped
+        if address.is_unspecified or address.is_multicast:
+            raise ValueError('unknown authentication source')
         event_key = _digest(['auth-v1', collector, record['event_id']])
         if event_key in seen:
             raise ValueError('duplicate event id')
@@ -49,7 +54,8 @@ def normalize_auth(payload, collector):
                        'outcome': record['outcome'], 'endpoint_group': host_key, 'group': group})
         entries.append({'event_key': event_key, 'fingerprint': 'full-v1:' + _digest(record), 'host_key': host_key,
                         'occurred': timestamp.isoformat(), 'destination_key': None, 'outbound': False,
-                        'event_id': event_id, 'host_display': ''})
+                        'event_id': event_id, 'host_display': '', 'auth_group': group,
+                        'auth_outcome': record['outcome']})
     return events, entries
 
 

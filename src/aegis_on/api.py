@@ -28,7 +28,7 @@ from .privacy import redact_for_display, _token
 from .pii import PIIDetector
 from .pii_reporting import InvalidPIIInput, inspect_events
 from .sysmon import parse_sysmon
-from .auth_log import normalize_auth, correlate_auth
+from .auth_log import normalize_auth
 from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
 from .auth_sessions import AuthSessions, AuthConfigurationError, AuthStorageError
@@ -613,7 +613,8 @@ def _analyze_auth(body: bytes, collection: dict[str, str]) -> dict[str, Any]:
         events, entries = normalize_auth(payload, collection['collector_id'])
     except (ValueError, TypeError, UnicodeDecodeError, RecursionError, OverflowError):
         raise HTTPException(status_code=422, detail='invalid normalized authentication batch') from None
-    detections = correlate_auth(events)
+    # Persistent correlation runs atomically with deduplication and history.
+    detections = []
     sources = [{k: v for k, v in e.items() if k != 'group'} for e in events]
     refs = [{'input_index': e['input_index'], 'event_id': e['event_id']} for e in events]
     prepared = {'refs': refs, 'conservative': detections, 'overrides': {}}

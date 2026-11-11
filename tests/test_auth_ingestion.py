@@ -78,7 +78,7 @@ def test_equal_time_does_not_invent_order_and_endpoint_view():
     assert len(groups) == 1 and groups[0]['event_count'] == 4
 
 
-def test_auth_mixed_replay_is_rejected_without_partial_commit():
+def test_auth_mixed_replay_deduplicates_and_correlates():
     with tempfile.TemporaryDirectory() as temp:
         path = Path(temp) / 'history.sqlite3'
         env = {'AEGIS_API_TOKEN': 'synthetic-token', 'AEGIS_ANALYST_NAME': 'analyst', 'AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN': '1'}
@@ -90,13 +90,16 @@ def test_auth_mixed_replay_is_rejected_without_partial_commit():
             with TestClient(api.app, base_url='https://testserver') as client:
                 assert client.post('/api/v1/ingest/auth', json={'events': records[:3]}, headers=headers).status_code == 200
                 mixed = client.post('/api/v1/ingest/auth', json={'events': records}, headers={**headers, 'Idempotency-Key': 'second'})
-                assert mixed.status_code == 409
+                assert mixed.status_code == 200
+                assert mixed.json()['summary']['duplicate'] == 3
+                assert mixed.json()['summary']['processed'] == 1
                 history = client.get('/api/v1/history', headers=headers).json()
-                assert len(history['analyses']) == 1 and history['detections'] == []
+                assert len(history['analyses']) == 2 and len(history['detections']) == 1
+                assert len(history['detections'][0]['event_ids']) == 4
                 retry = client.post('/api/v1/ingest/auth', json={'events': records[3:]}, headers={**headers, 'Idempotency-Key': 'third'})
                 assert retry.status_code == 200
                 after = client.get('/api/v1/history', headers=headers).json()
-                assert len(after['analyses']) == 2 and after['detections'] == []
+                assert len(after['detections']) == 1
 
 
 def test_auth_event_visible_in_console_dom():
