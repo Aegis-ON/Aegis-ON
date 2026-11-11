@@ -1,0 +1,132 @@
+{
+  "purpose": "synthetic command review comparison, not operational detection",
+  "evaluation": "fresh CPU process, 2 threads, threshold 0.5, no truncation, 128 token maximum",
+  "training": "same synthetic train/validation splits, fixed seed 101, 8 epochs, batch size 4, AdamW 3e-5; lowest validation loss selects checkpoint; no test training",
+  "source_licenses": "repository-authored synthetic data; standalone dataset license unspecified; model terms must be checked separately",
+  "baseline_existing_refined_weight_sha256": "bff7da13980f8c939c63d102c33a7143e90e3113182b9ebdc9116889255d0432",
+  "baseline_original_weight_sha256": "c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28",
+  "baseline_original_available": false,
+  "models": {
+    "bert-tiny": {
+      "model": "BERT-Tiny-fresh",
+      "revision": "30b0a37ccaaa32f332884b96992754e246e48c5f",
+      "source_files_sha256": {
+        "config.json": "508e1f01aae55d73355cbdd82609be2f43ba5a0d3428837adbe56cf8391f8b39",
+        "model.safetensors": "7fb69ad9f6866d8983183c930e33828f326470bf6ad8bbb2ad4ed957a92e9414",
+        "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+      },
+      "development_sha256": "1b9e9c7e1899227d97a403d952a6717150884391943d8caa24482bb2251bb97a",
+      "test_sha256": "822c1c0b963c80536fc196bf8a59e66fb161a78763aa62c0c6946cb60debcacf",
+      "split_sizes": {
+        "train": 40,
+        "validation": 16,
+        "test": 24
+      },
+      "unknown_excluded": 3,
+      "seed": 101,
+      "epochs": 8,
+      "batch_size": 4,
+      "learning_rate": 3e-05,
+      "best_epoch": 8,
+      "validation_loss": [
+        0.7205519080162048,
+        0.7148000001907349,
+        0.7096124887466431,
+        0.6999252438545227,
+        0.6928890347480774,
+        0.6877433657646179,
+        0.6849302649497986,
+        0.6810517311096191
+      ],
+      "threshold": 0.5,
+      "max_tokens": 128,
+      "python": "3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 20:54:21) [Clang 16.0.6 ]",
+      "torch": "2.7.0",
+      "transformers": "4.41.2",
+      "selection": "lowest validation loss; test not used",
+      "selected_weight_sha256": "0979ff6c9b50e4859bc27f5e4b48bab7de88da014c4323e6227c4096ba6770fc"
+    },
+    "secroberta": {
+      "model": "SecRoBERTa",
+      "revision": "c27ff1c89ceed0ef50119478eeda489fd10b39fb",
+      "source_files_sha256": {
+        "config.json": "cc91a27ba020b871c47c6e4cf597d3f07bb1ce9861db4df2a4959311c7c871d6",
+        "merges.txt": "18c148cfe05fd78f7165d113647f526a7131768a855290d8719a09fce34b9b1d",
+        "model.safetensors": "4795ea827f3c842d2955e0cba1c057ff96d0080e3faf6bb6c974d8bea99857ac",
+        "vocab.json": "4fc4d23a6a715db7fbda30a12a3d464d4f1d7dc47a4883dba2a5eb6884fe3f2a"
+      },
+      "development_sha256": "1b9e9c7e1899227d97a403d952a6717150884391943d8caa24482bb2251bb97a",
+      "test_sha256": "822c1c0b963c80536fc196bf8a59e66fb161a78763aa62c0c6946cb60debcacf",
+      "split_sizes": {
+        "train": 40,
+        "validation": 16,
+        "test": 24
+      },
+      "unknown_excluded": 3,
+      "seed": 101,
+      "epochs": 8,
+      "batch_size": 4,
+      "learning_rate": 3e-05,
+      "best_epoch": 4,
+      "validation_loss": [
+        0.5830345153808594,
+        0.544237494468689,
+        0.4716944098472595,
+        0.4359857738018036,
+        0.47986704111099243,
+        0.4400748014450073,
+        0.4630982279777527,
+        0.4639281928539276
+      ],
+      "threshold": 0.5,
+      "max_tokens": 128,
+      "python": "3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 20:54:21) [Clang 16.0.6 ]",
+      "torch": "2.7.0",
+      "transformers": "4.41.2",
+      "selection": "lowest validation loss; test not used",
+      "selected_weight_sha256": "b7c186045804425ebae2ebee40e5d14a2e10e72dc54c368abb7dc6ab25f16013"
+    },
+    "codebert": {
+      "model": "CodeBERT",
+      "revision": "3b0952feddeffad0063f274080e3c23d75e7eb39",
+      "source_files_sha256": {
+        "config.json": "742474d6148a061fa975dadc09ce93725fa9673c55421ed316ef75532cc6b7aa",
+        "merges.txt": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+        "pytorch_model.bin": "28b61fd8fa069f6bc966f4cb9572a4026ab2a784fca8fb224020d91b744e32d6",
+        "special_tokens_map.json": "7638f5bbbe86ef6d604ef28ad3647dc690d6d117c81c0d63e885416be8da1150",
+        "tokenizer_config.json": "994f46754c5bf4014f1aa92d34b1374319c3a6b3f702105cd5b742beaecd18ce",
+        "vocab.json": "06b4d46c8e752d410213d9548eb27a54db70fda0319b6271fb8d59dead5e1cab"
+      },
+      "development_sha256": "1b9e9c7e1899227d97a403d952a6717150884391943d8caa24482bb2251bb97a",
+      "test_sha256": "822c1c0b963c80536fc196bf8a59e66fb161a78763aa62c0c6946cb60debcacf",
+      "split_sizes": {
+        "train": 40,
+        "validation": 16,
+        "test": 24
+      },
+      "unknown_excluded": 3,
+      "seed": 101,
+      "epochs": 8,
+      "batch_size": 4,
+      "learning_rate": 3e-05,
+      "best_epoch": 8,
+      "validation_loss": [
+        0.6630660891532898,
+        0.6421831250190735,
+        0.6449760794639587,
+        0.5392911434173584,
+        0.4308278560638428,
+        0.2831292450428009,
+        0.17731717228889465,
+        0.11414685845375061
+      ],
+      "threshold": 0.5,
+      "max_tokens": 128,
+      "python": "3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 20:54:21) [Clang 16.0.6 ]",
+      "torch": "2.7.0",
+      "transformers": "4.41.2",
+      "selection": "lowest validation loss; test not used",
+      "selected_weight_sha256": "201e3ac79f20e62beee82475d32570518f1fc7260f6ca10214cae43f5c8da242"
+    }
+  }
+}
