@@ -1,0 +1,93 @@
+{
+  "description": "Synthetic command review, reconstructed aggregate from actual evaluation output after local environment disconnect; full per-case report not committed",
+  "development_sha256": "1b9e9c7e1899227d97a403d952a6717150884391943d8caa24482bb2251bb97a",
+  "test_sha256": "822c1c0b963c80536fc196bf8a59e66fb161a78763aa62c0c6946cb60debcacf",
+  "test_cases": 24,
+  "excluded_unknown": 3,
+  "threshold": 0.5,
+  "max_tokens": 128,
+  "cpu_threads": 2,
+  "python": "3.12.2",
+  "torch": "2.7.0",
+  "transformers": "4.41.2",
+  "models": {
+    "original": {
+      "label": "existing original BERT-Tiny",
+      "weight_sha256": "c33ad158789d3b57d60947ac89346ade3eec16c0045b381356fed423c025bf28",
+      "tp": 12,
+      "fp": 12,
+      "tn": 0,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.6666666666666666,
+      "mean_ms": 0.7012327077973168,
+      "median_ms": 0.5290835106279701,
+      "peak_rss_bytes": 354566144
+    },
+    "bert-tiny": {
+      "label": "fresh BERT-Tiny",
+      "weight_sha256": "0979ff6c9b50e4859bc27f5e4b48bab7de88da014c4323e6227c4096ba6770fc",
+      "tp": 5,
+      "fp": 5,
+      "tn": 7,
+      "fn": 7,
+      "precision": 0.5,
+      "recall": 0.4166666666666667,
+      "f1": 0.45454545454545453,
+      "mean_ms": 0.543961917477039,
+      "median_ms": 0.48660399625077844,
+      "peak_rss_bytes": 353091584
+    },
+    "refined": {
+      "label": "existing refined BERT-Tiny",
+      "weight_sha256": "bff7da13980f8c939c63d102c33a7143e90e3113182b9ebdc9116889255d0432",
+      "tp": 7,
+      "fp": 2,
+      "tn": 10,
+      "fn": 5,
+      "precision": 0.7777777777777778,
+      "recall": 0.5833333333333334,
+      "f1": 0.6666666666666666,
+      "mean_ms": 0.6342029967830362,
+      "median_ms": 0.5725829832954332,
+      "peak_rss_bytes": 332693504
+    },
+    "secroberta": {
+      "label": "SecRoBERTa",
+      "weight_sha256": "b7c186045804425ebae2ebee40e5d14a2e10e72dc54c368abb7dc6ab25f16013",
+      "tp": 12,
+      "fp": 4,
+      "tn": 8,
+      "fn": 0,
+      "precision": 0.75,
+      "recall": 1,
+      "f1": 0.8571428571428571,
+      "mean_ms": 21.690961708372924,
+      "median_ms": 21.648207999533042,
+      "peak_rss_bytes": 975405056
+    },
+    "codebert": {
+      "label": "CodeBERT",
+      "weight_sha256": "201e3ac79f20e62beee82475d32570518f1fc7260f6ca10214cae43f5c8da242",
+      "tp": 12,
+      "fp": 0,
+      "tn": 12,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "mean_ms": 33.22204682869293,
+      "median_ms": 32.63545849767979,
+      "peak_rss_bytes": 1202618368
+    }
+  },
+  "limitations": [
+    "Synthetic dataset; not real-world performance",
+    "Test set previously inspected; not a fresh blind holdout",
+    "Prior original and refined models have different training histories",
+    "Single-process timing and peak RSS; substantial runtime variation",
+    "Full per-case data and artifact manifest unavailable in Git after environment disconnect",
+    "No candidate integrated into product"
+  ]
+}

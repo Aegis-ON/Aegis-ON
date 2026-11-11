@@ -45,23 +45,31 @@ Aegis-ON은 특정 제품 판별기가 아니라 다양한 보안 로그를 분�
 - PII 모델은 별도 선택형 로컬 NER이며 공격 모델과 역할이 다릅니다. 인증 어댑터에서는 원문 계정과 IP를 모델에 전달하지 않고 정해진 필드만 정규화합니다. 어떤 PII 모델도 누락 가능성이 있습니다.
 - 인증·네트워크·웹 AI를 도입하려면 각 원본별로 필요한 필드, 라벨과 수집·사용 권한을 정의하고, 운영 환경에서 수집·가명처리한 데이터의 출처/시간/템플릿 단위 분리 및 외부 검증이 필요합니다. 예를 들어 인증은 성공/실패와 계정·출발지의 집계, 웹은 쿼리와 본문을 제거한 메서드·경로·상태를 별도 모델의 입력 후보로 검토할 수 있습니다. 시계열 모델을 별도로 학습·검증하기 전에는 시간 순서를 기존 상관분석이 처리합니다. 실제 운영 정보는 외부 모델이나 서비스로 전송하지 않습니다.
 
-### 모델 후보와 실행 결과
+### 명령줄 모델 비교: 합성 연구 결과
 
-[SecRoBERTa](https://huggingface.co/jackaduma/SecRoBERTa)는 보안 텍스트, [CodeBERT](https://huggingface.co/microsoft/codebert-base)는 코드/자연어에 대한 사전학습 모델입니다. 어느 쪽도 별도 분류 학습이나 검증 없이 공격 탐지기로 취급할 수 없습니다. 기존 로더는 BERT 형식과 6개 산출물을 강제하므로 RoBERTa 계열을 채택하려면 토크나이저·설정·모델 무결성 검증을 수정해야 합니다. 이번 환경에서는 해당 후보의 가중치와 동일 훈련 데이터를 확보·학습하지 못해 성능 비교를 실행하지 않았고 우열을 주장하지 않습니다. 기존 선택형 BERT-Tiny를 유지하며 새 모델을 기본으로 채택하지 않았습니다.
+BERT-Tiny 사전학습 모델, [SecRoBERTa](https://huggingface.co/jackaduma/SecRoBERTa), [CodeBERT](https://huggingface.co/microsoft/codebert-base)를 동일한 합성 데이터로 각각 분류 학습했습니다. 기존 원본 및 개선 BERT 체크포인트도 같은 시험셋에서 측정했습니다. 각 모델은 2 CPU 스레드, 별도 프로세스, 임계값 .5 및 128 토큰 제한을 사용했습니다. 시간은 로드·워밍업 후 24건의 평균, RSS는 Python·PyTorch를 포함한 프로세스 최대값입니다.
 
-기존 보고의 동일 합성 평가 24건에서 기존 BERT는 TP 12 FP 12 TN 0 FN 0, 정밀도 .500 재현율 1.000 F1 .667, 별도 개선 BERT는 TP 7 FP 2 TN 10 FN 5, 정밀도 .778 재현율 .583 F1 .667입니다. 작은 합성 표본, 수작업 그룹, 기존 데이터와 도구 계열 중복 가능성 및 약한 라벨은 [기존 평가 문서](command_refinement.md)에 기록되어 있습니다. 이 수치는 금융기관 운영 성능이 아닙니다.
+| 모델 | TP / FP / TN / FN | 정밀도 | 재현율 | F1 | 평균 ms/건 | 최대 RSS MiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 기존 원본 BERT-Tiny | 12 / 12 / 0 / 0 | .500 | 1.000 | .667 | .70 | 338 |
+| 새로 학습한 BERT-Tiny | 5 / 5 / 7 / 7 | .500 | .417 | .455 | .54 | 337 |
+| 기존 개선 BERT-Tiny | 7 / 2 / 10 / 5 | .778 | .583 | .667 | .63 | 317 |
+| SecRoBERTa | 12 / 4 / 8 / 0 | .750 | 1.000 | .857 | 21.69 | 930 |
+| CodeBERT | 12 / 0 / 12 / 0 | 1.000 | 1.000 | 1.000 | 33.22 | 1147 |
 
-이번 재실행에서 별도 보관된 개선 BERT(`bff7da13…`)를 로드해 동일 24개 합성 명령에 추론한 결과는 위 개선 BERT의 분류 결과와 같았습니다. macOS arm64, Python 3.12.2, CPU에서 모델 로드 3.445초, warm-up 이후 24개 총 0.025초(평균 1.05ms), 프로세스 최대 RSS 약 336MiB가 측정됐습니다. 단일 실행이며 측정값에는 프레임워크가 포함되고 독립 벤치마크가 아닙니다. 기존 원본 가중치와 후보 모델이 이 환경에 없어 같은 조건으로 재측정하지 못했습니다.
+신규 세 모델은 같은 학습 40·검증 16·시험 24건, seed 101, AdamW 3e-5, batch 4, 최대 8 epoch 및 최소 검증 손실 checkpoint로 학습했습니다. unknown 3건은 제외했습니다. 기존 원본·개선 모델은 이전 학습 이력이 달라 동일 출발 조건 비교가 아닙니다. 기존 원본은 [실험 프로토콜](../evaluation/candidate_comparison_protocol_v1.json) 고정 시점에는 없었으나 이후 ZIP을 찾아 6개 구성 파일을 동봉 메타데이터와 대조했습니다. 프로토콜의 가용성 false는 당시 상태입니다.
 
-개선 BERT의 합성 오탐은 BitLocker와 프록시 조회 각 1건, 미탐은 프록시 설정 2건, 이벤트 추적 설정 2건, 원격 PowerShell 설정 1건입니다. 승인된 관리자 명령이 탐지될 수 있으며 모델이 모르는 표현이나 맥락에서 의심 행위를 놓칠 수 있습니다.
+이 데이터는 프로젝트 작성 가상 명령이며 실행하지 않았습니다. 정상 관리와 검토 대상 명령이라는 약한 라벨을 사용합니다. 수동 그룹 및 정규화된 완전 중복은 분리했지만 문자 유사도 ≥.70인 PowerShell 접두어 공유 4쌍이 있고 의미·사전학습 데이터 중복은 배제하지 못합니다. 이 시험셋은 이전 모델 연구에서 이미 검토한 자료이므로 새로운 블라인드 holdout이 아닙니다. 24건은 균형 잡힌 소규모 합성 데이터이며 실제 금융·공공기관 성능을 뜻하지 않습니다.
 
-### 후보 비교 재현 준비
+SecRoBERTa의 오탐 4건은 Wi-Fi 프로필 조회, msiexec 도움말 2건, BitLocker 조회입니다. 기존 개선 BERT는 BitLocker·프록시 조회 2건을 오탐하고 프록시 설정 2건·이벤트 추적 중지 2건·원격 PowerShell 설정 1건을 놓쳤습니다. CodeBERT가 이 시험에서 오탐·미탐이 없었다는 것은 실환경에서도 그렇다는 뜻이 아닙니다. CodeBERT 평균 지연은 두 단일 측정에서 약 91ms와 33ms로 변동했으며 운영 성능을 보증하지 않습니다.
 
-1. 사용 허가를 확인하고 세 후보의 **정확한 revision**, 토크나이저와 모델 가중치를 신뢰할 수 있는 경로로 별도 확보하고 파일별 SHA-256을 기록합니다. SecRoBERTa 모델 카드는 Apache-2.0을 표기합니다. CodeBERT 모델 카드의 라이선스 메타데이터는 확인되지 않아 가중치 사용 조건을 별도로 확인해야 합니다. 이번 평가에서는 후보 가중치를 확보해 학습하지 않았습니다.
-2. `evaluation/command_refine_dev_v1.json`(학습 40, 검증 16)과 `evaluation/command_refine_test_v1.json`(평가 24, unknown 3 제외)의 해시·라벨 기준을 확인합니다. 기존 개선 BERT는 이전 학습 이력이 있으므로 새 후보와 동일한 사전 학습 이력의 공정한 비교가 아닙니다. 향후 모든 후보를 각 후보의 사전 고정된 사전학습 revision과 동일한 후속 데이터·학습·평가 조건으로 별도로 학습하고 기존 체크포인트는 참고선으로 나눠야 합니다.
-3. 데이터 출처와 가상의 관리자/검토 라벨을 기록하고, 수동 그룹·정규화 일치 및 변형 유사도 후보를 확인합니다. 과거 v2 평가 예제와 개선 학습 예제에 유사 템플릿이 있어 v2를 독립 시험에 사용하지 않습니다. 수작업 그룹과 유사도 점검도 의미 중복이 없다는 보장은 아닙니다. 독립 출처 평가가 추가로 필요합니다.
-4. 모든 후보에 동일 seed, 분할, 라벨, 토큰 상한, 임계값 및 CPU 측정 절차를 적용해 분류기를 **실제로 학습**하고 모델·데이터 해시, 정밀도·재현율·F1, 오탐·미탐, 추론 시간·프로세스 메모리를 기록합니다. 현재 저장소의 `command_refine.py`는 BERT 전용이라 SecRoBERTa/CodeBERT를 그대로 평가하지 못하며, 후보별 토크나이저와 학습·평가 하네스를 만들고 검증하는 작업이 남았습니다. 가중치 확보나 하네스 작성만으로 비교 완료라고 볼 수 없습니다.
-5. 기존 가중치가 준비된 경우 [기존 비교 명령](command_refinement.md)을 실행하고, 개선 모델 단독 통합은 `AEGIS_ATTACK_INTEGRATION=1 AEGIS_ATTACK_MODEL_DIR=/local/model AEGIS_ATTACK_MODEL_MANIFEST=/local/model/manifest.json PYTHONPATH=src python -m pytest -q tests/test_attack_real_model.py tests/test_real_model_console_optin.py`로 재현합니다. 실제 모델 파일과 로그는 Git에 넣지 마세요.
+**결정:** 기존 선택형 BERT-Tiny를 유지하며 새 모델을 기본 채택하지 않습니다. 기존 제품 로더는 BERT 전용이고 RoBERTa 후보를 그대로 불러올 수 없습니다. 새 독립 데이터, 모델 파일·토크나이저 검증, 운영 환경 및 로딩 실패 상태 검증이 필요합니다.
+
+실험 설정, 선택 모델 및 원본 가중치의 SHA-256은 [프로토콜](../evaluation/candidate_comparison_protocol_v1.json), 집계 결과와 제한은 [측정 요약](../evaluation/candidate_comparison_summary_v1.json)에 남겼습니다. 상세 사례별 결과·전체 토크나이저 해시와 보강된 검증 코드는 작업 환경 연결이 끊겨 이 PR에 반영하지 못했습니다. 프로토콜의 학습 하네스는 Git에 있으며 원본 모델과 별도 학습된 checkpoint 파일은 포함하지 않습니다.
+
+SecRoBERTa 모델 카드는 Apache-2.0을 표기합니다. CodeBERT 모델 카드의 가중치 라이선스 메타데이터는 명확하지 않아 재배포 전 별도 확인해야 합니다. CodeBERT 원본은 .bin 형식이며 이번 PyTorch 로더는 weights_only를 사용했습니다. 세 사전학습 원본의 revision과 가중치 해시는 프로토콜에 기록하고 공개 모델 메타데이터와 대조했습니다. 해시 일치만으로 라이선스나 출처 진위가 보장되는 것은 아닙니다.
+
+로컬 모델을 안전하게 준비한 뒤 `HF_HUB_OFFLINE=1 PYTHONPATH=src python -m aegis_on.command_candidate_experiment train --model-dir /local/pretrained --output /local/new-output --name MODEL --revision REVISION`으로 재학습하고, 별도 프로세스에서 `HF_HUB_OFFLINE=1 PYTHONPATH=src python -m aegis_on.command_candidate_experiment evaluate --model-dir /local/new-output --output /local/report.json --name MODEL`로 재평가합니다. 실험 환경은 macOS arm64, Python 3.12.2, PyTorch 2.7.0, Transformers 4.41.2입니다. 기존 `requirements-attack.txt`의 권장 버전 범위와 차이가 있으므로 다른 환경에서 재검증해야 합니다.
 
 ## ARTEX Global / AntiFox 코드 검토
 
