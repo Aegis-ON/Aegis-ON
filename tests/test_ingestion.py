@@ -113,7 +113,7 @@ print(json.dumps(r,sort_keys=True))
         os.chmod(self.path,0o600)
         analyses,detections=SQLiteHistory(self.path).list_snapshot()
         self.assertEqual(analyses[0]['analysis_id'],'old');self.assertEqual(detections[0]['approval']['rationale'],'first')
-        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],3)
+        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
 
     def test_separate_batches_fanout_dedup_restart_and_conflict(self):
         events = []
@@ -270,6 +270,9 @@ s.save_analysis(b,[],{'collector_id':'c','batch_id':'b','input_type':'sysmon','d
                                   json={'analyst':'analyst-1','rationale':'reviewed'})
         self.assertEqual(approval.status_code,200)
         with sqlite3.connect(self.path) as db:
+            db.execute('DROP TABLE auth_correlation_alerts')
+            db.execute('DROP TABLE auth_correlation_events')
+            db.execute('DROP TABLE auth_correlation_meta')
             db.execute('DROP TABLE stream_alerts')
             db.execute('DROP TABLE stream_events')
             db.execute('PRAGMA user_version=2')
@@ -279,7 +282,7 @@ s.save_analysis(b,[],{'collector_id':'c','batch_id':'b','input_type':'sysmon','d
         self.assertEqual(next(d for d in after['detections'] if d['detection_id']==detection)['approval']['rationale'],'reviewed')
         replay=self.client.post('/api/v1/ingest/sysmon',json=self.body,headers=self.headers)
         self.assertTrue(replay.json()['replayed'])
-        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],3)
+        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
 
     def test_malformed_v1_migration_fails_without_changing_schema(self):
         with sqlite3.connect(self.path) as db:

@@ -2,6 +2,8 @@
 
 ## Hot Memory
 
+- [constraint][refs:1][last_referenced:2026-11-11][last_verified:2026-11-11] Aegis-ON targets multi-source security monitoring, not attribution to specific tools. Normalized auth collection supports collector-scoped cross-batch correlation; authentication-to-Sysmon chains are not implemented because trusted asset and account bindings are absent. The command model is not an authentication model; evidence and limits: docs/multisource_prototype.md, src/aegis_on/auth_log.py and tests/test_auth_ingestion.py.
+
 - [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] The MVP uses a configured bearer token tied to one configured analyst identity; it is not multi-user authentication. Sensitive API endpoints and the demo event file require the token. Evidence: src/aegis_on/api.py and tests/test_api_regressions.py.
 - [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] Analysis returns event_refs mapping each input index to its displayed event ID, without persisting the source events. Callers must retain source events and responses for later traceability. Evidence: src/aegis_on/service.py and README.md.
 - [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] Sysmon ingestion accepts the documented PowerShell JSON export, isolates invalid records, assigns per-request event IDs, and returns only redacted source identifiers rather than original command lines. Evidence: src/aegis_on/sysmon.py, src/aegis_on/api.py and tests/test_sysmon_api.py.

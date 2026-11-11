@@ -67,7 +67,7 @@ def build_endpoint_groups(analyses: list[dict[str, Any]], detections: list[dict[
                 }
             return groups[group_key]
 
-        if kind == 'sysmon' or (kind == 'json' and batch.get('source_events')):
+        if kind in ('sysmon', 'auth') or (kind == 'json' and batch.get('source_events')):
             sources = batch.get('source_events') or []
             for i, source in enumerate(sources):
                 if not isinstance(source, dict):

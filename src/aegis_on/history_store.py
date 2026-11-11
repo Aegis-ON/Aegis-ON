@@ -8,7 +8,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 import json
+import hashlib
+import hmac
 import os
+import secrets
+import stat
+import tempfile
 from pathlib import Path
 import sqlite3
 from threading import Lock
@@ -142,7 +147,29 @@ class SQLiteHistory:
                                  'detection_id TEXT NOT NULL UNIQUE REFERENCES detections(detection_id), '
                                  'event_ids TEXT NOT NULL)')
                     conn.execute('PRAGMA user_version = 3')
-                elif version != 3:
+                    version = 3
+                if version == 3:
+                    required_v3 = {
+                        'analyses': {'sequence', 'payload'},
+                        'detections': {'sequence', 'analysis_sequence', 'detection_id', 'payload', 'approval'},
+                        'collectors': {'collector_id', 'last_received_at', 'last_heartbeat_at', 'reported_state', 'last_error_at', 'last_error_code'},
+                        'collected_batches': {'collector_id', 'batch_id', 'input_type', 'digest', 'analysis_sequence'},
+                        'stream_events': {'event_key', 'fingerprint', 'collector_id', 'host_key', 'occurred', 'destination_key', 'outbound', 'event_id', 'host_display'},
+                        'stream_alerts': {'collector_id', 'host_key', 'detection_id', 'event_ids'},
+                    }
+                    for table, columns in required_v3.items():
+                        if not columns.issubset({row[1] for row in conn.execute(f'PRAGMA table_info({table})')}):
+                            raise HistoryError('History storage unavailable')
+                    conn.execute('CREATE TABLE auth_correlation_meta (key_id TEXT NOT NULL)')
+                    conn.execute('CREATE TABLE auth_correlation_events (event_key TEXT PRIMARY KEY REFERENCES stream_events(event_key), '
+                                 'group_key TEXT NOT NULL, occurred TEXT NOT NULL, outcome TEXT NOT NULL, '
+                                 'event_id TEXT NOT NULL, host_display TEXT NOT NULL)')
+                    conn.execute('CREATE INDEX auth_group_time ON auth_correlation_events(group_key,occurred)')
+                    conn.execute('CREATE TABLE auth_correlation_alerts (success_key TEXT NOT NULL, '
+                                 'detection_id TEXT NOT NULL UNIQUE REFERENCES detections(detection_id))')
+                    conn.execute('PRAGMA user_version = 4')
+                    version = 4
+                if version != 4:
                     raise HistoryError('History storage unavailable')
                 conn.execute('COMMIT')
                 self._pending_identity = None
@@ -173,6 +200,134 @@ class SQLiteHistory:
                 raise ValueError('invalid stored approval')
             detection['approval'] = data
         return detection
+
+    def _auth_key(self, conn) -> bytes:
+        """Keep correlation key separate from SQLite; never silently replace it."""
+        path = self.path + '.correlation-key'
+        existing = conn.execute('SELECT key_id FROM auth_correlation_meta').fetchall()
+        if len(existing) > 1:
+            raise HistoryError('Correlation key unavailable')
+        if not existing:
+            try:
+                os.lstat(path)
+            except FileNotFoundError:
+                fd, temporary = tempfile.mkstemp(prefix='.aegis-correlation-', dir=str(Path(path).parent))
+                try:
+                    key = secrets.token_bytes(32)
+                    if os.write(fd, key) != len(key):
+                        raise HistoryError('Correlation key unavailable')
+                    os.fsync(fd)
+                    try:
+                        os.link(temporary, path)
+                    except FileExistsError:
+                        pass
+                finally:
+                    os.close(fd)
+                    os.unlink(temporary)
+        before = os.lstat(path)
+        if not stat.S_ISREG(before.st_mode):
+            raise HistoryError('Correlation key unavailable')
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+        try:
+            info = os.fstat(fd)
+            if ((info.st_dev, info.st_ino) != (before.st_dev, before.st_ino) or
+                    not stat.S_ISREG(info.st_mode) or (os.name == 'posix' and info.st_mode & 0o077)):
+                raise HistoryError('Correlation key unavailable')
+            key = os.read(fd, 33)
+            if len(key) != 32:
+                raise HistoryError('Correlation key unavailable')
+        finally:
+            os.close(fd)
+        key_id = hmac.new(key, b'aegis-auth-correlation-key-v1', hashlib.sha256).hexdigest()
+        if existing:
+            if not hmac.compare_digest(existing[0][0], key_id):
+                raise HistoryError('Correlation key unavailable')
+        else:
+            conn.execute('INSERT INTO auth_correlation_meta VALUES (?)', (key_id,))
+        return key
+
+    @staticmethod
+    def _auth_correlate(conn, sequence, batch, changed):
+        """Re-evaluate only windows affected by newly indexed auth observations."""
+        intervals = set()
+        for item in changed:
+            when = datetime.fromisoformat(item['occurred'])
+            intervals.add((item['group_key'], when - timedelta(minutes=10), when, when + timedelta(minutes=10)))
+        evaluated_successes = set()
+        for group, start, lower, upper in intervals:
+            rows = conn.execute(
+                'SELECT event_key,occurred,outcome,event_id,host_display FROM auth_correlation_events '
+                'WHERE group_key=? AND occurred>=? AND occurred<=? ORDER BY occurred,event_key LIMIT 5001',
+                (group, start.isoformat(), upper.isoformat())).fetchall()
+            if len(rows) > 5000:
+                raise HistoryError('Authentication correlation window too large')
+            failures = []
+            for event_key, occurred, outcome, event_id, host in rows:
+                when = datetime.fromisoformat(occurred)
+                failures = [f for f in failures if when - f[0] <= timedelta(minutes=10)]
+                if outcome == 'failure':
+                    failures.append((when, event_id))
+                    continue
+                if when < lower:
+                    continue
+                if event_key in evaluated_successes:
+                    continue
+                evaluated_successes.add(event_key)
+                earlier = [(t, e) for t, e in failures if t < when]
+                if len(earlier) < 3:
+                    continue
+                ids = [e for _, e in earlier] + [event_id]
+                evidence = ['At least three failures followed by success within ten minutes',
+                            f'observed period: {earlier[0][0].isoformat()} to {occurred}',
+                            'same collector, reported host, account and source address; may span batches',
+                            'Shared addresses or routine activity do not prove a common device or attack',
+                            'Process and network stages are not linked: trusted identity mapping unavailable']
+                row = conn.execute('SELECT d.detection_id,d.payload,d.approval FROM auth_correlation_alerts a '
+                                   'JOIN detections d ON d.detection_id=a.detection_id '
+                                   'WHERE a.success_key=? ORDER BY d.sequence DESC LIMIT 1', (event_key,)).fetchone()
+                if row is None:
+                    # A v3 same-batch alert may already exist for a replayed success.
+                    for old_id, payload, approval in conn.execute(
+                            'SELECT detection_id,payload,approval FROM detections WHERE payload LIKE ?',
+                            ('%' + event_id + '%',)):
+                        old = json.loads(payload)
+                        if old.get('technique') == 'authentication-review' and event_id in old.get('event_ids', []):
+                            row = (old_id, payload, approval)
+                            conn.execute('INSERT INTO auth_correlation_alerts VALUES (?,?)', (event_key, old_id))
+                            break
+                if row:
+                    old = json.loads(row[1])
+                    if set(old.get('event_ids', [])) == set(ids):
+                        continue
+                    if row[2] is None:
+                        old.update(event_ids=ids, evidence=evidence)
+                        conn.execute('UPDATE detections SET payload=? WHERE detection_id=?', (_encode(old), row[0]))
+                        continue
+                detection_id = str(uuid4())
+                alert = {'technique': 'authentication-review', 'title': 'Repeated authentication failures followed by success',
+                         'score': 55, 'source': 'correlation', 'event_ids': ids, 'host': host,
+                         'status': 'pending_review', 'requires_human_approval': False,
+                         'detection_id': detection_id, 'evidence': evidence}
+                conn.execute('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
+                             (sequence, detection_id, _encode(alert)))
+                conn.execute('INSERT INTO auth_correlation_alerts VALUES (?,?)', (event_key, detection_id))
+                batch['detection_ids'].append(detection_id)
+
+    @staticmethod
+    def _auth_index(conn, stream, key, batch):
+        changed = []
+        display_sources = {source['event_id']: source for source in batch['source_events']}
+        for item in stream:
+            group_key = hmac.new(key, ('auth-group-v1:' + item['auth_group']).encode(), hashlib.sha256).hexdigest()
+            source = display_sources.get(item['event_id'])
+            if source is not None:
+                source['auth_correlation_group'] = '[AUTH-GROUP:' + group_key[:16] + ']'
+            cursor = conn.execute('INSERT OR IGNORE INTO auth_correlation_events VALUES (?,?,?,?,?,?)',
+                                  (item['event_key'], group_key, item['occurred'], item['auth_outcome'],
+                                   item['event_id'], item['host_display']))
+            if cursor.rowcount:
+                changed.append({'group_key': group_key, 'occurred': item['occurred']})
+        return changed
 
     @staticmethod
     def _stream_fanout(conn, sequence, batch, collection, novel):
@@ -278,15 +433,31 @@ class SQLiteHistory:
             raise HistoryError('History storage unavailable') from None
         with self._connection() as conn:
             conn.execute('BEGIN IMMEDIATE')
+            auth_key = self._auth_key(conn) if collection and collection['input_type'] == 'auth' else None
             if collection is not None:
-                row = conn.execute('SELECT c.input_type,c.digest,a.payload FROM collected_batches c '
+                row = conn.execute('SELECT c.input_type,c.digest,a.payload,c.analysis_sequence FROM collected_batches c '
                                    'JOIN analyses a ON a.sequence=c.analysis_sequence '
                                    'WHERE c.collector_id=? AND c.batch_id=?',
                                    (collection['collector_id'], collection['batch_id'])).fetchone()
                 if row is not None:
-                    if row[0] != collection['input_type'] or row[1] != collection['digest']:
+                    if row[0] != collection['input_type'] or row[1] not in (collection['digest'], collection.get('legacy_digest')):
                         raise BatchConflict()
                     saved = json.loads(row[2])
+                    if collection.get('legacy_reindex'):
+                        stream = collection['events']
+                        for item in stream:
+                            previous = conn.execute('SELECT fingerprint FROM stream_events WHERE event_key=?', (item['event_key'],)).fetchone()
+                            legacy = item['fingerprint']
+                            secure = 'hmac-v2:' + hmac.new(auth_key, ('auth-record-v2:' + legacy).encode(), hashlib.sha256).hexdigest()
+                            if not previous or previous[0] not in (legacy, secure):
+                                raise BatchConflict()
+                            if previous[0] == legacy:
+                                conn.execute('UPDATE stream_events SET fingerprint=? WHERE event_key=?', (secure, item['event_key']))
+                        changed = self._auth_index(conn, stream, auth_key, saved)
+                        self._auth_correlate(conn, row[3], saved, changed)
+                        conn.execute('UPDATE analyses SET payload=? WHERE sequence=?', (_encode(saved), row[3]))
+                        conn.execute('UPDATE collected_batches SET digest=? WHERE collector_id=? AND batch_id=?',
+                                     (collection['digest'], collection['collector_id'], collection['batch_id']))
                     conn.execute('COMMIT')
                     return {'analysis_id': saved['analysis_id'], 'summary': saved['summary'], 'replayed': True}
             stream = collection.get('events') if collection else None
@@ -297,15 +468,21 @@ class SQLiteHistory:
                     previous = conn.execute('SELECT fingerprint FROM stream_events WHERE event_key=?',
                                             (item['event_key'],)).fetchone()
                     if previous:
-                        if previous[0] != item['fingerprint']:
+                        legacy = item['fingerprint']
+                        secure = ('hmac-v2:' + hmac.new(auth_key, ('auth-record-v2:' + legacy).encode(), hashlib.sha256).hexdigest()) if auth_key else legacy
+                        if previous[0] not in (legacy, secure):
                             raise BatchConflict()
+                        if auth_key and previous[0] == legacy:
+                            conn.execute('UPDATE stream_events SET fingerprint=? WHERE event_key=?', (secure, item['event_key']))
                         duplicate_ids.add(item['event_id'])
                     else:
+                        if auth_key:
+                            item['fingerprint'] = 'hmac-v2:' + hmac.new(auth_key, ('auth-record-v2:' + item['fingerprint']).encode(), hashlib.sha256).hexdigest()
                         novel.append(item)
                 batch['source_events'] = [s for s in batch['source_events'] if s['event_id'] not in duplicate_ids]
                 batch['event_refs'] = [s for s in batch['event_refs'] if s['event_id'] not in duplicate_ids]
                 batch['attack_model']['results'] = [s for s in batch['attack_model']['results'] if s['event_id'] not in duplicate_ids]
-                detections = [d for d in detections if d['source'] != 'correlation' and
+                detections = [d for d in detections if (collection['input_type'] == 'auth' or d['source'] != 'correlation') and
                               not any(i in duplicate_ids for i in d['event_ids'])]
                 batch['summary']['duplicate'] = len(duplicate_ids)
                 batch['summary']['processed'] = len(novel)
@@ -322,6 +499,9 @@ class SQLiteHistory:
                                   item['host_key'], item['occurred'], item['destination_key'],
                                   item['outbound'], item['event_id'], item['host_display']))
                 self._stream_fanout(conn, sequence, batch, collection, novel)
+                if collection['input_type'] == 'auth':
+                    changed = self._auth_index(conn, stream, auth_key, batch)
+                    self._auth_correlate(conn, sequence, batch, changed)
                 conn.execute('UPDATE analyses SET payload=? WHERE sequence=?', (_encode(batch), sequence))
             if collection is not None:
                 received = datetime.now(timezone.utc).isoformat()
@@ -349,15 +529,28 @@ class SQLiteHistory:
 
     def lookup_collected(self, collection: dict[str, str]) -> dict[str, Any] | None:
         with self._connection() as conn:
+            conn.execute('BEGIN IMMEDIATE')
+            if collection['input_type'] == 'auth':
+                key = self._auth_key(conn)
+                collection['legacy_digest'] = collection['digest']
+                collection['digest'] = 'hmac-v2:' + hmac.new(key, ('auth-batch-v2:' + collection['digest']).encode(), hashlib.sha256).hexdigest()
             row = conn.execute('SELECT c.input_type,c.digest,a.payload FROM collected_batches c '
                                'JOIN analyses a ON a.sequence=c.analysis_sequence '
                                'WHERE c.collector_id=? AND c.batch_id=?',
                                (collection['collector_id'], collection['batch_id'])).fetchone()
             if row is None:
+                conn.execute('COMMIT')
                 return None
-            if row[0] != collection['input_type'] or row[1] != collection['digest']:
+            if row[0] != collection['input_type'] or row[1] not in (collection['digest'], collection.get('legacy_digest')):
                 raise BatchConflict()
+            if collection['input_type'] == 'auth' and row[1] == collection.get('legacy_digest'):
+                # The authenticated replay supplies the legacy raw records
+                # needed to build the new HMAC index in the commit transaction.
+                collection['legacy_reindex'] = True
+                conn.execute('COMMIT')
+                return None
             saved = json.loads(row[2])
+            conn.execute('COMMIT')
             return {'analysis_id': saved['analysis_id'], 'summary': saved['summary'], 'replayed': True}
 
     def list_collectors(self) -> list[dict[str, Any]]:
