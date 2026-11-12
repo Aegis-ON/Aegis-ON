@@ -1,0 +1,4 @@
+-r requirements-attack.txt
+-r requirements-codebert-runtime.txt
+scikit-learn>=1.5,<2
+torch>=2.9,<3
