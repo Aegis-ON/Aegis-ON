@@ -409,3 +409,99 @@ test("timed out history request releases the refresh lock and recovers", async (
     dom.window.close();
   }
 });
+
+test("isometric observations come only from the endpoints API and link to their own details", async () => {
+  const observations = [
+    {
+      endpoint_id: "host-a",
+      host: "alpha-lab",
+      collector_id: "collector-a",
+      event_count: 3,
+      detection_count: 1,
+      highest_score: 78,
+    },
+    {
+      endpoint_id: "host-b",
+      host: "beta-lab",
+      collector_id: "collector-b",
+      event_count: 2,
+      detection_count: 0,
+      highest_score: null,
+    },
+  ];
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(syntheticHistory(), (url) =>
+      url === "/api/v1/endpoints" ? ok({ endpoints: observations }) : undefined,
+    ),
+  );
+  try {
+    await until(() => doc.querySelectorAll(".soc-asset-node").length === 2);
+    const nodes = [...doc.querySelectorAll(".soc-asset-node")];
+    assert.equal(
+      nodes[0].querySelector("a").getAttribute("href"),
+      "/console/endpoints/host-a",
+    );
+    assert.equal(
+      nodes[1].querySelector("a").getAttribute("href"),
+      "/console/endpoints/host-b",
+    );
+    assert.match(
+      nodes[0].querySelector("a").getAttribute("aria-label"),
+      /alpha-lab.*탐지 1건/,
+    );
+    assert.ok(nodes[0].classList.contains("high"));
+    assert.ok(nodes[1].classList.contains("neutral"));
+    assert.match(text(doc.body), /배치는 이해를 돕는 표현/);
+    assert.match(
+      text(doc.body),
+      /실제 장치의 연결 관계나 온라인 상태를 의미하지 않습니다/,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("isometric board shows no synthetic host when the API returns no observations", async () => {
+  const { dom, doc, errors } = mount("/", baseHandler(syntheticHistory()));
+  try {
+    await until(() => text(doc.body).includes("관찰된 호스트 정보가 없습니다"));
+    assert.equal(doc.querySelectorAll(".soc-asset-node").length, 0);
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("the asset board limits rendered observations and identifies the total", async () => {
+  const observations = Array.from({ length: 8 }, (_, i) => ({
+    endpoint_id: `host-${i}`,
+    host: `sample-${i}`,
+    collector_id: `collector-${i}`,
+    event_count: 1,
+    detection_count: 0,
+    highest_score: null,
+  }));
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(syntheticHistory(), (url) =>
+      url === "/api/v1/endpoints" ? ok({ endpoints: observations }) : undefined,
+    ),
+  );
+  try {
+    await until(() => doc.querySelectorAll(".soc-asset-node").length === 6);
+    assert.match(
+      text(doc.querySelector(".soc-asset-list-heading")),
+      /표시 6 \/ 8/,
+    );
+    assert.ok(
+      [...doc.querySelectorAll(".soc-asset-list a")].some(
+        (a) => a.getAttribute("href") === "/console/endpoints",
+      ),
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});

@@ -1,10 +1,10 @@
 /* Aegis-ON: structural layout for Astryx's neutral dark theme. */
 :root {
   color-scheme: dark;
-  --soc-canvas: #111316;
-  --soc-surface: #191c20;
-  --soc-surface-raised: #202429;
-  --soc-divider: #363b41;
+  --soc-canvas: #08090b;
+  --soc-surface: #101215;
+  --soc-surface-raised: #181c20;
+  --soc-divider: #30363c;
   --soc-text: #edf0f2;
   --soc-muted: #b0b8c1;
   --soc-focus: #a9d4ed;
@@ -56,7 +56,7 @@ body {
   flex-direction: column;
   gap: 24px;
   padding: 24px 14px;
-  background: #15181b;
+  background: #0b0d0f;
   border-right: 1px solid var(--soc-divider);
 }
 .soc-brand {
@@ -113,7 +113,7 @@ body {
   gap: 16px;
   padding: 10px 26px;
   border-bottom: 1px solid var(--soc-divider);
-  background: #15181b;
+  background: #0b0d0f;
 }
 .soc-content {
   width: min(100%, 1720px);
@@ -478,5 +478,168 @@ body {
   }
   .soc-filters > * {
     flex: 1 1 100%;
+  }
+}
+
+/* Isometric host observations: geometry is illustrative, data comes from the API. */
+.soc-asset-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.8fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.soc-asset-stage {
+  position: relative;
+  min-width: 0;
+  height: 350px;
+  overflow: hidden;
+  background: #090b0d;
+  border: 1px solid #28323a;
+}
+.soc-asset-plane {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.soc-asset-node {
+  --cube-edge: #91a5b0;
+  --cube-top: #394e58;
+  --cube-left: #1b2b32;
+  --cube-right: #263943;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 112px;
+  transform: translate(-50%, -80%);
+  color: #d4dfe4;
+}
+.soc-asset-node.high {
+  --cube-edge: #e59b98;
+  --cube-top: #794743;
+  --cube-left: #492a2a;
+  --cube-right: #603330;
+}
+.soc-asset-node.medium {
+  --cube-edge: #d4b680;
+  --cube-top: #695437;
+  --cube-left: #453a2b;
+  --cube-right: #584831;
+}
+.soc-asset-cube-button {
+  flex: none;
+  min-width: 58px;
+  overflow: visible;
+}
+.soc-asset-cube-button svg {
+  display: block;
+  overflow: visible;
+  transition: transform 160ms ease;
+}
+.soc-asset-cube-button:hover svg,
+.soc-asset-cube-button:focus-visible svg {
+  transform: translateY(-4px);
+}
+.soc-cube-top,
+.soc-cube-left,
+.soc-cube-right {
+  stroke: var(--cube-edge);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+.soc-cube-top {
+  fill: var(--cube-top);
+}
+.soc-cube-left {
+  fill: var(--cube-left);
+}
+.soc-cube-right {
+  fill: var(--cube-right);
+}
+.soc-asset-node-label {
+  max-width: 112px;
+  margin-top: -4px;
+  padding: 1px 4px;
+  overflow: hidden;
+  color: #e2e8eb;
+  background: #090b0d;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.soc-asset-list {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.soc-asset-list-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 11px;
+  border-bottom: 1px solid var(--soc-divider);
+}
+.soc-asset-list-heading span,
+.soc-asset-list-meta,
+.soc-asset-list-count small {
+  color: var(--soc-muted);
+  font-size: 12px;
+}
+.soc-asset-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--soc-divider);
+}
+.soc-asset-list-row > div {
+  min-width: 0;
+}
+.soc-asset-list-row a {
+  max-width: 100%;
+}
+.soc-asset-list-meta {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.soc-asset-list-count {
+  flex: none;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.soc-asset-list > a:last-child {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+@media (max-width: 1000px) {
+  .soc-asset-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .soc-asset-stage {
+    height: 250px;
+  }
+  .soc-asset-node {
+    width: 68px;
+  }
+  .soc-asset-node-label {
+    display: none;
+  }
+  .soc-asset-cube-button {
+    transform: scale(0.82);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .soc-asset-cube-button svg {
+    transition: none;
+  }
+  .soc-asset-cube-button:hover svg,
+  .soc-asset-cube-button:focus-visible svg {
+    transform: none;
   }
 }

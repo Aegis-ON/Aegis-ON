@@ -129,6 +129,155 @@ function Panel({ title, children }) {
     </section>
   );
 }
+// Each block is one API-provided observation group, not a verified device or network node.
+function AssetBoard({ endpoints, disabled }) {
+  const visible = endpoints.slice(0, 6);
+  if (!visible.length) {
+    return <p className="soc-empty">관찰된 호스트 정보가 없습니다.</p>;
+  }
+  const positions = [
+    [27, 38],
+    [43, 44],
+    [59, 50],
+    [38, 58],
+    [54, 64],
+    [70, 70],
+  ];
+  return (
+    <div className="soc-asset-board">
+      <div className="soc-asset-stage" aria-label="호스트 관찰 입체 시각화">
+        <svg
+          className="soc-asset-plane"
+          viewBox="0 0 700 350"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <polygon
+            points="350,61 650,165 350,277 50,165"
+            fill="#10151a"
+            stroke="#55656d"
+            strokeWidth="1.5"
+          />
+          <polygon
+            points="350,277 650,165 650,178 350,290 50,178 50,165"
+            fill="#0a0d10"
+            stroke="#3e4b51"
+            strokeWidth="1"
+          />
+          <path
+            d="M 118 165 L 350 249 L 582 165 M 207 112 L 493 218 M 493 112 L 207 218"
+            fill="none"
+            stroke="#26353c"
+            strokeWidth="1"
+          />
+        </svg>
+        {visible.map((endpoint, index) => {
+          const level = severity(endpoint.highest_score);
+          const tone =
+            level === "높음" ? "high" : level === "중간" ? "medium" : "neutral";
+          const label = fmt(endpoint.host);
+          return (
+            <div
+              className={`soc-asset-node ${tone}`}
+              key={endpoint.endpoint_id}
+              style={{
+                left: `${positions[index][0]}%`,
+                top: `${positions[index][1]}%`,
+              }}
+            >
+              <Button
+                label={`${label} · 탐지 ${fmt(endpoint.detection_count)}건 · 호스트 상세`}
+                href={
+                  endpoint.endpoint_id
+                    ? `/console/endpoints/${encodeURIComponent(endpoint.endpoint_id)}`
+                    : undefined
+                }
+                isDisabled={disabled || !endpoint.endpoint_id}
+                variant="ghost"
+                className="soc-asset-cube-button"
+                style={{
+                  width: 58,
+                  height: 70,
+                  padding: 0,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <svg
+                  viewBox="0 0 64 74"
+                  width="58"
+                  height="70"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <polygon
+                    className="soc-cube-top"
+                    points="32,3 59,18 32,33 5,18"
+                  />
+                  <polygon
+                    className="soc-cube-left"
+                    points="5,18 32,33 32,68 5,53"
+                  />
+                  <polygon
+                    className="soc-cube-right"
+                    points="32,33 59,18 59,53 32,68"
+                  />
+                </svg>
+              </Button>
+              <span className="soc-asset-node-label" aria-hidden="true">
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="soc-asset-list">
+        <div className="soc-asset-list-heading">
+          <strong>호스트 관찰</strong>
+          <span>
+            표시 {visible.length} / {endpoints.length}
+          </span>
+        </div>
+        {visible.map((endpoint) => (
+          <div className="soc-asset-list-row" key={endpoint.endpoint_id}>
+            <div>
+              <Button
+                label={fmt(endpoint.host)}
+                href={
+                  endpoint.endpoint_id
+                    ? `/console/endpoints/${encodeURIComponent(endpoint.endpoint_id)}`
+                    : undefined
+                }
+                isDisabled={disabled || !endpoint.endpoint_id}
+                variant="ghost"
+                size="sm"
+              />
+              <span className="soc-asset-list-meta">
+                수집기 {fmt(endpoint.collector_id)} · 이벤트{" "}
+                {fmt(endpoint.event_count)}건
+              </span>
+            </div>
+            <span className="soc-asset-list-count">
+              탐지 {fmt(endpoint.detection_count)}건<br />
+              <small>
+                {endpoint.highest_score == null
+                  ? "점수 없음"
+                  : `최고 ${severity(endpoint.highest_score)}`}
+              </small>
+            </span>
+          </div>
+        ))}
+        <Button
+          label="전체 호스트 관찰 보기"
+          href="/console/endpoints"
+          isDisabled={disabled}
+          variant="ghost"
+          size="sm"
+        />
+      </div>
+    </div>
+  );
+}
+
 function LinkButton({ label, onClick }) {
   return <Button label={label} variant="ghost" size="sm" onClick={onClick} />;
 }
@@ -1141,9 +1290,9 @@ function Console({ path }) {
                   </section>
                   <Panel title="관제 자산">
                     <p className="soc-muted">
-                      수집기와 호스트 이름별 관찰이며 실제 장치 수나 같은 사건을
-                      의미하지 않습니다. 웹·방화벽 별도 수집은 연동되지
-                      않았습니다.
+                      각 상자는 수집기와 호스트 이름별 관찰입니다. 배치는 이해를
+                      돕는 표현이며 실제 장치의 연결 관계나 온라인 상태를
+                      의미하지 않습니다.
                     </p>
                     {failedApis.endpoints && (
                       <p className="soc-error">
@@ -1152,11 +1301,7 @@ function Console({ path }) {
                       </p>
                     )}
                     {(!failedApis.endpoints || endpoints.length > 0) && (
-                      <DataTable
-                        rows={endpoints.slice(0, 6)}
-                        columns={hostColumns}
-                        empty="관찰된 호스트 정보가 없습니다."
-                      />
+                      <AssetBoard endpoints={endpoints} disabled={!!secret} />
                     )}
                   </Panel>
                   <Panel title="최근 탐지">
