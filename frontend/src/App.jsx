@@ -6,6 +6,7 @@ import { Table } from "@astryxdesign/core/Table";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { DateInput } from "@astryxdesign/core/DateInput";
+import RelationshipLayers from "./RelationshipLayers.jsx";
 
 const fmt = (v) =>
   v === undefined || v === null || v === "" ? "확인 불가" : String(v);
@@ -1195,24 +1196,10 @@ function Console({ path }) {
             />
           ))}
         </nav>
-        <p className="soc-muted">저장된 관찰 정보 기준</p>
       </aside>
       <main id="soc-main" className="soc-main" tabIndex={-1}>
         <header className="soc-topbar">
           <div>
-            <p className="soc-muted">
-              보안 관제 /{" "}
-              {
-                {
-                  overview: "관제 개요",
-                  endpoints: "관제 자산",
-                  endpoint: "호스트 관찰",
-                  events: "이벤트",
-                  detections: "탐지",
-                  history: "분석 이력",
-                }[page]
-              }
-            </p>
             <h1>
               {
                 {
@@ -1274,7 +1261,14 @@ function Console({ path }) {
                       ],
                       ["호스트 관찰 묶음", endpoints.length],
                     ].map(([a, b]) => (
-                      <div key={a}>
+                      <div
+                        key={a}
+                        className={
+                          a === "높은 심각도" && b > 0
+                            ? "soc-metric-alert"
+                            : undefined
+                        }
+                      >
                         <span>{a}</span>
                         <strong>
                           {a === "호스트 관찰 묶음" && !endpointSeen
@@ -1301,7 +1295,19 @@ function Console({ path }) {
                       </p>
                     )}
                     {(!failedApis.endpoints || endpoints.length > 0) && (
-                      <AssetBoard endpoints={endpoints} disabled={!!secret} />
+                      <>
+                        <AssetBoard endpoints={endpoints} disabled={!!secret} />
+                        <RelationshipLayers
+                          endpoints={endpoints}
+                          history={data}
+                          api={api}
+                          disabled={!!secret}
+                          onEvent={(batchId, eventId) =>
+                            openDetail({ type: "event", batchId, eventId })
+                          }
+                          onDetection={openDetection}
+                        />
+                      </>
                     )}
                   </Panel>
                   <Panel title="최근 탐지">

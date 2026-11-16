@@ -505,3 +505,307 @@ test("the asset board limits rendered observations and identifies the total", as
     dom.window.close();
   }
 });
+
+function relationshipFixture() {
+  const data = syntheticHistory();
+  data.analyses[0].source_events[0].input_index = 0;
+  const group = {
+    endpoint_id: "test-group",
+    analysis_id: "batch-1",
+    analysis_ids: ["batch-1"],
+    host: "lab-host",
+    collector_id: "collector-test",
+    event_count: 1,
+    detection_count: 1,
+    highest_score: 75,
+  };
+  const detail = {
+    endpoint: group,
+    events: [
+      {
+        ...data.analyses[0].source_events[0],
+        received_at: data.analyses[0].received_at,
+      },
+    ],
+    detections: data.detections,
+  };
+  return { data, group, detail };
+}
+
+test("relationship layers show only stored host-event and explicit event-detection evidence", async () => {
+  const { data, group, detail } = relationshipFixture();
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) => {
+      if (url === "/api/v1/endpoints") return ok({ endpoints: [group] });
+      if (url === "/api/v1/endpoints/test-group") return ok(detail);
+    }),
+  );
+  try {
+    await until(
+      () =>
+        doc.querySelectorAll('[data-edge-type="event-evidence"]').length === 1,
+    );
+    assert.equal(
+      doc.querySelectorAll('[data-edge-type="observation-event"]').length,
+      1,
+    );
+    assert.match(text(doc.querySelector(".soc-rel")), /Sysmon 3 · 네트워크/);
+    assert.match(text(doc.querySelector(".soc-rel")), /synthetic fanout/);
+    assert.match(text(doc.querySelector(".soc-rel")), /상관분석/);
+    assert.match(
+      text(doc.querySelector(".soc-rel")),
+      /실제 기기 동일성 또는 공격 순서를 뜻하지 않습니다/,
+    );
+    const eventButton = button(
+      doc,
+      "Sysmon 3 · 네트워크 · evt-1",
+      doc.querySelector(".soc-rel"),
+    );
+    assert.ok(eventButton);
+    eventButton.click();
+    await until(() => doc.querySelector('[aria-label="상세 정보"]'));
+    assert.match(text(doc.querySelector('[aria-label="상세 정보"]')), /evt-1/);
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("duplicate display IDs from separate collectors are excluded from relationship edges", async () => {
+  const { data, group, detail } = relationshipFixture();
+  data.analyses.push({
+    analysis_id: "other-batch",
+    received_at: "2026-11-16T11:02:00Z",
+    source_events: [
+      {
+        event_id: "evt-1",
+        endpoint_group: "other-group",
+        collector_id: "other-collector",
+        input_index: 0,
+      },
+    ],
+    detection_ids: [],
+  });
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) =>
+      url === "/api/v1/endpoints"
+        ? ok({ endpoints: [group] })
+        : url === "/api/v1/endpoints/test-group"
+          ? ok(detail)
+          : undefined,
+    ),
+  );
+  try {
+    await until(() =>
+      text(doc.body).includes("식별 범위가 불명확한 이벤트 1건"),
+    );
+    assert.equal(doc.querySelectorAll("[data-edge-type]").length, 0);
+    assert.match(
+      text(doc.querySelector(".soc-rel")),
+      /연결 가능한 이벤트가 없습니다/,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("an unrelated detection is never connected just because it shares a host", async () => {
+  const { data, group, detail } = relationshipFixture();
+  const unrelated = {
+    detection_id: "other-detection",
+    title: "unrelated detection",
+    event_ids: ["different-event"],
+    source: "rule",
+    status: "pending_review",
+  };
+  data.detections.push(unrelated);
+  detail.detections.push(unrelated);
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) =>
+      url === "/api/v1/endpoints"
+        ? ok({ endpoints: [group] })
+        : url === "/api/v1/endpoints/test-group"
+          ? ok(detail)
+          : undefined,
+    ),
+  );
+  try {
+    await until(
+      () =>
+        doc.querySelectorAll('[data-edge-type="event-evidence"]').length === 1,
+    );
+    assert.doesNotMatch(
+      text(doc.querySelector(".soc-rel")),
+      /unrelated detection/,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("failed detail lookup shows an error instead of making relationship edges", async () => {
+  const { data, group } = relationshipFixture();
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) =>
+      url === "/api/v1/endpoints"
+        ? ok({ endpoints: [group] })
+        : url === "/api/v1/endpoints/test-group"
+          ? failed(503)
+          : undefined,
+    ),
+  );
+  try {
+    await until(() =>
+      text(doc.body).includes("관련 근거를 불러오지 못했습니다"),
+    );
+    assert.equal(doc.querySelectorAll("[data-edge-type]").length, 0);
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("disagreeing endpoint and history snapshots do not create stale evidence edges", async () => {
+  const { data, group, detail } = relationshipFixture();
+  detail.detections = JSON.parse(JSON.stringify(detail.detections));
+  data.detections[0].event_ids = ["different-event"];
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) =>
+      url === "/api/v1/endpoints"
+        ? ok({ endpoints: [group] })
+        : url === "/api/v1/endpoints/test-group"
+          ? ok(detail)
+          : undefined,
+    ),
+  );
+  try {
+    await until(
+      () =>
+        doc.querySelectorAll('[data-edge-type="observation-event"]').length ===
+        1,
+    );
+    assert.equal(
+      doc.querySelectorAll('[data-edge-type="event-evidence"]').length,
+      0,
+    );
+    assert.match(
+      text(doc.querySelector(".soc-rel")),
+      /표시된 이벤트에서 확인된 탐지 근거가 없습니다/,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("relationship lists expose evidence IDs and use current history review status", async () => {
+  const { data, group, detail } = relationshipFixture();
+  detail.detections = JSON.parse(JSON.stringify(detail.detections));
+  data.detections[0].status = "approved_for_simulated_response";
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) =>
+      url === "/api/v1/endpoints"
+        ? ok({ endpoints: [group] })
+        : url === "/api/v1/endpoints/test-group"
+          ? ok(detail)
+          : undefined,
+    ),
+  );
+  try {
+    await until(
+      () =>
+        doc.querySelectorAll('[data-edge-type="event-evidence"]').length === 1,
+    );
+    assert.match(text(doc.querySelector(".soc-rel")), /근거 이벤트 evt-1/);
+    assert.match(text(doc.querySelector(".soc-rel")), /시뮬레이션 승인/);
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("late endpoint response cannot replace a newly selected host relationship", async () => {
+  const { data, group, detail } = relationshipFixture();
+  const second = {
+    endpoint_id: "group-two",
+    analysis_id: "batch-two",
+    analysis_ids: ["batch-two"],
+    host: "second-host",
+    collector_id: "second-collector",
+    event_count: 1,
+    detection_count: 0,
+  };
+  data.analyses.push({
+    analysis_id: "batch-two",
+    received_at: "2026-11-16T12:01:00Z",
+    source_events: [
+      {
+        event_id: "second-event",
+        input_index: 0,
+        endpoint_group: "group-b",
+        collector_id: "second-collector",
+        sysmon_event_id: 1,
+      },
+    ],
+    detection_ids: [],
+  });
+  const detailTwo = {
+    endpoint: second,
+    events: [
+      {
+        ...data.analyses[1].source_events[0],
+        received_at: data.analyses[1].received_at,
+      },
+    ],
+    detections: [],
+  };
+  let releaseFirst;
+  const delayed = new Promise((resolve) => {
+    releaseFirst = () => resolve(ok(detail));
+  });
+  const { dom, doc, errors } = mount(
+    "/",
+    baseHandler(data, (url) => {
+      if (url === "/api/v1/endpoints")
+        return ok({ endpoints: [group, second] });
+      if (url === "/api/v1/endpoints/test-group") return delayed;
+      if (url === "/api/v1/endpoints/group-two") return ok(detailTwo);
+    }),
+  );
+  try {
+    await until(() => doc.querySelector('.soc-rel [role="combobox"]'));
+    doc.querySelector('.soc-rel [role="combobox"]').click();
+    await until(() =>
+      [...doc.querySelectorAll('[role="option"]')].some((el) =>
+        text(el).includes("second-host"),
+      ),
+    );
+    [...doc.querySelectorAll('[role="option"]')]
+      .find((el) => text(el).includes("second-host"))
+      .click();
+    await until(() =>
+      text(doc.querySelector(".soc-rel-details") || doc.body).includes(
+        "second-host",
+      ),
+    );
+    releaseFirst();
+    await wait(100);
+    assert.match(text(doc.querySelector(".soc-rel-details")), /second-host/);
+    assert.doesNotMatch(
+      text(doc.querySelector(".soc-rel-details")),
+      /synthetic fanout/,
+    );
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    releaseFirst();
+    dom.window.close();
+  }
+});
