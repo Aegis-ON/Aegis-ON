@@ -62,7 +62,7 @@ class CodeBertReviewTests(unittest.TestCase):
             with (patch.object(api, "codebert_shadow", model),
                   patch.object(api, "service", DetectionService(SQLiteHistory(database))),
                   patch.dict("os.environ", {"AEGIS_API_TOKEN": "fixture", "AEGIS_ANALYST_NAME": "reviewer"}),
-                  TestClient(api.app) as client):
+                  TestClient(api.app, base_url="https://testserver") as client):
                 headers = {"Authorization": "Bearer fixture"}
                 process, network = make_event(1, 1), make_event(3, 2)
                 network["EventData"]["CommandLine"] = "curl fixture-network-command"
@@ -77,3 +77,33 @@ class CodeBertReviewTests(unittest.TestCase):
                     history = client.get("/api/v1/history", headers=headers).json()
                 self.assertEqual(history["analyses"][0]["review_shadow"], shadow)
                 self.assertNotIn(b"fixture-network-command", database.read_bytes())
+
+    def test_collector_shadow_drops_retransmitted_event_and_its_detections(self):
+        class FixtureModel(ShadowModel):
+            def predict(self, command: str, identities: tuple[str, ...] = ()):
+                return {"status": "ok", "score": 0.9}
+
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "history.sqlite3"
+            model = FixtureModel(state="ready", fixture=True)
+            with (patch.object(api, "codebert_shadow", model),
+                  patch.object(api, "service", DetectionService(SQLiteHistory(database))),
+                  patch.dict("os.environ", {"AEGIS_API_TOKEN": "synthetic-token", "AEGIS_ANALYST_NAME": "reviewer",
+                                             "AEGIS_ALLOW_LEGACY_COLLECTOR_TOKEN": "1"}),
+                  TestClient(api.app, base_url="https://testserver") as client):
+                headers = {"Authorization": "Bearer synthetic-token", "X-Collector-ID": "fixture-pc"}
+                first, second = make_event(1, 101), make_event(1, 102)
+                one = client.post('/api/v1/ingest/sysmon', json={'events': [first]},
+                                  headers={**headers, 'Idempotency-Key': 'one'})
+                self.assertEqual(one.status_code, 200, one.text)
+                mixed = client.post('/api/v1/ingest/sysmon', json={'events': [first, second]},
+                                    headers={**headers, 'Idempotency-Key': 'mixed'})
+                self.assertEqual(mixed.status_code, 200, mixed.text)
+                self.assertEqual(mixed.json()['summary']['duplicate'], 1)
+                batch = next(row for row in client.get('/api/v1/history', headers=headers).json()['analyses']
+                             if row['analysis_id'] == mixed.json()['analysis_id'])
+                event_ids = {row['event_id'] for row in batch['source_events']}
+                shadow = batch['review_shadow']
+                self.assertEqual({event['event_id'] for event in shadow['events']}, event_ids)
+                self.assertTrue(set(shadow['current_order']) <= set(batch['detection_ids']))
+                self.assertTrue(set(shadow['proposed_order']) <= set(batch['detection_ids']))
