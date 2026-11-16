@@ -160,7 +160,7 @@
           eventsById.get(key).push(event);
         }
         results.append(createText('p', '표시 등급은 점수 기반 임시 분류입니다. 높음 ≥70, 중간 ≥40, 낮음 <40.', 'hint'));
-        for (const detection of detections) {
+        for (const [cardIndex, detection] of detections.entries()) {
           const card = document.createElement('article');
           const level = severity(Number(detection.score));
           card.className = `card ${level.css}`;
@@ -178,7 +178,12 @@
             const ids = detection.event_ids || [];
             const linked = ids.flatMap(id => eventsById.get(id) || []);
             if (!linked.length) card.append(createText('p', '연결된 원본 이벤트 정보를 찾을 수 없습니다.', 'hint'));
-            for (const event of linked) card.append(sourceDetail(event));
+            for (const [eventIndex, event] of linked.entries()) {
+              const detail = sourceDetail(event);
+              detail.id = `review-evidence-${cardIndex}-${eventIndex}`;
+              detail.tabIndex = -1;
+              card.append(detail);
+            }
           }
           const approvalStatus = createText('p', `승인 상태: ${displayValue(detection.status)} · 실제 차단 없음`, 'approval-line');
           if (detection.approval) approvalStatus.append(createText('span', ` · ${displayValue(detection.approval.approved_at)} · 분석가: ${displayValue(detection.approval.analyst)} · 사유: ${displayValue(detection.approval.rationale)}`));
@@ -262,6 +267,47 @@
         }
         results.append(section);
       }
+      function renderReviewShadow(shadow, detections, sources) {
+        if (!shadow) return;
+        const section = document.createElement('section'); section.className = 'batch';
+        section.id = 'review-shadow';
+        section.append(createText('h3', 'CodeBERT 검토 순위'));
+        const states = {
+          ready: '분석 가능', disabled: '비활성', error: '모델 로딩 실패', inference_error: '추론 실패',
+        };
+        section.append(createText('p', `모델 ${states[shadow.state] || '상태 미확인'}${shadow.fixture ? ' · 합성 데이터 검증용' : ''}`, 'meta'));
+        if (shadow.state !== 'ready' || !shadow.events?.some(event => event.status === 'ok')) {
+          section.append(createText('p', '기존 경보 순서를 사용합니다.', 'hint'));
+          results.append(section);
+          return;
+        }
+        const cards = new Map(detections.map((item, index) => [item.detection_id, {item, index}]));
+        const original = new Map(shadow.current_order.map((id, index) => [id, index + 1]));
+        const byEvent = new Map(shadow.events.map(event => [event.event_id, event]));
+        const sourcesById = new Map();
+        for (const source of sources) {
+          if (!sourcesById.has(source.event_id)) sourcesById.set(source.event_id, []);
+          sourcesById.get(source.event_id).push(source);
+        }
+        const list = document.createElement('ol'); list.className = 'items';
+        for (const [rank, id] of shadow.proposed_order.entries()) {
+          const card = cards.get(id);
+          if (!card) continue;
+          const row = createText('li', `${displayValue(card.item.title)} · 기존 ${displayValue(original.get(id))}위 → 제안 ${rank + 1}위`);
+          const related = (card.item.event_ids || []).flatMap(eventId => sourcesById.get(eventId) || []);
+          for (const [eventIndex, event] of related.entries()) {
+            const score = byEvent.get(event.event_id)?.score;
+            const link = createText('a', `이벤트 ${displayValue(event.input_index)}${Number.isFinite(score) ? ` (AI 점수 ${score.toFixed(3)})` : ''}`);
+            link.href = `#review-evidence-${card.index}-${eventIndex}`;
+            link.style.color = 'var(--accent)';
+            row.append(createText('span', ' · '), link);
+          }
+          list.append(row);
+        }
+        if (list.childElementCount) section.append(list);
+        else section.append(createText('p', '검토 순위를 비교할 경보가 없습니다.', 'hint'));
+        results.append(section);
+      }
       function renderSysmon(data, request, inputLabel) {
         const counts = data.summary;
         setStats(counts, data.detections.length);
@@ -269,6 +315,7 @@
         renderDetections(data.detections, data.source_events, request);
         renderPii(data.pii);
         renderAttackModel(data.attack_model);
+        renderReviewShadow(data.review_shadow, data.detections, data.source_events);
         const batch = document.createElement('section'); batch.className = 'batch';
         batch.append(createText('strong', '입력 이벤트 처리 결과'));
         const items = document.createElement('ul'); items.className = 'items';
@@ -359,13 +406,14 @@
                 if (!isCurrent(selected)) return;
                 const latest = current.analyses.find(item => item.analysis_id === analysis.analysis_id);
                 if (!latest) { summary.textContent = '해당 분석 이력을 찾을 수 없습니다. 목록을 다시 불러와 주세요.'; return; }
-                const ids = new Set(latest.detection_ids || []);
-                const detections = current.detections.filter(d => ids.has(d.detection_id));
+                const byId = new Map(current.detections.map(d => [d.detection_id, d]));
+                const detections = (latest.detection_ids || []).map(id => byId.get(id)).filter(Boolean);
                 const sources = latest.source_events && latest.source_events.length ? latest.source_events : (latest.event_refs || []);
                 summary.textContent = `저장된 ${displayValue(latest.input_type)} 분석 · ${displayValue(latest.analyzed_at)} · 승인 조치는 시뮬레이션입니다.`;
                 if (latest.summary) setStats(latest.summary, detections.length);
                 renderDetections(detections, sources, selected);
                 renderAttackModel(latest.attack_model);
+                renderReviewShadow(latest.review_shadow, detections, sources);
                 if (sources.length) {
                   const list = document.createElement('details'); list.className = 'event-list'; list.open = true;
                   list.append(createText('summary', `저장된 이벤트 식별 정보 ${sources.length}건`));

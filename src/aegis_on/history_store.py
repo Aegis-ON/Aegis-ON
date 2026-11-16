@@ -484,6 +484,12 @@ class SQLiteHistory:
                 batch['attack_model']['results'] = [s for s in batch['attack_model']['results'] if s['event_id'] not in duplicate_ids]
                 detections = [d for d in detections if (collection['input_type'] == 'auth' or d['source'] != 'correlation') and
                               not any(i in duplicate_ids for i in d['event_ids'])]
+                shadow = batch.get('review_shadow')
+                if shadow is not None:
+                    retained = {d['detection_id'] for d in detections}
+                    shadow['events'] = [event for event in shadow['events'] if event['event_id'] not in duplicate_ids]
+                    for key in ('current_order', 'proposed_order'):
+                        shadow[key] = [detection_id for detection_id in shadow[key] if detection_id in retained]
                 batch['summary']['duplicate'] = len(duplicate_ids)
                 batch['summary']['processed'] = len(novel)
                 batch['detection_ids'] = [d['detection_id'] for d in detections]
