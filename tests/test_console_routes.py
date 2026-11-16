@@ -20,23 +20,30 @@ class ConsoleRouteTests(unittest.TestCase):
     def test_shells_resolve_on_direct_load_and_data_remains_authenticated(self):
         landing = self.client.get('/')
         self.assertEqual(landing.status_code, 200)
-        self.assertIn('관제 메뉴', landing.text)
+        self.assertIn('/assets/aegis/app.js', landing.text)
         self.assertNotIn('제품 소개', landing.text)
         for path in ['/console','/console/endpoints','/console/endpoints/'+'a'*64,'/console/detections','/console/events','/console/history']:
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
-            self.assertIn('관제 메뉴', response.text)
+            self.assertIn('/assets/aegis/app.js', response.text)
         self.assertNotIn('JSON 이벤트 직접 입력', self.client.get('/console/analysis').text)
-        self.assertIn('수집 이벤트', self.client.get('/console/events').text)
+        self.assertIn('/assets/aegis/app.js', self.client.get('/console/events').text)
         self.assertEqual(self.client.get('/console/no-such-page').status_code, 404)
         self.assertEqual(self.client.get('/api/v1/history').status_code, 401)
         self.assertEqual(self.client.get('/api/v1/endpoints').status_code, 401)
         self.assertEqual(self.client.get('/api/v1/endpoints/'+'a'*64).status_code, 401)
 
+    def test_only_bundled_assets_are_served(self):
+        for asset, content_type in [('app.js', 'javascript'), ('app.css', 'text/css')]:
+            response = self.client.get('/assets/aegis/' + asset)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(content_type, response.headers['content-type'])
+        self.assertEqual(self.client.get('/assets/aegis/index.html').status_code, 404)
+
     def test_legacy_hash_targets_remain_redirectable(self):
-        html = self.client.get('/').text
+        html = self.client.get('/assets/aegis/app.js').text
         for fragment in ['#analysis','#result-section','#history','#overview']:
             self.assertIn(fragment, html)
-        self.assertIn("'/console/history'", html)
+        self.assertIn("/console/history", html)
 
 if __name__ == '__main__': unittest.main()
