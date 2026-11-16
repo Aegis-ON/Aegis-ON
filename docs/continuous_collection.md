@@ -18,7 +18,7 @@ python scripts/collect_synthetic.py --port 8000 --collector-id pc-01 --interval 
 
 `scripts/collect_sysmon.ps1`은 Sysmon Operational 채널의 새 Event ID 1·3을 읽습니다. Sysmon 설치 및 설정을 변경하지 않으며 Event ID 3은 Sysmon 설정에서 생성되도록 활성화돼 있어야 합니다. Sysmon이 설치된 실제 Windows에서는 우선 사용자 권한과 기존 설정, 로그 보존 크기 및 Event 3 설정을 확인해야 합니다. 현재 기능의 실제 Windows 실행, PowerShell 구문과 Event Log 동작은 검증하지 못했습니다.
 
-먼저 관제 개요의 **수집기 등록**에서 개인정보가 없는 고유 ID를 입력합니다. 서버는 수집기별 인증 정보를 한 번만 표시하며 해시만 저장합니다. 전달은 신뢰할 수 있는 안전한 경로를 사용하고, 명령줄·저장소·메신저에 비밀값을 남기지 마세요. 각 PC의 전용 Windows 계정으로 다음을 실행합니다. `InitializeCredential` 단계에서는 발급된 값을 숨겨 입력하며 같은 계정에 묶인 DPAPI 암호 파일을 만듭니다. 해당 폴더의 ACL을 해당 계정과 관리자만 접근하도록 제한하세요. 서비스 계정으로 실행한다면 해당 계정으로 파일을 준비해야 합니다.
+먼저 관제 개요의 **수집기 등록**에서 개인정보가 없는 고유 ID를 입력합니다. 일회성 인증 정보는 화면에 표시되지 않으며 복사할 수 있고, 서버에는 해시만 저장됩니다. 클립보드 복사에 실패한 채 닫으면 해당 인증 정보를 폐기하고 다시 발급해야 합니다. 전달은 신뢰할 수 있는 안전한 경로를 사용하고, 명령줄·저장소·메신저에 비밀값을 남기지 마세요. 각 PC의 전용 Windows 계정으로 다음을 실행합니다. `InitializeCredential` 단계에서는 발급된 값을 숨겨 입력하며 같은 계정에 묶인 DPAPI 암호 파일을 만듭니다. 해당 폴더의 ACL을 해당 계정과 관리자만 접근하도록 제한하세요. 서비스 계정으로 실행한다면 해당 계정으로 파일을 준비해야 합니다.
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Aegis-ON" | Out-Null
