@@ -33,6 +33,15 @@ def _encode(value: Any) -> str:
     return json.dumps(value, ensure_ascii=True, allow_nan=False, separators=(',', ':'))
 
 
+def _epoch_microseconds(value: str) -> int:
+    """Convert a timezone-aware event time exactly, without floating point."""
+    when = datetime.fromisoformat(value)
+    if when.utcoffset() != timedelta(0):
+        raise ValueError('invalid event time')
+    delta = when - datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return (delta.days * 86400 + delta.seconds) * 1000000 + delta.microseconds
+
+
 class SQLiteHistory:
     """A file-backed history with a fresh connection for each operation.
 
@@ -169,7 +178,58 @@ class SQLiteHistory:
                                  'detection_id TEXT NOT NULL UNIQUE REFERENCES detections(detection_id))')
                     conn.execute('PRAGMA user_version = 4')
                     version = 4
-                if version != 4:
+                if version == 4:
+                    required_v4 = {
+                        'analyses': {'sequence', 'payload'},
+                        'detections': {'sequence', 'analysis_sequence', 'detection_id', 'payload', 'approval'},
+                        'collectors': {'collector_id', 'last_received_at', 'last_heartbeat_at', 'reported_state', 'last_error_at', 'last_error_code'},
+                        'collected_batches': {'collector_id', 'batch_id', 'input_type', 'digest', 'analysis_sequence'},
+                        'stream_events': {'event_key', 'fingerprint', 'collector_id', 'host_key', 'occurred', 'destination_key', 'outbound', 'event_id', 'host_display'},
+                        'stream_alerts': {'collector_id', 'host_key', 'detection_id', 'event_ids'},
+                        'auth_correlation_meta': {'key_id'},
+                        'auth_correlation_events': {'event_key', 'group_key', 'occurred', 'outcome', 'event_id', 'host_display'},
+                        'auth_correlation_alerts': {'success_key', 'detection_id'},
+                    }
+                    for table, columns in required_v4.items():
+                        if not columns.issubset({row[1] for row in conn.execute(f'PRAGMA table_info({table})')}):
+                            raise HistoryError('History storage unavailable')
+                    conn.execute('CREATE INDEX stream_host_event_id ON stream_events(collector_id,host_key,event_id)')
+                    conn.execute('CREATE TABLE stream_alert_spans (detection_id TEXT PRIMARY KEY REFERENCES stream_alerts(detection_id), '
+                                 'collector_id TEXT NOT NULL, host_key TEXT NOT NULL, start_us INTEGER NOT NULL, end_us INTEGER NOT NULL)')
+                    conn.execute('CREATE INDEX fanout_alert_time ON stream_alert_spans(collector_id,host_key,start_us,end_us)')
+                    # Backfill only from persisted, same-collector and same-host event
+                    # identities. An incomplete or ambiguous legacy index must
+                    # fail atomically rather than silently hide prior evidence.
+                    for collector, host, detection, encoded, payload, approval in conn.execute(
+                            'SELECT a.collector_id,a.host_key,a.detection_id,a.event_ids,d.payload,d.approval '
+                            'FROM stream_alerts AS a LEFT JOIN detections AS d ON d.detection_id=a.detection_id'):
+                        ids = json.loads(encoded)
+                        if (not isinstance(ids, list) or not ids or
+                                any(not isinstance(item, str) or not item for item in ids) or len(set(ids)) != len(ids)):
+                            raise HistoryError('History storage unavailable')
+                        record = json.loads(payload) if payload is not None else None
+                        record_ids = record.get('event_ids') if isinstance(record, dict) else None
+                        if (not isinstance(record, dict) or record.get('detection_id') != detection or
+                                not isinstance(record_ids, list) or len(record_ids) != len(ids) or
+                                any(not isinstance(item, str) for item in record_ids) or set(record_ids) != set(ids)):
+                            raise HistoryError('History storage unavailable')
+                        if approval is not None and not isinstance(json.loads(approval), dict):
+                            raise HistoryError('History storage unavailable')
+                        matches = conn.execute(
+                            'SELECT s.event_id,s.occurred FROM json_each(?) AS j CROSS JOIN stream_events AS s '
+                            'INDEXED BY stream_host_event_id WHERE s.collector_id=? AND s.host_key=? AND s.event_id=j.value',
+                            (encoded, collector, host)).fetchall()
+                        if len(matches) != len(ids) or len({row[0] for row in matches}) != len(ids):
+                            raise HistoryError('History storage unavailable')
+                        times = [_epoch_microseconds(row[1]) for row in matches]
+                        lo, hi = min(times), max(times)
+                        if hi - lo > 600000000:
+                            raise HistoryError('History storage unavailable')
+                        conn.execute('INSERT INTO stream_alert_spans VALUES (?,?,?,?,?)',
+                                     (detection, collector, host, lo, hi))
+                    conn.execute('PRAGMA user_version = 5')
+                    version = 5
+                if version != 5:
                     raise HistoryError('History storage unavailable')
                 conn.execute('COMMIT')
                 self._pending_identity = None
@@ -338,102 +398,126 @@ class SQLiteHistory:
         """
         hosts = {item['host_key'] for item in novel if item['outbound'] and item['destination_key']}
         for host_key in hosts:
-            times = [datetime.fromisoformat(item['occurred']) for item in novel
-                     if item['host_key'] == host_key and item['outbound'] and item['destination_key']]
+            times = sorted(datetime.fromisoformat(item['occurred']) for item in novel
+                           if item['host_key'] == host_key and item['outbound'] and item['destination_key'])
+            # Merge only overlapping +/-10-minute event-time intervals; distant
+            # incoming events must not scan unrelated years of retained history.
+            intervals = []
             try:
-                lower, upper = min(times) - timedelta(minutes=10), max(times) + timedelta(minutes=10)
+                for when in times:
+                    lower, upper = when - timedelta(minutes=10), when + timedelta(minutes=10)
+                    if intervals and lower <= intervals[-1][1]:
+                        intervals[-1] = (intervals[-1][0], max(intervals[-1][1], upper))
+                    else:
+                        intervals.append((lower, upper))
             except OverflowError:
                 raise HistoryError('History storage unavailable') from None
-            rows = conn.execute('SELECT occurred,destination_key,event_id,host_display FROM stream_events '
-                                'WHERE collector_id=? AND host_key=? AND outbound=1 '
-                                'AND occurred>=? AND occurred<=? ORDER BY occurred,event_id LIMIT 50001',
-                                (collection['collector_id'], host_key, lower.isoformat(), upper.isoformat())).fetchall()
-            # Fail closed rather than silently omit evidence in a pathological window.
-            if len(rows) > 50000:
-                raise HistoryError('History storage unavailable')
-            existing = conn.execute('SELECT detection_id,event_ids FROM stream_alerts '
-                                    'WHERE collector_id=? AND host_key=? ORDER BY rowid DESC LIMIT 10001',
-                                    (collection['collector_id'], host_key)).fetchall()
-            if len(existing) > 10000 or sum(len(ids) for _, ids in existing) > 8 * 1024 * 1024:
-                raise HistoryError('History storage unavailable')
-            alerts = [(d, set(json.loads(ids))) for d, ids in existing]
-            novel_ids = {item['event_id'] for item in novel if item['host_key'] == host_key
-                         and item['outbound'] and item['destination_key']}
-            index = end = novel_count = work = mutations = 0
-            last_end = -1
-            counts = {}
-            while index < len(rows):
-                start = datetime.fromisoformat(rows[index][0])
-                while end < len(rows) and datetime.fromisoformat(rows[end][0]) - start <= timedelta(minutes=10):
-                    destination = rows[end][1]
-                    counts[destination] = counts.get(destination, 0) + 1
-                    novel_count += rows[end][2] in novel_ids
-                    end += 1
-                # With an unchanged right edge this is a subset of the prior
-                # window; it cannot add evidence or satisfy a new condition.
-                if end != last_end and len(counts) >= 3 and novel_count:
-                    # Bound work and alert amplification; fail the complete batch
-                    # rather than acknowledge only a portion of its evidence.
-                    work += (end - index) * (len(alerts) + 1)
-                    if work > 250000:
-                        raise HistoryError('History storage unavailable')
-                    window = rows[index:end]
-                    ids = [r[2] for r in window]
-                    id_set = set(ids)
-                    # An existing superset already represents this exact window.
-                    covered = any(id_set <= old_ids for _, old_ids in alerts)
-                    if not covered:
-                        candidates = [(d, old_ids) for d, old_ids in alerts if old_ids < id_set]
-                        candidates.sort(key=lambda pair: len(pair[1]), reverse=True)
-                        match = None
-                        old = None
-                        for candidate, _ in candidates:
-                            row = conn.execute('SELECT payload,approval FROM detections WHERE detection_id=?', (candidate,)).fetchone()
-                            if row is None:
-                                raise HistoryError('History storage unavailable')
-                            payload = json.loads(row[0])
-                            if row[1] is None and payload.get('status') != 'approved_for_simulated_response':
-                                match, old = candidate, payload
-                                break
-                        evidence = [f'{len(counts)} unique destinations in ten minutes',
-                                    f'observed period: {window[0][0]} to {window[-1][0]}',
-                                    f'related connection events: {len(window)}',
-                                    'condition: same collector and reported host, at least 3 unique destinations within 10 minutes, outbound connections only',
-                                    'host-level observation; processes, source addresses and actual device identity are not asserted to be the same',
-                                    'multiple connections are not proof of scanning or attack']
-                        mutations += 1
-                        if mutations > 1000:
+            budget = {'work': 0, 'mutations': 0}
+            for lower, upper in intervals:
+                rows = conn.execute('SELECT occurred,destination_key,event_id,host_display FROM stream_events '
+                                    'WHERE collector_id=? AND host_key=? AND outbound=1 '
+                                    'AND occurred>=? AND occurred<=? ORDER BY occurred,event_id LIMIT 50001',
+                                    (collection['collector_id'], host_key, lower.isoformat(), upper.isoformat())).fetchall()
+                # Fail closed rather than silently omit evidence in a pathological window.
+                if len(rows) > 50000:
+                    raise HistoryError('History storage unavailable')
+                # A prior alert has a validated duration <=10 minutes. An alert
+                # containing or contained in a candidate can start at most ten
+                # minutes before the first queried event and must overlap it.
+                existing = conn.execute(
+                    'SELECT spans.detection_id,alerts.event_ids FROM stream_alert_spans AS spans '
+                    'JOIN stream_alerts AS alerts ON alerts.detection_id=spans.detection_id '
+                    'WHERE spans.collector_id=? AND spans.host_key=? AND spans.start_us>=? '
+                    'AND spans.start_us<=? AND spans.end_us>=? ORDER BY alerts.rowid DESC LIMIT 10001',
+                    (collection['collector_id'], host_key, _epoch_microseconds(lower.isoformat()) - 600000000,
+                     _epoch_microseconds(upper.isoformat()), _epoch_microseconds(lower.isoformat()))).fetchall()
+                if len(existing) > 10000 or sum(len(ids) for _, ids in existing) > 8 * 1024 * 1024:
+                    raise HistoryError('History storage unavailable')
+                alerts = [(d, set(json.loads(ids))) for d, ids in existing]
+                novel_ids = {item['event_id'] for item in novel if item['host_key'] == host_key
+                             and item['outbound'] and item['destination_key']}
+                index = end = novel_count = 0
+                last_end = -1
+                counts = {}
+                while index < len(rows):
+                    start = datetime.fromisoformat(rows[index][0])
+                    while end < len(rows) and datetime.fromisoformat(rows[end][0]) - start <= timedelta(minutes=10):
+                        destination = rows[end][1]
+                        counts[destination] = counts.get(destination, 0) + 1
+                        novel_count += rows[end][2] in novel_ids
+                        end += 1
+                    # With an unchanged right edge this is a subset of the prior
+                    # window; it cannot add evidence or satisfy a new condition.
+                    if end != last_end and len(counts) >= 3 and novel_count:
+                        # Bound work and alert amplification; fail the complete batch
+                        # rather than acknowledge only a portion of its evidence.
+                        budget['work'] += (end - index) * (len(alerts) + 1)
+                        if budget['work'] > 250000:
                             raise HistoryError('History storage unavailable')
-                        if match:
-                            old.update(score=min(85,48+8*len(counts)), evidence=evidence, event_ids=ids)
-                            conn.execute('UPDATE detections SET payload=? WHERE detection_id=?', (_encode(old),match))
-                            conn.execute('UPDATE stream_alerts SET event_ids=? WHERE detection_id=?', (_encode(ids),match))
-                            alerts = [(d, id_set if d == match else old_ids) for d, old_ids in alerts]
-                        else:
-                            detection_id = str(uuid4())
-                            detection = {'technique':'T1595', 'title':'Potential multiple-destination connections',
-                                         'score':min(85,48+8*len(counts)), 'source':'correlation',
-                                         'evidence':evidence, 'event_ids':ids, 'host':window[0][3],
-                                         'requires_human_approval':False, 'status':'pending_review',
-                                         'detection_id':detection_id}
-                            conn.execute('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
-                                         (sequence,detection_id,_encode(detection)))
-                            conn.execute('INSERT INTO stream_alerts VALUES (?,?,?,?)',
-                                         (collection['collector_id'],host_key,detection_id,_encode(ids)))
-                            batch['detection_ids'].append(detection_id)
-                            alerts.append((detection_id,id_set))
-                last_end = end
-                # All events at the same occurrence time form one boundary;
-                # their random display IDs never imply an ordering.
-                while index < end:
-                    if datetime.fromisoformat(rows[index][0]) != start:
-                        break
-                    destination = rows[index][1]
-                    counts[destination] -= 1
-                    if counts[destination] == 0:
-                        del counts[destination]
-                    novel_count -= rows[index][2] in novel_ids
-                    index += 1
+                        window = rows[index:end]
+                        ids = [r[2] for r in window]
+                        id_set = set(ids)
+                        # An existing superset already represents this exact window.
+                        covered = any(id_set <= old_ids for _, old_ids in alerts)
+                        if not covered:
+                            candidates = [(d, old_ids) for d, old_ids in alerts if old_ids < id_set]
+                            candidates.sort(key=lambda pair: len(pair[1]), reverse=True)
+                            match = None
+                            old = None
+                            for candidate, _ in candidates:
+                                row = conn.execute('SELECT payload,approval FROM detections WHERE detection_id=?', (candidate,)).fetchone()
+                                if row is None:
+                                    raise HistoryError('History storage unavailable')
+                                payload = json.loads(row[0])
+                                if row[1] is None and payload.get('status') != 'approved_for_simulated_response':
+                                    match, old = candidate, payload
+                                    break
+                            evidence = [f'{len(counts)} unique destinations in ten minutes',
+                                        f'observed period: {window[0][0]} to {window[-1][0]}',
+                                        f'related connection events: {len(window)}',
+                                        'condition: same collector and reported host, at least 3 unique destinations within 10 minutes, outbound connections only',
+                                        'host-level observation; processes, source addresses and actual device identity are not asserted to be the same',
+                                        'multiple connections are not proof of scanning or attack']
+                            budget['mutations'] += 1
+                            if budget['mutations'] > 1000:
+                                raise HistoryError('History storage unavailable')
+                            if match:
+                                old.update(score=min(85,48+8*len(counts)), evidence=evidence, event_ids=ids)
+                                conn.execute('UPDATE detections SET payload=? WHERE detection_id=?', (_encode(old),match))
+                                conn.execute('UPDATE stream_alerts SET event_ids=? WHERE detection_id=?', (_encode(ids),match))
+                                cursor = conn.execute('UPDATE stream_alert_spans SET start_us=?,end_us=? WHERE detection_id=?',
+                                                      (_epoch_microseconds(window[0][0]), _epoch_microseconds(window[-1][0]), match))
+                                if cursor.rowcount != 1:
+                                    raise HistoryError('History storage unavailable')
+                                alerts = [(d, id_set if d == match else old_ids) for d, old_ids in alerts]
+                            else:
+                                detection_id = str(uuid4())
+                                detection = {'technique':'T1595', 'title':'Potential multiple-destination connections',
+                                             'score':min(85,48+8*len(counts)), 'source':'correlation',
+                                             'evidence':evidence, 'event_ids':ids, 'host':window[0][3],
+                                             'requires_human_approval':False, 'status':'pending_review',
+                                             'detection_id':detection_id}
+                                conn.execute('INSERT INTO detections(analysis_sequence,detection_id,payload) VALUES (?,?,?)',
+                                             (sequence,detection_id,_encode(detection)))
+                                conn.execute('INSERT INTO stream_alerts VALUES (?,?,?,?)',
+                                             (collection['collector_id'],host_key,detection_id,_encode(ids)))
+                                conn.execute('INSERT INTO stream_alert_spans VALUES (?,?,?,?,?)',
+                                             (detection_id, collection['collector_id'], host_key,
+                                              _epoch_microseconds(window[0][0]), _epoch_microseconds(window[-1][0])))
+                                batch['detection_ids'].append(detection_id)
+                                alerts.append((detection_id,id_set))
+                    last_end = end
+                    # All events at the same occurrence time form one boundary;
+                    # their random display IDs never imply an ordering.
+                    while index < end:
+                        if datetime.fromisoformat(rows[index][0]) != start:
+                            break
+                        destination = rows[index][1]
+                        counts[destination] -= 1
+                        if counts[destination] == 0:
+                            del counts[destination]
+                        novel_count -= rows[index][2] in novel_ids
+                        index += 1
 
     def save_analysis(self, batch: dict[str, Any], detections: list[dict[str, Any]], collection: dict[str, str] | None = None) -> dict[str, Any] | None:
         try:
