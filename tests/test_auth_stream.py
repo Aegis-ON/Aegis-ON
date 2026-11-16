@@ -210,6 +210,8 @@ def test_same_batch_v3_replay_indexes_old_records(stream):
         for item in entries:
             db.execute('UPDATE stream_events SET fingerprint=? WHERE event_key=?', (item['fingerprint'], item['event_key']))
         db.execute('UPDATE collected_batches SET digest=? WHERE batch_id=?', (digest, 'first'))
+        db.execute('DROP TABLE stream_alert_spans')
+        db.execute('DROP INDEX stream_host_event_id')
         db.execute('DROP TABLE auth_correlation_alerts')
         db.execute('DROP TABLE auth_correlation_events')
         db.execute('DROP TABLE auth_correlation_meta')
