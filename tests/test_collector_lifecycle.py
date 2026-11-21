@@ -3,6 +3,7 @@ import concurrent.futures
 import os
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import tempfile
 import threading
 import unittest
@@ -123,7 +124,7 @@ class CollectorLifecycleTests(unittest.TestCase):
 
     def test_existing_registry_upgrade_preserves_active_credential(self):
         registry=CollectorRegistry(SQLiteHistory(self.path));old=registry.register('existing')
-        with sqlite3.connect(self.path) as db:db.execute('DROP TABLE collector_credential_changes')
+        with closing(sqlite3.connect(self.path)) as db, db:db.execute('DROP TABLE collector_credential_changes')
         reopened=CollectorRegistry(SQLiteHistory(self.path));self.assertTrue(reopened.authenticate('existing',old))
         self.assertEqual(reopened.list_collectors()[0]['credential_state'],'active')
         reopened.revoke('existing');self.assertFalse(reopened.authorize('existing','legacy-synthetic-token','legacy-synthetic-token'))

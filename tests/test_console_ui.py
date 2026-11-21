@@ -20,13 +20,13 @@ const document={querySelector:q=>entries[q]||null,createElement:tag=>new E(tag)}
 const window={prompt:()=> 'temporary-token'};const location={pathname:'/console/detections'};
 let host='old-sensitive-host',calls=0;
 const fetch=async(url,opts)=>{assert.equal(opts.headers.Authorization,undefined);calls++;let data={analyses:[{analysis_id:'a',analyzed_at:'2026-01-01T00:00:00Z',detection_ids:['d'],event_refs:[{input_index:0,event_id:'e'}]}],detections:[{detection_id:'d',technique:'T1105',title:'synthetic',source:'rule',score:58,host,event_ids:['e'],evidence:[],status:'pending_review'}]};return {ok:true,json:async()=>data}};
-vm.runInNewContext(process.argv[1],{document,window,location,fetch,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array});
+vm.runInNewContext(require('fs').readFileSync(0,'utf8'),{document,window,location,fetch,Node:E,encodeURIComponent,decodeURIComponent,Number,String,Array});
 function walk(e,p){if(p(e))return e;for(const c of e.children){let x=walk(c,p);if(x)return x}return null}
 (async()=>{entries['#load'].handlers.click();await new Promise(resolve=>setImmediate(resolve));let detail=walk(entries['#view'],e=>e.tag==='button'&&e.textContent.includes('synthetic'));assert(detail);host='[HOST:masked]';await detail.handlers.click();assert.equal(calls,2);assert(entries['#view'].textContent.includes('[HOST:masked]'));assert(!entries['#view'].textContent.includes('old-sensitive-host'));
 let query=walk(entries['#view'],e=>e.tag==='input'&&e.placeholder==='기법 또는 탐지명');assert(query);query.value='not-found';query.handlers.input();assert(entries['#view'].textContent.includes('조건에 맞는 탐지가 없습니다.'));
 })().catch(e=>{console.error(e);process.exit(1)});
 '''
-        result = subprocess.run(['node', '-e', harness, code], capture_output=True, text=True)
+        result = subprocess.run(['node', '-e', harness], input=code, capture_output=True, text=True, encoding='utf-8')
         self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(shutil.which('node'), 'Node.js required')

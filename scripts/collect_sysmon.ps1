@@ -33,7 +33,7 @@ if ($UseLegacySharedToken) {
 } else {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'Collector credential protection requires Windows DPAPI.' }
     if ([string]::IsNullOrWhiteSpace($CredentialPath)) { throw 'Set CredentialPath to a private location outside the repository.' }
-    $credentialFile = [IO.Path]::GetFullPath($CredentialPath)
+    $credentialFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CredentialPath)
     if ($InitializeCredential) {
         if ([IO.File]::Exists($credentialFile)) { throw 'Credential file already exists; do not overwrite it.' }
         $secure = Read-Host 'Enter the collector credential issued by the server' -AsSecureString
@@ -63,19 +63,19 @@ if (-not [Uri]::TryCreate($ServerUrl, [System.UriKind]::Absolute, [ref]$server) 
 }
 $base = $server.GetLeftPart([System.UriPartial]::Authority).TrimEnd('/')
 $headers = @{ Authorization = "Bearer $collectorSecret"; 'X-Collector-ID' = $CollectorId }
-$cursor = [IO.Path]::GetFullPath($CursorPath)
+$cursor = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CursorPath)
 $dir = [IO.Path]::GetDirectoryName($cursor)
 if (-not [IO.Directory]::Exists($dir)) { throw 'Cursor directory does not exist.' }
 # Exclusive lease prevents two local instances sharing a checkpoint.
 $lease = [IO.File]::Open("$cursor.lock", [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-function Send-Heartbeat([string]$state, [string]$code = $null) {
+function Send-Heartbeat([string]$state, $code = $null) {
     $body = @{state=$state; error_code=$code} | ConvertTo-Json -Compress
     try { Invoke-RestMethod -Method Post -Uri "$base/api/v1/collectors/$CollectorId/heartbeat" -Headers $headers -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 10 -MaximumRedirection 0 | Out-Null } catch { Write-Warning 'Collector heartbeat failed; retrying.' }
 }
 function Write-Cursor([long]$id) {
     $temporary = "$cursor.tmp"
     [IO.File]::WriteAllText($temporary, [string]$id, [Text.Encoding]::ASCII)
-    if ([IO.File]::Exists($cursor)) { [IO.File]::Replace($temporary, $cursor, $null) }
+    if ([IO.File]::Exists($cursor)) { [IO.File]::Replace($temporary, $cursor, [System.Management.Automation.Language.NullString]::Value) }
     else { [IO.File]::Move($temporary, $cursor) }
 }
 function Get-ChannelEdge([switch]$Oldest) {

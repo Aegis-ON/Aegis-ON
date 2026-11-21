@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -56,7 +57,7 @@ class SessionTests(unittest.TestCase):
         raw = Path(self.path).read_bytes()
         self.assertNotIn(ticket.session_token.encode(), raw)
         self.assertNotIn(self.password.encode(), raw)
-        with sqlite3.connect(self.path) as conn:
+        with closing(sqlite3.connect(self.path)) as conn, conn:
             self.assertNotEqual(conn.execute('SELECT token_hash FROM sessions').fetchone()[0], ticket.session_token)
         if os.name == 'posix':
             self.assertEqual(os.stat(self.path).st_mode & 0o777, 0o600)
@@ -78,7 +79,7 @@ class SessionTests(unittest.TestCase):
         with self.assertRaises(AuthStorageError):
             AuthSessions(self.path, 'analyst', self.password_hash, 'Analyst')
         Path(self.path).unlink()
-        with sqlite3.connect(self.path) as conn:
+        with closing(sqlite3.connect(self.path)) as conn, conn:
             conn.execute('PRAGMA user_version = 999')
         os.chmod(self.path, 0o600)
         with self.assertRaises(AuthStorageError):
@@ -107,6 +108,10 @@ class SessionTests(unittest.TestCase):
                                     'AEGIS_SESSION_TTL_SECONDS': '59'}, clear=True):
             with self.assertRaises(AuthConfigurationError):
                 AuthSessions.from_environment()
+        with patch.dict(os.environ, {'AEGIS_LOGIN_USERNAME': 'analyst', 'AEGIS_LOGIN_PASSWORD_HASH': self.password_hash,
+                                    'AEGIS_ANALYST_NAME': 'Analyst', 'AEGIS_AUTH_DB': self.path}, clear=True):
+            with patch('aegis_on.auth_sessions.Path.home', side_effect=RuntimeError('home unavailable')):
+                self.assertIsNotNone(AuthSessions.from_environment())
 
 
 if __name__ == '__main__':
