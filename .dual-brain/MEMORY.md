@@ -2,6 +2,10 @@
 
 ## Hot Memory
 
+- [constraint][refs:1][last_referenced:2026-11-16][last_verified:2026-11-16] The draft layered relationship view draws observation-to-event and event-to-detection edges only when endpoint and history snapshots support the association; duplicate or ambiguous displayed event IDs are excluded. It must not imply physical identity, network connectivity, or attack order. Evidence: frontend/src/RelationshipLayers.jsx, frontend/test/dashboard.test.cjs and docs/astryx_dashboard_review.md. Draft pending review.
+
+- [decision][refs:1][last_referenced:2026-11-16][last_verified:2026-11-16] Draft Astryx dashboard work uses a quiet dark palette and Astryx components, retains live API data and simulation/privacy notices, and self-hosts its bundled assets. Its jsdom tests do not establish real browser rendering, focus, or clipboard behavior; actual browser review remains needed. Evidence: frontend/src/App.jsx, frontend/src/dashboard.css and docs/astryx_dashboard_review.md. This decision is pending review and merge.
+
 - [constraint][refs:1][last_referenced:2026-11-11][last_verified:2026-11-11] Aegis-ON targets multi-source security monitoring, not attribution to specific tools. Normalized auth collection supports collector-scoped cross-batch correlation; authentication-to-Sysmon chains are not implemented because trusted asset and account bindings are absent. The command model is not an authentication model; evidence and limits: docs/multisource_prototype.md, src/aegis_on/auth_log.py and tests/test_auth_ingestion.py.
 
 - [decision][refs:1][last_referenced:2026-11-09][last_verified:2026-11-09] The MVP uses a configured bearer token tied to one configured analyst identity; it is not multi-user authentication. Sensitive API endpoints and the demo event file require the token. Evidence: src/aegis_on/api.py and tests/test_api_regressions.py.

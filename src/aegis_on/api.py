@@ -171,7 +171,7 @@ class CollectorRegistration(BaseModel):
 
 @app.get('/login', include_in_schema=False)
 def login_page() -> FileResponse:
-    return FileResponse('static/login.html', headers={'Cache-Control': 'no-store'})
+    return FileResponse('static/astryx/index.html', headers={'Cache-Control': 'no-store'})
 
 
 @app.post('/api/v1/login')
@@ -239,7 +239,7 @@ def logout(request: Request, analyst: str = Depends(authenticated_analyst)):
 
 @app.get("/", include_in_schema=False)
 def dashboard() -> FileResponse:
-    return FileResponse("static/console.html")
+    return FileResponse('static/astryx/index.html', headers={'Cache-Control': 'no-store'})
 
 
 @app.get('/console/analysis', include_in_schema=False)
@@ -253,12 +253,20 @@ def analysis_console() -> FileResponse:
 @app.get('/console/events', include_in_schema=False)
 @app.get('/console/history', include_in_schema=False)
 def console_page() -> FileResponse:
-    return FileResponse('static/console.html')
+    return FileResponse('static/astryx/index.html', headers={'Cache-Control': 'no-store'})
 
 
 @app.get('/console/endpoints/{endpoint_id}', include_in_schema=False)
 def endpoint_console_page(endpoint_id: str) -> FileResponse:
-    return FileResponse('static/console.html')
+    return FileResponse('static/astryx/index.html', headers={'Cache-Control': 'no-store'})
+
+
+@app.get('/assets/aegis/{asset}', include_in_schema=False)
+def dashboard_asset(asset: str) -> FileResponse:
+    # The dashboard is self-hosted. Reject arbitrary paths rather than exposing the directory.
+    if asset not in {'app.js', 'app.css'}:
+        raise HTTPException(status_code=404, detail='not found')
+    return FileResponse(f'static/astryx/{asset}', headers={'Cache-Control': 'no-cache'})
 
 
 @app.get("/api/v1/health")
