@@ -274,6 +274,23 @@ body {
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
+.soc-evidence-table:focus-visible {
+  outline: 2px solid #a9cbd9;
+  outline-offset: 3px;
+}
+.soc-evidence-table td button {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.soc-evidence-table td button span {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
 .soc-table-wrap th,
 .soc-table-wrap td {
   padding: 10px 12px;
