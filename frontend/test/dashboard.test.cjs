@@ -128,6 +128,66 @@ function baseHandler(data, override) {
   };
 }
 
+test("recent events sort by occurrence before limiting, independent of batch arrival", async () => {
+  const data = syntheticHistory();
+  data.detections = [];
+  const event = (id, timestamp) => ({
+    event_id: id,
+    timestamp,
+    sysmon_event_id: 3,
+    host: "lab",
+    log_source: "sysmon",
+  });
+  data.analyses = [
+    {
+      analysis_id: "newer-batch",
+      received_at: "2026-11-16T13:00:00Z",
+      source_events: Array.from({ length: 12 }, (_, i) =>
+        event(`old-${i}`, `2026-11-16T10:${String(i).padStart(2, "0")}:00Z`),
+      ),
+    },
+    {
+      analysis_id: "late-batch",
+      received_at: "2026-11-16T09:00:00Z",
+      source_events: [
+        event("newest", "2026-11-16T20:30:00+09:00"),
+        event("micros-early", "2026-11-16T11:01:00.123001Z"),
+        event("micros-late", "2026-11-16T20:01:00.123999+09:00"),
+        event("utc-naive", "2026-11-16T11:00:00"),
+        event("same-a", "2026-11-16T11:00:00Z"),
+        event("same-b", "2026-11-16T11:00:00Z"),
+        event("bad-time", "not-a-date"),
+        event("no-time", null),
+      ],
+    },
+  ];
+  const { dom, doc, errors } = mount("/", baseHandler(data));
+  try {
+    await until(() => button(doc, "newest"));
+    const panel = [...doc.querySelectorAll("section")].find(
+      (el) => el.querySelector("h2")?.textContent === "최근 이벤트",
+    );
+    const ids = [...panel.querySelectorAll("tbody button")].map(text);
+    assert.equal(ids.length, 12);
+    assert.deepEqual(ids.slice(0, 6), [
+      "newest",
+      "micros-late",
+      "micros-early",
+      "utc-naive",
+      "same-a",
+      "same-b",
+    ]);
+    assert.ok(!ids.includes("bad-time") && !ids.includes("no-time"));
+    assert.ok(!ids.includes("old-0"));
+    button(doc, "newest", panel).click();
+    await until(() => doc.querySelector('[aria-label="상세 정보"]'));
+    assert.match(text(doc.querySelector('[aria-label="상세 정보"]')), /newest/);
+    assert.equal(errors.length, 0, errors.join("\n"));
+  } finally {
+    dom.window.close();
+  }
+});
+
 test("detection, related evidence, simulated approval and CSRF", async () => {
   const data = syntheticHistory();
   let request;
@@ -153,6 +213,11 @@ test("detection, related evidence, simulated approval and CSRF", async () => {
     await until(() => doc.querySelector('[aria-label="상세 정보"]'));
     const detail = doc.querySelector('[aria-label="상세 정보"]');
     assert.match(text(detail), /3 destinations/);
+    const scroller = detail.querySelector(
+      '[aria-label="관련 이벤트 표, 가로로 스크롤 가능"]',
+    );
+    assert.ok(scroller);
+    assert.equal(scroller.getAttribute("tabindex"), "0");
     assert.match(text(detail), /collector-test/);
     assert.match(text(detail), /실제 차단이 아닌 시뮬레이션/);
     button(doc, "시뮬레이션 승인", detail).click();
