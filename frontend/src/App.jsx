@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Dialog } from "@astryxdesign/core/Dialog";
-import { Table } from "@astryxdesign/core/Table";
+import { Table, pixel } from "@astryxdesign/core/Table";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { DateInput } from "@astryxdesign/core/DateInput";
@@ -67,13 +67,32 @@ const severity = (score) =>
       : Number(score) >= 40
         ? "중간"
         : "낮음";
-const cols = (pairs) =>
+const evidenceWidths = {
+  time: 230,
+  received: 230,
+  host: 150,
+  kind: 150,
+  event_id: 360,
+  source: 200,
+  outcome: 100,
+  related: 100,
+  collector: 150,
+  group: 220,
+  input: 120,
+};
+const cols = (pairs, wide) =>
   pairs.map(([key, header, renderCell]) => ({
     key,
     header,
+    ...(wide ? { width: pixel(evidenceWidths[key] || 120) } : {}),
     ...(renderCell ? { renderCell } : { renderCell: (row) => fmt(row[key]) }),
   }));
-function DataTable({ rows, columns, empty = "표시할 데이터가 없습니다." }) {
+function DataTable({
+  rows,
+  columns,
+  empty = "표시할 데이터가 없습니다.",
+  wide = false,
+}) {
   const duplicates = new Map();
   const keyed = rows.map((r) => {
     const e = r.event;
@@ -110,11 +129,16 @@ function DataTable({ rows, columns, empty = "표시할 데이터가 없습니다
     return { ...r, _rowid: `${key}:${count}` };
   });
   return rows.length ? (
-    <div className="soc-table-wrap">
+    <div
+      className={`soc-table-wrap${wide ? " soc-evidence-table" : ""}`}
+      role={wide ? "region" : undefined}
+      aria-label={wide ? "관련 이벤트 표, 가로로 스크롤 가능" : undefined}
+      tabIndex={wide ? 0 : undefined}
+    >
       <Table
         data={keyed}
         idKey="_rowid"
-        columns={cols(columns)}
+        columns={cols(columns, wide)}
         density="compact"
       />
     </div>
@@ -736,9 +760,52 @@ function Console({ path }) {
     setDialog(null);
     refresh();
   };
-  const allEvents = data.analyses.flatMap((batch) =>
-    evs(batch).map((event) => ({ batch, event })),
-  );
+  const allEvents = data.analyses
+    .flatMap((batch) => evs(batch).map((event) => ({ batch, event })))
+    .map((row, index) => ({
+      ...row,
+      _eventOrder: index,
+      // The API treats timestamps without an offset as UTC.
+      _eventTime:
+        typeof row.event.timestamp === "string"
+          ? Date.parse(
+              /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(
+                row.event.timestamp,
+              )
+                ? `${row.event.timestamp}Z`
+                : row.event.timestamp,
+            )
+          : NaN,
+      // Date.parse discards precision after milliseconds; retain it for ties.
+      _subMillisecond:
+        typeof row.event.timestamp === "string"
+          ? (
+              row.event.timestamp.match(
+                /\.(\d+)(?:Z|[+-]\d{2}:?\d{2})?$/i,
+              )?.[1] || ""
+            ).slice(3)
+          : "",
+    }))
+    .sort((a, b) => {
+      const aValid = Number.isFinite(a._eventTime);
+      const bValid = Number.isFinite(b._eventTime);
+      if (aValid && bValid) {
+        const byMillis = b._eventTime - a._eventTime;
+        if (byMillis) return byMillis;
+        const precision = Math.max(
+          a._subMillisecond.length,
+          b._subMillisecond.length,
+        );
+        const aFraction = a._subMillisecond.padEnd(precision, "0");
+        const bFraction = b._subMillisecond.padEnd(precision, "0");
+        return (
+          (aFraction < bFraction ? 1 : aFraction > bFraction ? -1 : 0) ||
+          a._eventOrder - b._eventOrder
+        );
+      }
+      if (aValid !== bValid) return aValid ? -1 : 1;
+      return a._eventOrder - b._eventOrder;
+    });
   const endpointEventMatch = (e) => {
     const group = endpoint?.endpoint,
       ids = new Set(group?.analysis_ids || [group?.analysis_id]);
@@ -1045,6 +1112,7 @@ function Console({ path }) {
             <h3>관련 이벤트 · 가명처리된 메타데이터</h3>
             <DataTable
               rows={related}
+              wide
               columns={[
                 ...eventColumns,
                 ["collector", "수집기", (r) => fmt(r.event.collector_id)],
