@@ -11,6 +11,14 @@ from .models import Detection, DetectionSource, SecurityEvent
 class RuleDetector:
     """Small explainable ruleset. Production rules should be managed as Sigma files."""
 
+    # A bare curl version query does not fetch a remote tool. Keep this narrow:
+    # flags with arguments, shell operators, and lower-case -v must still be
+    # analyzed, and no other rule or baseline is suppressed.
+    CURL_VERSION_QUERY = re.compile(
+        r'^\s*(?i:(?:"[^"\r\n]*[\\/]curl(?:\.exe)?"|(?:[^\s";&|]*[\\/])?curl(?:\.exe)?))'
+        r'\s+(?:--version|-V)\s*$'
+    )
+
     RULES = (
         (
             "T1485",
@@ -42,6 +50,8 @@ class RuleDetector:
     def detect(self, event: SecurityEvent) -> list[Detection]:
         findings: list[Detection] = []
         for technique, title, score, pattern in self.RULES:
+            if technique == "T1105" and self.CURL_VERSION_QUERY.fullmatch(event.command_line):
+                continue
             match = pattern.search(event.command_line)
             if not match:
                 continue
