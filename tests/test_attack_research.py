@@ -89,7 +89,7 @@ class AttackResearchTests(unittest.TestCase):
     def test_authenticated_api_reports_unavailable_without_changing_detection(self):
         with patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst'}):
             api.service = DetectionService()
-            with TestClient(api.app) as client:
+            with TestClient(api.app, base_url='https://testserver') as client:
                 self.assertEqual(client.get('/api/v1/attack-model/status').status_code, 401)
                 headers = {'Authorization': 'Bearer test-secret'}
                 self.assertEqual(client.get('/api/v1/attack-model/status', headers=headers).json()['state'], 'disabled')

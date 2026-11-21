@@ -70,7 +70,7 @@ class PiiApiTests(unittest.TestCase):
         self.env.start()
         self.old_service, self.old_detector = api.service, api.pii_detector
         api.service, api.pii_detector = DetectionService(), PIIDetector()
-        self.client = TestClient(api.app)
+        self.client = TestClient(api.app, base_url='https://testserver')
         self.headers = {'Authorization': 'Bearer test-token'}
 
     def tearDown(self):

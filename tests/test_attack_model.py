@@ -54,7 +54,7 @@ class AttackModelTests(unittest.TestCase):
         self.addCleanup(setattr,api,'attack_model',previous)
         self.addCleanup(setattr,api,'service',api.service)
         api.attack_model=Fake(); api.service=DetectionService()
-        with patch.dict('os.environ',{'AEGIS_API_TOKEN':'token','AEGIS_ANALYST_NAME':'analyst'},clear=True),TestClient(api.app) as client:
+        with patch.dict('os.environ',{'AEGIS_API_TOKEN':'token','AEGIS_ANALYST_NAME':'analyst'},clear=True),TestClient(api.app, base_url='https://testserver') as client:
             h={'Authorization':'Bearer token'}
             event={'timestamp':'2026-01-01T00:00:00Z','host':'lab','user':'a','process':'curl','command_line':'curl secret','event_id':'evt'}
             response=client.post('/api/v1/analyze',json={'events':[event]},headers=h)

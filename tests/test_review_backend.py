@@ -14,7 +14,7 @@ class BackendReviewRegressions(unittest.TestCase):
         self.env = patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst-1'})
         self.env.start()
         api.service = DetectionService()
-        self.client = TestClient(api.app, raise_server_exceptions=False)
+        self.client = TestClient(api.app, base_url='https://testserver', raise_server_exceptions=False)
         self.headers = {'Authorization': 'Bearer test-secret'}
         self.sample = json.loads(Path('data/demo_sysmon.json').read_text(encoding='utf-8'))['events']
 

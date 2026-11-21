@@ -73,12 +73,17 @@ class DetectionService:
                 'display': [self._display_detection(detection, host_overrides) for detection in detections],
                 'conservative': [self._display_detection(detection, {}) for detection in detections]}
 
-    def commit_analysis(self, prepared: dict[str, Any], batch: dict[str, Any] | None) -> None:
+    def commit_analysis(self, prepared: dict[str, Any], batch: dict[str, Any] | None,
+                        collection: dict[str, str] | None = None) -> dict[str, Any] | None:
         if self.history is not None:
             if batch is None:
                 raise ValueError('persistent analysis metadata required')
+            if collection is not None:
+                return self.history.save_analysis(batch, prepared['conservative'], collection)
             self.history.save_analysis(batch, prepared['conservative'])
-            return
+            return None
+        if collection is not None:
+            raise ValueError('persistent storage is required for collection')
         with self._lock:
             for detection in prepared['objects']:
                 self._detections[detection.detection_id] = detection

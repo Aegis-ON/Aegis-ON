@@ -16,3 +16,8 @@ models/
 *.sqlite3-*
 *.db
 *.db-*
+*.correlation-key
+.aegis-correlation-*
+
+# Astryx dashboard dependencies; production assets are committed for Python-only deployments.
+frontend/node_modules/

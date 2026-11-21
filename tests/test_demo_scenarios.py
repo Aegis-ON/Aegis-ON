@@ -12,7 +12,7 @@ class DemoScenariosTests(unittest.TestCase):
         self.env = patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst-1'})
         self.env.start()
         api.service = DetectionService()
-        self.client = TestClient(api.app)
+        self.client = TestClient(api.app, base_url='https://testserver')
         self.headers = {'Authorization': 'Bearer test-secret'}
 
     def tearDown(self):

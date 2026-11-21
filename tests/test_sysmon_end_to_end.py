@@ -18,7 +18,7 @@ class SysmonEndToEndTests(unittest.TestCase):
         sample = sample_path.read_bytes()
         with patch.dict('os.environ', {'AEGIS_API_TOKEN': 'test-secret', 'AEGIS_ANALYST_NAME': 'analyst-1'}):
             api.service = DetectionService()
-            with TestClient(api.app) as client:
+            with TestClient(api.app, base_url='https://testserver') as client:
                 response = client.post('/api/v1/sysmon/analyze', content=sample, headers={
                     'Authorization': 'Bearer test-secret', 'Content-Type': 'application/json'})
                 self.assertEqual(response.status_code, 200, response.text)

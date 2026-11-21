@@ -33,7 +33,7 @@ class HistoryTests(unittest.TestCase):
         api.service=DetectionService(SQLiteHistory(self.path));api.attack_model=AttackModel();api.pii_detector=PIIDetector()
         self.env=patch.dict('os.environ',{'AEGIS_API_TOKEN':'token-example-123','AEGIS_ANALYST_NAME':'analyst-1'},clear=False)
         self.env.start();self.addCleanup(self.env.stop)
-        self.client=TestClient(api.app);self.addCleanup(self.client.close)
+        self.client=TestClient(api.app, base_url='https://testserver');self.addCleanup(self.client.close)
         self.headers={'Authorization':'Bearer token-example-123'}
 
     def restore(self): api.service,api.attack_model,api.pii_detector=self.old
