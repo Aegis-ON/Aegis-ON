@@ -113,8 +113,12 @@ class AuthSessions:
             ttl = int(os.getenv('AEGIS_SESSION_TTL_SECONDS', '3600'))
         except ValueError:
             raise AuthConfigurationError('Invalid session TTL') from None
-        history = os.getenv('AEGIS_HISTORY_DB', str(Path.home() / '.aegis-on' / 'history.sqlite3'))
-        path = os.getenv('AEGIS_AUTH_DB', history + '.auth')
+        path = os.getenv('AEGIS_AUTH_DB')
+        if path is None:
+            history = os.getenv('AEGIS_HISTORY_DB')
+            if history is None:
+                history = str(Path.home() / '.aegis-on' / 'history.sqlite3')
+            path = history + '.auth'
         return cls(path, username, password_hash, analyst, ttl_seconds=ttl)
 
     def _open(self) -> sqlite3.Connection:

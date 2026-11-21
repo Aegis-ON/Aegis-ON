@@ -108,6 +108,10 @@ class SessionTests(unittest.TestCase):
                                     'AEGIS_SESSION_TTL_SECONDS': '59'}, clear=True):
             with self.assertRaises(AuthConfigurationError):
                 AuthSessions.from_environment()
+        with patch.dict(os.environ, {'AEGIS_LOGIN_USERNAME': 'analyst', 'AEGIS_LOGIN_PASSWORD_HASH': self.password_hash,
+                                    'AEGIS_ANALYST_NAME': 'Analyst', 'AEGIS_AUTH_DB': self.path}, clear=True):
+            with patch('aegis_on.auth_sessions.Path.home', side_effect=RuntimeError('home unavailable')):
+                self.assertIsNotNone(AuthSessions.from_environment())
 
 
 if __name__ == '__main__':
