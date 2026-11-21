@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import tempfile
@@ -104,7 +105,7 @@ print(json.dumps(r,sort_keys=True))
 
     def test_upgrade_schema_v1_preserves_analysis_and_approval(self):
         # Existing DB has v1 tables. Migration is an atomic transaction.
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute('CREATE TABLE analyses (sequence INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL)')
             db.execute('CREATE TABLE detections (sequence INTEGER PRIMARY KEY AUTOINCREMENT, analysis_sequence INTEGER NOT NULL REFERENCES analyses(sequence), detection_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, approval TEXT)')
             db.execute('INSERT INTO analyses(payload) VALUES (?)', ('{"analysis_id":"old"}',))
@@ -113,7 +114,7 @@ print(json.dumps(r,sort_keys=True))
         os.chmod(self.path,0o600)
         analyses,detections=SQLiteHistory(self.path).list_snapshot()
         self.assertEqual(analyses[0]['analysis_id'],'old');self.assertEqual(detections[0]['approval']['rationale'],'first')
-        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],5)
+        with closing(sqlite3.connect(self.path)) as db, db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],5)
 
     def test_separate_batches_fanout_dedup_restart_and_conflict(self):
         events = []
@@ -169,11 +170,11 @@ print(json.dumps(r,sort_keys=True))
         event = make_event(1, 901)
         first = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers=self.headers)
         self.assertEqual(first.status_code, 200, first.text)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute('UPDATE stream_events SET fingerprint=?', ('a' * 64,))
         retry = self.client.post('/api/v1/ingest/sysmon', json={'events':[event]}, headers={**self.headers, 'Idempotency-Key':'legacy-retry'})
         self.assertEqual(retry.status_code, 409)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             self.assertEqual(db.execute('SELECT fingerprint FROM stream_events').fetchone()[0], 'a' * 64)
 
     def test_inbound_and_late_events_do_not_inflate(self):
@@ -236,7 +237,7 @@ print(json.dumps(r,sort_keys=True))
         self.assertEqual(failed.status_code,503)
         self.assertNotIn('private',failed.text)
         self.assertEqual(self.client.get('/api/v1/history',headers=self.headers).json()['analyses'],[])
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             self.assertEqual(db.execute('SELECT count(*) FROM stream_events').fetchone()[0],0)
             self.assertEqual(db.execute('SELECT count(*) FROM collected_batches').fetchone()[0],0)
         retried=self.client.post('/api/v1/ingest/sysmon',json=self.body,headers=self.headers)
@@ -255,7 +256,7 @@ s.save_analysis(b,[],{'collector_id':'c','batch_id':'b','input_type':'sysmon','d
 '''
         child=subprocess.run([sys.executable,'-c',script,str(self.path)],env={**os.environ,'PYTHONPATH':'src'})
         self.assertEqual(child.returncode,31)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             for table in ('stream_events','collected_batches','analyses','detections'):
                 self.assertEqual(db.execute(f'SELECT count(*) FROM {table}').fetchone()[0],0)
         retry=self.client.post('/api/v1/ingest/sysmon',json=self.body,headers=self.headers)
@@ -269,7 +270,7 @@ s.save_analysis(b,[],{'collector_id':'c','batch_id':'b','input_type':'sysmon','d
         approval=self.client.post(f'/api/v1/detections/{detection}/approval',headers=self.headers,
                                   json={'analyst':'analyst-1','rationale':'reviewed'})
         self.assertEqual(approval.status_code,200)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute('DROP TABLE stream_alert_spans')
             db.execute('DROP INDEX stream_host_event_id')
             db.execute('DROP TABLE auth_correlation_alerts')
@@ -284,16 +285,16 @@ s.save_analysis(b,[],{'collector_id':'c','batch_id':'b','input_type':'sysmon','d
         self.assertEqual(next(d for d in after['detections'] if d['detection_id']==detection)['approval']['rationale'],'reviewed')
         replay=self.client.post('/api/v1/ingest/sysmon',json=self.body,headers=self.headers)
         self.assertTrue(replay.json()['replayed'])
-        with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],5)
+        with closing(sqlite3.connect(self.path)) as db, db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],5)
 
     def test_malformed_v1_migration_fails_without_changing_schema(self):
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute('CREATE TABLE analyses (sequence INTEGER PRIMARY KEY, payload TEXT NOT NULL)')
             db.execute('PRAGMA user_version=1')
         os.chmod(self.path, 0o600)
         with self.assertRaises(HistoryError):
             SQLiteHistory(self.path).list_snapshot()
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 1)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='collectors'").fetchone())
 

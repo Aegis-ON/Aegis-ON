@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import socket
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import tempfile
@@ -122,7 +123,7 @@ class HistoryTests(unittest.TestCase):
         r=self.client.get('/api/v1/history',headers=self.headers)
         self.assertEqual(r.status_code,503);self.assertNotIn(str(self.path),r.text)
         self.path.unlink()
-        with sqlite3.connect(self.path) as conn: conn.execute('PRAGMA user_version=99')
+        with closing(sqlite3.connect(self.path)) as conn, conn: conn.execute('PRAGMA user_version=99')
         self.assertEqual(self.client.get('/api/v1/history',headers=self.headers).status_code,503)
 
     def test_database_transaction_rolls_back_duplicate_detection(self):

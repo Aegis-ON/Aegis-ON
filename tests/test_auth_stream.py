@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -112,7 +113,7 @@ def test_hmac_fingerprints_group_and_key_replacement(stream):
     send, history, path, _ = stream
     records = [event(i) for i in range(4)]
     assert send(records, 'first').status_code == 200
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert all(x[0].startswith('hmac-v2:') for x in db.execute('SELECT fingerprint FROM stream_events'))
         assert db.execute('SELECT digest FROM collected_batches').fetchone()[0].startswith('hmac-v2:')
         groups = {x[0] for x in db.execute('SELECT group_key FROM auth_correlation_events')}
@@ -137,7 +138,7 @@ def test_key_write_failure_is_recoverable(stream):
 
 def test_damaged_v3_migration_rolls_back(tmp_path):
     path = tmp_path / 'bad.sqlite3'
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute('CREATE TABLE stream_events (event_key TEXT, fingerprint TEXT, collector_id TEXT, host_key TEXT, occurred TEXT, destination_key TEXT, outbound INTEGER, event_id TEXT, host_display TEXT)')
         db.execute('CREATE TABLE stream_alerts (collector_id TEXT, host_key TEXT, detection_id TEXT, event_ids TEXT)')
         db.execute('PRAGMA user_version=3')
@@ -145,7 +146,7 @@ def test_damaged_v3_migration_rolls_back(tmp_path):
     from aegis_on.history_store import HistoryError
     with pytest.raises(HistoryError):
         SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 3
         assert db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'auth_correlation_%'").fetchone()[0] == 0
 
@@ -155,7 +156,7 @@ def test_sparse_old_and_new_changes_do_not_scan_in_between(tmp_path):
     store = SQLiteHistory(tmp_path / 'sparse.db')
     store.list_collectors()
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    with sqlite3.connect(store.path) as db:
+    with closing(sqlite3.connect(store.path)) as db, db:
         db.execute('BEGIN')
         for i in range(5010):
             key = f'e{i}'
@@ -206,7 +207,7 @@ def test_same_batch_v3_replay_indexes_old_records(stream):
     request = client.build_request('POST', '/api/v1/ingest/auth', json={'events':records}, headers=headers)
     digest = hashlib.sha256(request.content).hexdigest()
     _, entries = normalize_auth({'events':records}, 'one')
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         for item in entries:
             db.execute('UPDATE stream_events SET fingerprint=? WHERE event_key=?', (item['fingerprint'], item['event_key']))
         db.execute('UPDATE collected_batches SET digest=? WHERE batch_id=?', (digest, 'first'))
@@ -220,7 +221,7 @@ def test_same_batch_v3_replay_indexes_old_records(stream):
     api.service = DetectionService(SQLiteHistory(path))
     replay = send(records, 'first')
     assert replay.status_code == 200 and replay.json()['replayed']
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('SELECT count(*) FROM auth_correlation_events').fetchone()[0] == 3
         assert all(row[0].startswith('hmac-v2:') for row in db.execute('SELECT fingerprint FROM stream_events'))
     assert send([event(3)], 'success').status_code == 200
@@ -231,7 +232,7 @@ def test_many_separated_changed_windows_do_not_merge_unboundedly(tmp_path):
     from datetime import datetime, timedelta, timezone
     store = SQLiteHistory(tmp_path / 'dense.db'); store.list_collectors()
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    with sqlite3.connect(store.path) as db:
+    with closing(sqlite3.connect(store.path)) as db, db:
         for i in range(5001):
             key, ts = f'e{i}', (start + timedelta(minutes=i)).isoformat()
             db.execute('INSERT INTO stream_events VALUES (?,?,?,?,?,?,?,?,?)', (key, 'f', 'c', 'h', ts, None, 0, key, 'host'))

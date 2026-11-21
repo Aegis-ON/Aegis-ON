@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from contextlib import closing
 import time
 from contextlib import contextmanager
 
@@ -49,7 +50,7 @@ def make_v4(path, count=1, ids_per_alert=3, *, missing=False, approved=False):
     ids = [f'00000000-0000-4000-8000-{i:012d}' for i in range(ids_per_alert)]
     ids_json = json.dumps(ids, separators=(',', ':'))
     key = host_key()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.executescript(schema)
         db.execute('INSERT INTO analyses(payload) VALUES (?)', (json.dumps({'analysis_id': 'old-batch'}),))
         records = [(f'old-key-{i}', 'full-v1:' + 'a' * 64, 'collector-a', key,
@@ -89,7 +90,7 @@ def client_at(path, monkeypatch):
 def test_old_unrelated_alert_volume_no_longer_blocks_collection(tmp_path, monkeypatch, count, ids_per_alert):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, count, ids_per_alert, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         n, size = db.execute('SELECT count(*),sum(length(event_ids)) FROM stream_alerts').fetchone()
         old = db.execute('SELECT payload,approval FROM detections WHERE detection_id=?', ('old-alert-0',)).fetchone()
     assert n == count
@@ -102,7 +103,7 @@ def test_old_unrelated_alert_volume_no_longer_blocks_collection(tmp_path, monkey
         assert response.json()['summary']['processed'] == 3
         replay = send(client, 'fresh-replay', rows)
         assert replay.status_code == 200 and replay.json()['summary']['duplicate'] == 3
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             assert db.execute('PRAGMA user_version').fetchone()[0] == 5
             assert db.execute('SELECT count(*) FROM stream_alerts').fetchone()[0] == count + 1
             assert db.execute('SELECT payload,approval FROM detections WHERE detection_id=?', ('old-alert-0',)).fetchone() == old
@@ -111,12 +112,12 @@ def test_old_unrelated_alert_volume_no_longer_blocks_collection(tmp_path, monkey
 def test_missing_historical_event_aborts_migration_without_touching_v4(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, missing=True, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         before = db.execute('SELECT * FROM stream_alerts').fetchall()
         old = db.execute('SELECT payload,approval FROM detections').fetchall()
     with pytest.raises(HistoryError):
         SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 4
         assert db.execute('SELECT * FROM stream_alerts').fetchall() == before
         assert db.execute('SELECT payload,approval FROM detections').fetchall() == old
@@ -126,13 +127,13 @@ def test_missing_historical_event_aborts_migration_without_touching_v4(tmp_path)
 def test_migration_accepts_same_ids_in_different_order_without_rewriting_history(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         payload = json.loads(db.execute('SELECT payload FROM detections').fetchone()[0])
         payload['event_ids'].reverse()
         db.execute('UPDATE detections SET payload=?', (json.dumps(payload),))
         before = db.execute('SELECT payload,approval FROM detections').fetchone()
     SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('SELECT payload,approval FROM detections').fetchone() == before
         assert db.execute('PRAGMA user_version').fetchone()[0] == 5
 
@@ -140,12 +141,12 @@ def test_migration_accepts_same_ids_in_different_order_without_rewriting_history
 def test_missing_auth_table_aborts_migration_without_creating_new_version(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute('DROP TABLE auth_correlation_alerts')
         before = db.execute('SELECT payload,approval FROM detections').fetchall()
     with pytest.raises(HistoryError):
         SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 4
         assert db.execute('SELECT payload,approval FROM detections').fetchall() == before
         assert not db.execute("SELECT 1 FROM sqlite_master WHERE name='stream_alert_spans'").fetchall()
@@ -155,7 +156,7 @@ def test_missing_auth_table_aborts_migration_without_creating_new_version(tmp_pa
 def test_damaged_alert_payload_or_approval_rolls_back_migration(tmp_path, damage):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         if damage == 'missing-detection':
             db.execute('DELETE FROM detections WHERE detection_id=?', ('old-alert-0',))
         elif damage == 'mismatched-ids':
@@ -168,7 +169,7 @@ def test_damaged_alert_payload_or_approval_rolls_back_migration(tmp_path, damage
         before_detections = db.execute('SELECT * FROM detections').fetchall()
     with pytest.raises(HistoryError):
         SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 4
         assert db.execute('SELECT * FROM stream_alerts').fetchall() == before_alerts
         assert db.execute('SELECT * FROM detections').fetchall() == before_detections
@@ -178,7 +179,7 @@ def test_damaged_alert_payload_or_approval_rolls_back_migration(tmp_path, damage
 def test_late_event_compares_migrated_approved_alert_and_survives_restart(tmp_path, monkeypatch):
     path = tmp_path / 'history.sqlite3'
     ids = make_v4(path, approved=True)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         before = db.execute('SELECT payload,approval FROM detections WHERE detection_id=?', ('old-alert-0',)).fetchone()
     with client_at(path, monkeypatch) as client:
         late = event(70000, 0, '198.51.100.8')
@@ -188,7 +189,7 @@ def test_late_event_compares_migrated_approved_alert_and_survives_restart(tmp_pa
         api.service = DetectionService(SQLiteHistory(path))
         replay = send(client, 'late-replay', [late])
         assert replay.status_code == 200 and replay.json()['summary']['duplicate'] == 1
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             assert db.execute('SELECT payload,approval FROM detections WHERE detection_id=?', ('old-alert-0',)).fetchone() == before
             new = db.execute('SELECT event_ids FROM stream_alerts WHERE detection_id!=?', ('old-alert-0',)).fetchall()
             assert len(new) == 1
@@ -203,7 +204,7 @@ def test_migration_is_safe_when_instances_open_concurrently(tmp_path):
     assert all(len(detections) == 20 for _, detections in result)
     assert all(next(d for d in detections if d['detection_id'] == 'old-alert-0')['approval']['simulation_only']
                for _, detections in result)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 5
         assert db.execute('SELECT count(*) FROM stream_alert_spans').fetchone()[0] == 20
 
@@ -212,7 +213,7 @@ def test_locked_migration_is_atomic_and_retries_after_lock_release(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path, count=20, approved=True)
     store = SQLiteHistory(path, timeout=0.01)
-    with sqlite3.connect(path, isolation_level=None) as blocker:
+    with closing(sqlite3.connect(path, isolation_level=None)) as blocker, blocker:
         blocker.execute('BEGIN IMMEDIATE')
         with pytest.raises(HistoryError):
             store.list_snapshot()
@@ -222,7 +223,7 @@ def test_locked_migration_is_atomic_and_retries_after_lock_release(tmp_path):
     _, detections = store.list_snapshot()
     assert len(detections) == 20
     assert any(item.get('approval', {}).get('simulation_only') for item in detections)
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 5
         assert db.execute('SELECT count(*) FROM stream_alert_spans').fetchone()[0] == 20
 
@@ -231,7 +232,7 @@ def test_fanout_span_query_uses_collector_host_time_index(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path)
     SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         plan = db.execute('EXPLAIN QUERY PLAN SELECT detection_id FROM stream_alert_spans '
                           'WHERE collector_id=? AND host_key=? AND start_us>=? AND start_us<=? AND end_us>=?',
                           ('collector-a', host_key(), 0, 10, 0)).fetchall()
@@ -242,7 +243,7 @@ def test_backfill_plan_probes_event_id_not_all_events_of_host(tmp_path):
     path = tmp_path / 'history.sqlite3'
     make_v4(path)
     SQLiteHistory(path).list_snapshot()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         plan = db.execute('EXPLAIN QUERY PLAN SELECT s.event_id,s.occurred '
                           'FROM json_each(?) AS j CROSS JOIN stream_events AS s '
                           'INDEXED BY stream_host_event_id '
@@ -270,7 +271,7 @@ def test_concurrent_retries_and_mixed_batches_are_atomic_after_migration(tmp_pat
         assert all(r.status_code == 200 for r in mixed_responses), [r.text for r in mixed_responses]
         assert all(r.json()['summary']['duplicate'] == 1 and r.json()['summary']['processed'] == 1
                    for r in mixed_responses)
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             assert db.execute('SELECT count(*) FROM stream_events WHERE occurred>=?',
                               ('2026-01-01T00:00:00+00:00',)).fetchone()[0] == 7
             assert db.execute('SELECT count(*) FROM stream_alerts').fetchone()[0] == 2
@@ -281,7 +282,7 @@ def test_far_apart_new_events_do_not_scan_unrelated_fifty_thousand_history_rows(
     path = tmp_path / 'history.sqlite3'
     make_v4(path, count=0)
     key = host_key()
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         rows = ((f'unrelated-key-{i}', 'full-v1:' + 'd' * 64, 'collector-a', key,
                  '2022-01-01T00:00:00+00:00', f'dest-{i % 3}', 1,
                  f'unrelated-event-{i}', '[HOST:old]') for i in range(50001))
@@ -293,7 +294,7 @@ def test_far_apart_new_events_do_not_scan_unrelated_fifty_thousand_history_rows(
         result = send(client, 'distant', [before, after])
         assert result.status_code == 200, result.text
         assert result.json()['summary']['processed'] == 2
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             assert db.execute('SELECT count(*) FROM stream_events').fetchone()[0] == 50006
 
 
@@ -303,7 +304,7 @@ def test_distinct_old_windows_are_indexed_without_blocking_fresh_window(tmp_path
     key = host_key()
     origin = datetime(2020, 1, 1, tzinfo=timezone.utc)
     count = 10001
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         def cases():
             for i in range(count):
                 ids = [f'{i+1:08x}-0000-4000-8000-{j:012d}' for j in range(3)]
@@ -330,7 +331,7 @@ def test_distinct_old_windows_are_indexed_without_blocking_fresh_window(tmp_path
         result = send(client, 'new-years-later', rows)
         elapsed = time.perf_counter() - begin
         assert result.status_code == 200, result.text
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             assert db.execute('SELECT count(*) FROM stream_alerts').fetchone()[0] == count + 1
             assert db.execute('SELECT count(*) FROM stream_alert_spans').fetchone()[0] == count + 1
     # Informational measurement only; no brittle hardware-dependent cutoff.
