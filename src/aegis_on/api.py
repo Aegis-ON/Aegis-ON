@@ -52,6 +52,7 @@ DEMO_SCENARIOS = {
     "b": "data/scenario_b.json",
     "c": "data/scenario_c.json",
 }
+REPLAY_SOC_FIXTURE = Path(__file__).resolve().parents[2] / "data" / "replay_soc_fixture.json"
 
 
 @app.exception_handler(RequestValidationError)
@@ -247,6 +248,11 @@ def analysis_console() -> FileResponse:
     return RedirectResponse('/console/events', status_code=307)
 
 
+@app.get('/console/replay', include_in_schema=False)
+def replay_console() -> FileResponse:
+    return FileResponse('static/replay.html', headers={'Cache-Control': 'no-store'})
+
+
 @app.get('/console', include_in_schema=False)
 @app.get('/console/endpoints', include_in_schema=False)
 @app.get('/console/detections', include_in_schema=False)
@@ -272,6 +278,16 @@ def dashboard_asset(asset: str) -> FileResponse:
 @app.get("/api/v1/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "model_state": "semantic-baseline"}
+
+
+@app.get('/api/v1/replay/summary')
+def replay_summary(analyst: str = Depends(authenticated_analyst)) -> FileResponse:
+    """Return a read-only, bundled replay summary; never collect or execute rules."""
+    return FileResponse(
+        REPLAY_SOC_FIXTURE,
+        media_type='application/json',
+        headers={'Cache-Control': 'no-store'},
+    )
 
 
 def _attack_model_status() -> dict[str, Any]:
