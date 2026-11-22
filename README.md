@@ -136,7 +136,7 @@ curl -fsS -H "Authorization: Bearer $AEGIS_API_TOKEN" \
 
 ## Sysmon 로그 분석
 
-Windows Sysmon의 **Event ID 1(프로세스 생성)**과 **Event ID 3(네트워크 연결)**을 지원합니다. Event ID 3은 Sysmon 설정에서 네트워크 이벤트 수집을 활성화해야 생성됩니다. 지원 입력은 이 저장소의 PowerShell 스크립트가 만드는 UTF-8 JSON입니다. Windows 이벤트 뷰어 XML이나 EVTX 파일은 직접 읽지 않습니다.
+Windows Sysmon의 **Event ID 1(프로세스 생성)**과 **Event ID 3(네트워크 연결)**을 지원합니다. Event ID 3은 Sysmon 설정에서 네트워크 이벤트 수집을 활성화해야 생성됩니다. 지원 입력은 이 저장소의 PowerShell 스크립트가 만드는 UTF-8 JSON입니다. Windows 이벤트 뷰어 XML이나 EVTX 파일은 직접 읽지 않습니다. 실제 정상 이벤트의 로컬 수집과 두 실험 모델 비교 절차 및 미검증 환경은 [Windows 검증 가이드](docs/windows_validation.md)를 참고하세요.
 
 Windows PowerShell에서 저장소 루트 기준:
 
@@ -146,7 +146,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 .\scripts\export_sysmon.ps1 -OutputPath (Join-Path $LogDir 'sysmon-export.json') -MaxEvents 500
 ```
 
-Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 사용자의 실제 로그가 JSON에 들어가므로 파일을 신뢰하는 장소에서만 보관·전송하세요. 위 경로는 저장소 밖에 두기 위한 예시입니다. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 이유를 표시합니다.
+Sysmon Operational 채널에 접근할 수 있는 권한이 필요합니다. 실제 로그는 민감하므로 저장소와 동기화 폴더 밖의 접근 통제된 로컬 위치에 보관하세요. `MaxEvents`는 1~1,000개이며 Sysmon Event 1과 3을 수집합니다. 내보내기는 기존 파일을 덮어쓰지 않고, 2 MiB를 초과할 것으로 예상되면 저장하기 전에 실패합니다. 해당 이벤트가 없거나 채널에 접근할 수 없으면 스크립트가 실패합니다.
 
 1. 중앙 관제 설정에 따라 분석가 계정과 서버를 설정합니다. API 예시에는 별도 Bearer 토큰이 필요합니다.
 2. 자동 수집을 사용하려면 [지속 수집 안내](docs/continuous_collection.md)를 참고하세요.
