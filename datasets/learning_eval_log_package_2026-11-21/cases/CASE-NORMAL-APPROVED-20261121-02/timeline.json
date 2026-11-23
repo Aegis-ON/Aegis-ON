@@ -1,0 +1,25 @@
+{
+  "case_id": "CASE-NORMAL-APPROVED-20261121-02",
+  "timezone": "UTC",
+  "events": [
+    {
+      "utc": "2026-11-21T16:47:44.139028Z",
+      "event_type": "approved_monitoring_request",
+      "source": "SRC-MON-APPROVED-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "request_id": "REQ-NORMAL-APPROVED-001",
+      "scope_note": "Synthetic target only."
+    }
+  ],
+  "surrounding_log_context": {
+    "preceding_records": [
+      {"case_reference": "CASE-ARTEX-20261121-01", "utc": "2026-11-21T11:14:29.876547Z", "request_id": "REQ-ARTEX-003", "path": "/login", "status": 200},
+      {"case_reference": "CASE-ARTEX-20261121-01", "utc": "2026-11-21T11:14:29.883902Z", "request_id": "REQ-ARTEX-004", "path": "/api/status", "status": 200}
+    ],
+    "following_records": [],
+    "note": "The retained predecessor records are more than five hours earlier; no immediate successor was present when the controlled excerpt was collected. They are context only, not part of this normal operation."
+  }
+}

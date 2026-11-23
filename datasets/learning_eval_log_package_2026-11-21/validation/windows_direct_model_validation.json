@@ -1,0 +1,21 @@
+{
+  "validation_id": "WINDOWS-DIRECT-BERT-20261121-01",
+  "host": "HOST-WIN-01",
+  "model_path": "redacted local Windows model directory",
+  "artifact_integrity": {
+    "model_safetensors_sha256": "bff7da13980f8c939c63d102c33a7143e90e3113182b9ebdc9116889255d0432",
+    "result": "matches preserved model manifest"
+  },
+  "runtime": {
+    "torch": "2.7.0",
+    "transformers": "4.41.2",
+    "safetensors": "0.5.3",
+    "network_mode": "local_files_only"
+  },
+  "inference_results": [
+    {"input": "curl --version", "labels": ["benign", "review"], "probabilities": [0.539916, 0.460085]},
+    {"input": "whoami /groups", "labels": ["benign", "review"], "probabilities": [0.533947, 0.466053]}
+  ],
+  "result": "success",
+  "interpretation_limit": "These model outputs are validation evidence only and are not final security labels."
+}

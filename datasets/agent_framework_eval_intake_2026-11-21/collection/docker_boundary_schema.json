@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Normalize Docker Desktop boundary evidence without treating it as Windows Sysmon telemetry.",
+  "required_collections": {
+    "container_lifecycle": ["utc_time", "event_type", "container_pseudonym", "image_reference", "exit_code", "source"],
+    "container_process": ["utc_time", "container_pseudonym", "process_pseudonym", "pid", "ppid", "command", "process_view"],
+    "network_boundary": ["network_pseudonym", "internal", "driver", "published_ports", "mounts", "docker_socket_mounted", "read_only_root_filesystem", "cap_drop", "pids_limit", "memory_limit_bytes"],
+    "application_access": ["utc_time", "source_pseudonym", "target_pseudonym", "method", "request_path", "status", "request_id", "authentication_result"]
+  },
+  "correlation_keys": ["utc_time_window", "container_pseudonym", "image_digest_or_revision", "request_id_when_available"],
+  "do_not_join_directly": ["Docker Desktop Linux VM pid to Windows Sysmon pid", "container IP to an external source IP", "empty Sysmon Event ID 1 or 3 result to a benign conclusion"],
+  "redaction": {
+    "stable_pseudonyms_required_for": ["host", "container", "container_id", "container_ip", "mac_address", "installation_id", "database_service"],
+    "always_remove": ["tokens", "passwords", "private_keys", "cookie_values", "host_paths_when_not_required"]
+  }
+}

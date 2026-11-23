@@ -1,0 +1,93 @@
+{
+  "contract_version": "1.0",
+  "purpose": "AI handoff contract for case-level Aegis-ON security-monitoring labels and split governance.",
+  "authoritative_inputs": {
+    "label_manifest": "label_manifest.jsonl",
+    "split_manifest": "training_split_manifest.jsonl",
+    "labeling_guideline": "labeling_guideline.md",
+    "actual_cases_root": "runtime_cases",
+    "synthetic_cases_root": "synthetic_cases"
+  },
+  "record_granularity": "One line per case_id in each manifest. Events from one case_id must never be divided across train, validation, or test.",
+  "required_label_fields": [
+    "case_id",
+    "data_origin",
+    "label",
+    "display_label",
+    "label_status",
+    "label_source",
+    "confidence",
+    "synthetic",
+    "not_actual_incident",
+    "eligible_for_training",
+    "eligible_for_production_validation",
+    "eligible_for_security_incident_statistics",
+    "case_group",
+    "evidence_paths"
+  ],
+  "required_split_fields": [
+    "case_id",
+    "data_origin",
+    "synthetic",
+    "label",
+    "eligible_for_training",
+    "split",
+    "split_status",
+    "case_group",
+    "leakage_key",
+    "inclusion_decision",
+    "rationale"
+  ],
+  "allowed_values": {
+    "data_origin": ["actual_observed", "synthetic"],
+    "label": ["normal_approved", "normal_authorized_runtime", "operational_anomaly", "policy_blocked", "needs_investigation", "confirmed_security_incident", "synthetic_training_only"],
+    "label_status": ["provisional", "synthetic_approved", "pending_security_review"],
+    "confidence": ["high", "medium", "low"],
+    "eligible_for_training": ["yes", "synthetic_only", "no"],
+    "split": ["train", "validation", "test", "synthetic_demo", "not_assigned"],
+    "split_status": ["assigned", "synthetic_demo_only", "insufficient_for_supervised_model_evaluation"]
+  },
+  "admission_rules": [
+    "A case is admissible to supervised training only when eligible_for_training is yes, label_status is not pending_security_review, and its evidence_paths are present.",
+    "Synthetic cases must use split synthetic_demo and must not enter production validation, test, incident statistics, or performance reporting.",
+    "A label confirmed_security_incident requires a synthetic display label when synthetic is true and must never be reported as an actual incident.",
+    "No actual case in this package is currently admitted to train, validation, or test; split_status is insufficient_for_supervised_model_evaluation.",
+    "Rows with eligible_for_training no or synthetic_only are excluded from production-validation and test splits."
+  ],
+  "leakage_prevention": [
+    "Use case_id as the indivisible leakage key.",
+    "Do not split events from one case_id across train, validation, or test.",
+    "Do not mix synthetic_demo rows with actual-observed supervised evaluation.",
+    "Do not use evidence from one case_group to claim independent generalization."
+  ],
+  "label_quality_limits": [
+    "The package contains no actual confirmed-security-incident ground truth.",
+    "Actual cases are controlled, limited lifecycle or dependency observations and require security-team review before supervised use.",
+    "Synthetic fixtures support parser, correlation, dashboard, and demonstration validation only."
+  ],
+  "future_actual_positive_case_updates": [
+    "label",
+    "display_label",
+    "label_status",
+    "label_source",
+    "confidence",
+    "eligible_for_training",
+    "eligible_for_production_validation",
+    "eligible_for_security_incident_statistics",
+    "case_group",
+    "evidence_paths",
+    "split",
+    "split_status",
+    "leakage_key"
+  ],
+  "ideathon_demo_allowed_claims": [
+    "The package demonstrates schema normalization, case-level label governance, synthetic/actual separation, correlation inputs, and alert-priority presentation.",
+    "The package is insufficient for supervised model evaluation and does not claim production detection performance."
+  ],
+  "ideathon_demo_prohibited_claims": [
+    "Actual incident-rate measurement",
+    "Production attack-detection accuracy",
+    "Real compromise confirmation from synthetic fixtures",
+    "Generalization beyond the listed controlled cases"
+  ]
+}

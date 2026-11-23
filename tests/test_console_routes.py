@@ -26,12 +26,32 @@ class ConsoleRouteTests(unittest.TestCase):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
             self.assertIn('/assets/aegis/app.js', response.text)
+        replay = self.client.get('/console/replay')
+        self.assertEqual(replay.status_code, 200)
+        self.assertIn('LOCAL REPLAY · STATIC SNAPSHOT', replay.text)
+        self.assertIn('/api/v1/replay/summary', replay.text)
         self.assertNotIn('JSON 이벤트 직접 입력', self.client.get('/console/analysis').text)
         self.assertIn('/assets/aegis/app.js', self.client.get('/console/events').text)
         self.assertEqual(self.client.get('/console/no-such-page').status_code, 404)
         self.assertEqual(self.client.get('/api/v1/history').status_code, 401)
         self.assertEqual(self.client.get('/api/v1/endpoints').status_code, 401)
         self.assertEqual(self.client.get('/api/v1/endpoints/'+'a'*64).status_code, 401)
+
+    def test_replay_summary_is_authenticated_and_read_only(self):
+        self.assertEqual(self.client.get('/api/v1/replay/summary').status_code, 401)
+        response = self.client.get('/api/v1/replay/summary', headers={'Authorization': 'Bearer route-test-token'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['replay_mode'])
+        self.assertFalse(data['live_collection'])
+        self.assertFalse(data['external_rule_execution'])
+        self.assertEqual(data['summary']['case_count'], 10)
+        self.assertEqual(data['summary']['supervised_evaluation_status'], 'insufficient_for_supervised_model_evaluation')
+        simulated = [row for row in data['alerts'] if row['simulated']]
+        self.assertEqual(len(simulated), 1)
+        self.assertEqual(simulated[0]['display_label'], 'simulated_confirmed_security_incident')
+        hexstrike = next(row for row in data['alerts'] if row['hexstrike_blocked'])
+        self.assertEqual(hexstrike['classification'], 'policy_blocked')
 
     def test_only_bundled_assets_are_served(self):
         for asset, content_type in [('app.js', 'javascript'), ('app.css', 'text/css')]:

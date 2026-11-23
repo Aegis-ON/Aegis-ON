@@ -1,0 +1,39 @@
+{
+  "observed_date": "2026-11-22",
+  "collection_sources": ["docker ps", "docker logs", "docker top", "docker inspect", "docker events", "docker network inspect"],
+  "container": "FRAMEWORK-CAIRN-RUNTIME-02",
+  "network": {
+    "alias": "DOCKER-INT-NET-01",
+    "internal": true,
+    "host_port_publication": false,
+    "published_port_bindings": {}
+  },
+  "filesystem": {
+    "readonly_root_filesystem": true,
+    "tmpfs": ["/tmp", "/root"],
+    "host_path_mounts": [],
+    "docker_socket_mounted": false,
+    "runtime_volume": "DOCKER-MANAGED-VOLUME-CAIRN-02"
+  },
+  "privilege_and_resource_controls": {
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824
+  },
+  "listener": {
+    "binding": "LOOPBACK-SVC-CAIRN-01:8000",
+    "source": "runtime stdout/stderr"
+  },
+  "health_collection": {
+    "namespace": "runtime network namespace",
+    "request": "GET /",
+    "server_logged_statuses": [200, 200],
+    "client_output_capture": "The read-only Alpine clients could not create their default output file; the service-side HTTP 200 logs are the retained proof of request completion."
+  },
+  "safe_stop": {
+    "method": "docker stop",
+    "exit_code": 0,
+    "containers_or_volumes_deleted": false
+  }
+}

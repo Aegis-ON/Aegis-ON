@@ -1,0 +1,13 @@
+{
+  "framework": "PentAGI",
+  "official_source": "https://github.com/vxcontrol/pentagi",
+  "license": "MIT",
+  "execution_status": "startup_executed_isolated_container_database_unavailable",
+  "observed_source_commit": "cffed9485aa1cca70762cd08a57ac62a80406258",
+  "runtime_case": "runtime_cases/CASE-PENTAGI-STARTUP-20261122-01",
+  "execution_result": "Official image started on an internal Docker bridge with no published ports, mounts, Docker socket, or external egress. It terminated before API or agent work after the internal-only pgvector DNS lookup failed.",
+  "reported_architecture": "self-hosted multi-agent penetration-testing system with web/API surfaces",
+  "required_case_metadata": ["pinned commit", "image digest", "API bind address", "redacted API token reference", "flow ID pseudonym", "scope assertion"],
+  "expected_telemetry": ["API authentication outcome", "flow creation and state transitions", "agent/task lifecycle", "target HTTP/access log", "container lifecycle", "egress decision"],
+  "execution_gate": "Use a randomly generated lab-only API token, bind only to loopback in an isolated VM, and never expose the API or GraphQL playground outside that VM."
+}

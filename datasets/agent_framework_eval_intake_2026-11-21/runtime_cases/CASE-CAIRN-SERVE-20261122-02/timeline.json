@@ -1,0 +1,13 @@
+[
+  {"utc_time":null,"stage":"source_copied_into_new_docker_managed_volume","evidence":"baseline source volume mounted read-only; no host path mount"},
+  {"utc_time":null,"stage":"lock_regeneration_initial_failures","evidence":"the official pyproject.toml default index was unavailable; source and baseline lock remained unchanged"},
+  {"utc_time":null,"stage":"lock_regenerated","command":"uv lock --upgrade --default-index https://pypi.org/simple","result":"completed in the separate runtime-copy tree"},
+  {"utc_time":null,"stage":"runtime_sync_completed","command":"uv sync --frozen --no-dev --default-index https://pypi.org/simple","result":"completed in the separate runtime-copy tree"},
+  {"utc_time":"2026-11-22T05:26:04.043203488Z","stage":"runtime_container_created","container":"FRAMEWORK-CAIRN-RUNTIME-02","evidence":"Docker event create"},
+  {"utc_time":"2026-11-22T05:26:04.331142000Z","stage":"runtime_container_started","container":"FRAMEWORK-CAIRN-RUNTIME-02","evidence":"Docker event start"},
+  {"utc_time":null,"stage":"server_started","listener":"LOOPBACK-SVC-CAIRN-01:8000","evidence":"runtime logs"},
+  {"utc_time":null,"stage":"loopback_health_observed","request":"GET /","server_logged_statuses":[200,200],"evidence":"runtime logs"},
+  {"utc_time":"2026-11-22T05:29:11.799182626Z","stage":"operator_safe_stop","method":"docker stop","evidence":"Docker event stop"},
+  {"utc_time":"2026-11-22T05:29:11.806673155Z","stage":"runtime_exited","exit_code":0,"evidence":"Docker event die"},
+  {"utc_time":null,"stage":"retention_confirmed","deleted":false,"evidence":"docker ps -a and operator action"}
+]

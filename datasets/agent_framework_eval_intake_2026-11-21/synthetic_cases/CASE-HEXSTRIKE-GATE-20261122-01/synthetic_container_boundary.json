@@ -1,0 +1,24 @@
+{
+  "case_id": "CASE-HEXSTRIKE-GATE-20261122-01",
+  "case_kind": "synthetic_schema_fixture_not_observed",
+  "learning_case_eligibility": "parser_and_correlation_testing_only",
+  "framework_runtime_observed": false,
+  "synthetic": true,
+  "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version",
+  "observation_statement": "This is a declared policy shape only. No container, runtime, execution, network, process, MCP call, or web request was observed.",
+  "host_alias": "LAB-HOST-01",
+  "framework_alias": "FRAMEWORK-HEXSTRIKE-01",
+  "network_alias": "DOCKER-INT-NET-01",
+  "container_alias": "CONTAINER-ID-01",
+  "declared_boundary_policy": {
+    "internal_only": true,
+    "host_port_published": false,
+    "docker_socket_present": false,
+    "read_only_rootfs": true,
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pid_limit": 128,
+    "memory_limit": "1GiB"
+  },
+  "observed_boundary": false
+}

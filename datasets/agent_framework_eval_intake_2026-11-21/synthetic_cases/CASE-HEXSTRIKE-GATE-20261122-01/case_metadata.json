@@ -1,0 +1,36 @@
+{
+  "case_id": "CASE-HEXSTRIKE-GATE-20261122-01",
+  "case_kind": "synthetic_schema_fixture_not_observed",
+  "learning_case_eligibility": "parser_and_correlation_testing_only",
+  "framework": "HexStrike AI",
+  "framework_runtime_observed": false,
+  "synthetic": true,
+  "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version",
+  "fixture_time_basis": "Fixed UTC fixture clock; not an observation timestamp.",
+  "fixture_created_utc": "2026-11-22T00:00:00Z",
+  "synthetic_subject_aliases": {
+    "host": "LAB-HOST-01",
+    "framework": "FRAMEWORK-HEXSTRIKE-01",
+    "network": "DOCKER-INT-NET-01",
+    "container": "CONTAINER-ID-01"
+  },
+  "actual_activity_observed": {
+    "execution": false,
+    "network": false,
+    "process": false,
+    "mcp_call": false,
+    "web_request": false
+  },
+  "usage_constraints": [
+    "Parser schema validation only",
+    "Correlation and dashboard validation only",
+    "Not evidence of a framework runtime",
+    "Not eligible for framework behavior or attack evaluation"
+  ],
+  "related_records": [
+    "timeline.json",
+    "synthetic_mcp_policy_audit.jsonl",
+    "synthetic_container_boundary.json",
+    "evidence_memo.md"
+  ]
+}

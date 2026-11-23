@@ -1,0 +1,4 @@
+{"utc_time":null,"stream":"stdout","event":"uv_sync_environment_created","message":"uv created a virtual environment in the Docker-managed source volume before dependency resolution failed."}
+{"utc_time":null,"stream":"stderr","event":"uv_sync_dependency_failure","message":"The locked watchfiles 1.1.1 CPython 3.13 artifact returned HTTP 404 from pypi.org; Cairn was not started."}
+{"utc_time":null,"stream":"stdout","event":"uv_sync_retry_environment_created","message":"The approved official CPython 3.12 uv image created a virtual environment in the Docker-managed source volume before dependency resolution failed."}
+{"utc_time":null,"stream":"stderr","event":"uv_sync_retry_dependency_failure","message":"The locked h11 0.16.0 artifact returned HTTP 404 from pypi.org; Cairn was not started."}

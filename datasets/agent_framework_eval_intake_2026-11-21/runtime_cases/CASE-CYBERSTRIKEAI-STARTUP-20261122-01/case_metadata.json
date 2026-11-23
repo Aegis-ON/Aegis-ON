@@ -1,0 +1,61 @@
+{
+  "case_id": "CASE-CYBERSTRIKEAI-STARTUP-20261122-01",
+  "case_kind": "actual_isolated_framework_startup_with_final_lifecycle_evidence",
+  "learning_case_eligibility": "startup_and_failure_lifecycle_telemetry_only_pending_security_review",
+  "framework": {
+    "name": "CyberStrikeAI",
+    "official_source": "https://github.com/AIPentest/CyberStrikeAI",
+    "source_commit": "af6cf7500c8eff357cc6c3f50e7c7b150fcfa836",
+    "build_image": "golang:1.25-alpine",
+    "runtime_image": "node:22-alpine",
+    "source_provisioning": "official shallow clone made inside a Docker-managed Linux volume; no Windows host-path mount",
+    "build_result": "go build -o /src/cyberstrike-ai ./cmd/server succeeded",
+    "runtime_entrypoint": "/src/cyberstrike-ai --config /src/config.example.yaml --http"
+  },
+  "time_utc": {
+    "first_framework_log": "2026-11-22T03:49:29.608Z",
+    "docker_event_create": "2026-11-22T03:49:29.291Z",
+    "docker_event_start": "2026-11-22T03:49:29.531Z",
+    "finished": "2026-11-22T03:51:50.848Z",
+    "source": "operator-observed Docker CLI logs, top, inspect, and events collected at finalization time",
+    "precision_limit": "Docker event timestamps are rounded to milliseconds in this shared record; no running-process snapshot exists because the container had already exited."
+  },
+  "environment": {
+    "host": "LAB-HOST-01",
+    "container": "FRAMEWORK-CYBERSTRIKEAI-01",
+    "network": "DOCKER-INT-NET-01",
+    "network_internal": true,
+    "published_ports": [],
+    "docker_socket_mounted": false,
+    "read_only_root_filesystem": true,
+    "writable_runtime_volume": "Docker-managed source/log volume only; no host path",
+    "tmpfs": ["/tmp", "/root", "/data"],
+    "capabilities_dropped": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824,
+    "external_egress": "not available through internal Docker network",
+    "credentials_or_tokens_provided": false,
+    "service_binding": "container loopback LOOPBACK-SVC-01:8080"
+  },
+  "execution_scope": {
+    "scenario_id": "CYBERSTRIKEAI-ISOLATED-STARTUP-01",
+    "allowed_action": "framework startup and loopback-only health observation",
+    "not_performed": ["target web access", "agent task execution", "security tool execution", "MCP tool call", "external LLM or API call", "host port publication", "external egress"]
+  },
+  "outcome": {
+    "framework_start_observed": true,
+    "container_status_at_final_observation": "exited",
+    "completion_status": "final_lifecycle_collected_after_autonomous_exit",
+    "reason": "The framework emitted its startup telemetry, then its Pi runtime build failed. Docker events recorded exit code 1 after 141 seconds. The service was not restarted; loopback health was not attempted after exit, and docker top confirmed there was no running process.",
+    "controlled_stop": "not invoked because the container was already stopped; the stopped container and all Docker volumes were retained",
+    "label": "startup_and_local_failure_lifecycle_not_behavioral"
+  },
+  "evidence_files": ["container_stdout_stderr.jsonl", "timeline.json", "container_boundary.json"],
+  "redaction": {
+    "container_id": "CONTAINER-ID-01",
+    "container_ip": "CONTAINER-IP-01",
+    "host": "LAB-HOST-01",
+    "secrets_present": false
+  }
+}

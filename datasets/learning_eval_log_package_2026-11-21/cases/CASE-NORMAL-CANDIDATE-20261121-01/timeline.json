@@ -1,0 +1,22 @@
+{
+  "case_id": "CASE-NORMAL-CANDIDATE-20261121-01",
+  "timezone": "UTC",
+  "events": [
+    {
+      "sequence": 1,
+      "time_utc": "2026-11-21T09:49:11.013041Z",
+      "kind": "web_access",
+      "source": "SRC-MON-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "request_id": "REQ-NORMAL-001"
+    }
+  ],
+  "context_coverage": {
+    "before": "No earlier record was available in the preserved excerpt.",
+    "after": "No immediate subsequent record was available in the preserved excerpt; the controlled ARTEX case begins later the same day.",
+    "approval": "Not independently evidenced; this is a comparison candidate, not an approved-work assertion."
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "policy_version": "1.0",
+  "purpose": "Aegis-ON learning and evaluation sharing copy",
+  "transformations": {
+    "windows_host": {
+      "shared_value": "HOST-WIN-01",
+      "rule": "Use the same value in every case file."
+    },
+    "target_service": {
+      "shared_value": "SERVICE-WEB-01",
+      "rule": "Use the same value in every case file."
+    },
+    "source_artifact": {
+      "shared_value": "SRC-ARTEX-01",
+      "rule": "Represents the controlled ARTEX lab source only."
+    },
+    "source_baseline": {
+      "shared_value": "SRC-MON-01",
+      "rule": "Represents the earlier baseline request only."
+    },
+    "source_approved_baseline": {
+      "shared_value": "SRC-MON-APPROVED-01",
+      "rule": "Represents the approved isolated service health-check source only."
+    },
+    "request_ids": {
+      "rule": "Replace original request IDs with stable per-case pseudonyms."
+    }
+  },
+  "removed_from_shared_copy": [
+    "tokens",
+    "passwords",
+    "API keys",
+    "raw hostnames",
+    "raw IP addresses",
+    "raw container names",
+    "original request IDs"
+  ],
+  "note": "No credentials were observed in the included service records. Redaction is nevertheless applied before sharing."
+}

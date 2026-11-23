@@ -1,0 +1,30 @@
+{
+  "record_type": "isolated_build_attempt_not_a_runtime_case",
+  "framework": "Cairn",
+  "official_source": "https://github.com/oritera/Cairn",
+  "source_commit": "8e7e0ea67552383851dfcabfba0c4e9c8d007878",
+  "observed_utc_window": {
+    "start": "2026-11-21T17:20:00Z",
+    "end": "2026-11-21T17:40:00Z",
+    "precision": "window; the interactive terminal output did not export per-command timestamps"
+  },
+  "execution_environment": {
+    "builder_image": "ghcr.io/astral-sh/uv:python3.13-trixie",
+    "source_mount": "read-only source, Docker-managed work volume only",
+    "docker_socket_mount": false,
+    "framework_runtime_started": false,
+    "target_access": false,
+    "external_llm_or_api_credentials": false
+  },
+  "command_class": "uv sync --frozen in disposable builder",
+  "observed_result": {
+    "outcome": "failed_before_framework_start",
+    "error_excerpt": "failed to fetch a locked package because mirrors.aliyun.com could not be resolved",
+    "interpretation": "The repository lock retained its configured mirror even when an alternate index was supplied. The lockfile was not altered, and no Cairn server, dispatcher, or worker ran."
+  },
+  "redaction": {
+    "host": "LAB-HOST-01",
+    "source_path": "redacted",
+    "secrets_present": false
+  }
+}

@@ -1,0 +1,5 @@
+{"utc_time":"2026-11-21T17:34:05Z","stream":"stderr","event_type":"key_generation_attempt","message":"Generating public/private ed25519 key pair.","source":"docker logs","label":"startup_side_effect_denied"}
+{"utc_time":"2026-11-21T17:34:05Z","stream":"stderr","event_type":"write_denied","path":"/root/.ollama/id_ed25519","message":"Saving key failed: Permission denied","source":"docker logs","label":"read_only_filesystem_enforced"}
+{"utc_time":"2026-11-21T17:34:05Z","stream":"stderr","event_type":"startup","message":"Starting PentAGI 2.2.0-ce.hcffed94","source":"docker logs","label":"framework_started"}
+{"utc_time":"2026-11-21T17:34:05Z","stream":"stderr","event_type":"write_denied","path":"/data/installation_id","message":"Failed to store installation id; it will change on every start","source":"docker logs","label":"read_only_filesystem_enforced"}
+{"utc_time":"2026-11-21T17:34:05Z","stream":"stderr","event_type":"database_connection_failure","database_host":"PGVECTOR-SVC-01","resolver":"CONTAINER-DNS-01","message":"Unable to open database with gorm; hostname lookup failed","source":"docker logs","label":"internal_dependency_unavailable"}

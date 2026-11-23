@@ -1,0 +1,56 @@
+{
+  "case_id": "CASE-HEXSTRIKE-GATE-20261122-01",
+  "case_kind": "synthetic_schema_fixture_not_observed",
+  "learning_case_eligibility": "parser_and_correlation_testing_only",
+  "framework_runtime_observed": false,
+  "synthetic": true,
+  "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version",
+  "observation_statement": "No framework runtime, execution, network, process, MCP call, or web request was observed.",
+  "events": [
+    {
+      "time_utc": "2026-11-22T00:00:00Z",
+      "event_type": "synthetic_fixture_declared",
+      "subject_alias": "FRAMEWORK-HEXSTRIKE-01",
+      "case_kind": "synthetic_schema_fixture_not_observed",
+      "learning_case_eligibility": "parser_and_correlation_testing_only",
+      "framework_runtime_observed": false,
+      "synthetic": true,
+      "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version"
+    },
+    {
+      "time_utc": "2026-11-22T00:00:01Z",
+      "event_type": "synthetic_boundary_policy_declared",
+      "host_alias": "LAB-HOST-01",
+      "network_alias": "DOCKER-INT-NET-01",
+      "container_alias": "CONTAINER-ID-01",
+      "case_kind": "synthetic_schema_fixture_not_observed",
+      "learning_case_eligibility": "parser_and_correlation_testing_only",
+      "framework_runtime_observed": false,
+      "synthetic": true,
+      "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version"
+    },
+    {
+      "time_utc": "2026-11-22T00:00:02Z",
+      "event_type": "policy_gate_denied_before_execution",
+      "endpoint_label": "Execute Endpoint",
+      "policy_decision": "request_blocked_by_policy",
+      "reason": "unverified_fixed_version",
+      "request_observed": false,
+      "case_kind": "synthetic_schema_fixture_not_observed",
+      "learning_case_eligibility": "parser_and_correlation_testing_only",
+      "framework_runtime_observed": false,
+      "synthetic": true,
+      "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version"
+    },
+    {
+      "time_utc": "2026-11-22T00:00:03Z",
+      "event_type": "synthetic_fixture_completed",
+      "subject_alias": "FRAMEWORK-HEXSTRIKE-01",
+      "case_kind": "synthetic_schema_fixture_not_observed",
+      "learning_case_eligibility": "parser_and_correlation_testing_only",
+      "framework_runtime_observed": false,
+      "synthetic": true,
+      "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version"
+    }
+  ]
+}
