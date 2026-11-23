@@ -87,6 +87,9 @@
     .fact { min-width: 0; padding: 10px 11px; background: #0b0d0f; }
     .fact span { display: block; color: var(--muted); font-size: 11px; }
     .fact strong { display: block; margin-top: 3px; font-size: 12px; overflow-wrap: anywhere; }
+    .detail h3 { margin: 16px 0 8px; font-size: 14px; }
+    .evidence-paths { margin: 0; padding-inline-start: 20px; overflow-wrap: anywhere; }
+    .evidence-paths li + li { margin-top: 8px; }
     .recommendation { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: #e4d3a8; font-size: 13px; }
     .warning { margin: 12px 0 0; color: var(--medium); font-size: 12px; }
     .empty { margin: 0; padding: 22px 0; color: var(--muted); font-size: 13px; }
@@ -161,12 +164,18 @@
   </div>
   <script>
     const $ = (selector) => document.querySelector(selector);
-    const state = { data: null, selected: null, filter: "all" };
+    const state = { data: null, selected: new URLSearchParams(location.search).get("case"), filter: "all" };
     const severityRank = { high: 0, medium: 1, low: 2, informational: 3 };
     const display = (value, fallback = "기록 없음") => value === undefined || value === null || value === "" ? fallback : String(value);
     const severityText = (value) => ({ high: "높음", medium: "중간", low: "낮음", informational: "정보" }[value] || display(value));
     const shortUtc = (value) => value ? value.replace("T", " ").replace("Z", " UTC") : "시간 미기록";
     const addTag = (target, text, extra) => { const tag = document.createElement("span"); tag.className = "tag" + (extra ? " " + extra : ""); tag.textContent = text; target.append(tag); };
+    function selectCase(caseId) {
+      state.selected = caseId;
+      const url = new URL(location.href);
+      url.searchParams.set("case", caseId);
+      history.replaceState(null, "", url);
+    }
     const filteredAlerts = () => {
       if (!state.data) return [];
       return state.data.alerts.filter((alert) => state.filter === "all" || (state.filter === "normal" && ["normal_approved", "normal_authorized_runtime"].includes(alert.classification)) || (state.filter === "simulated" && alert.simulated) || alert.classification === state.filter).slice().sort((left, right) => (severityRank[left.severity] ?? 9) - (severityRank[right.severity] ?? 9));
@@ -174,27 +183,64 @@
     function renderQueue() {
       const target = $("#queue"); target.replaceChildren(); const rows = filteredAlerts();
       if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "선택한 분류의 replay 사례가 없습니다."; target.append(empty); return; }
-      if (!rows.some((row) => row.case_id === state.selected)) state.selected = rows[0].case_id;
+      if (!rows.some((row) => row.case_id === state.selected)) selectCase(rows[0].case_id);
       rows.forEach((alert) => {
-        const button = document.createElement("button"); button.type = "button"; button.className = "case"; button.setAttribute("aria-pressed", String(alert.case_id === state.selected)); button.setAttribute("aria-label", alert.case_id + " 사례 검토 열기"); button.addEventListener("click", () => { state.selected = alert.case_id; render(); });
+        const button = document.createElement("button"); button.type = "button"; button.className = "case"; button.setAttribute("aria-pressed", String(alert.case_id === state.selected)); button.setAttribute("aria-label", alert.case_id + " 사례 검토 열기");
+        button.addEventListener("click", () => {
+          selectCase(alert.case_id);
+          render();
+          $("#queue .case[aria-pressed='true']")?.focus({ preventScroll: true });
+        });
         const content = document.createElement("div"); content.className = "case-inner";
         const top = document.createElement("div"); top.className = "case-top";
         const severity = document.createElement("span"); severity.className = "severity " + alert.severity; severity.textContent = severityText(alert.severity);
         const evidence = document.createElement("span"); evidence.className = "evidence"; evidence.textContent = String(alert.evidence_event_count) + "개 근거 이벤트";
         const title = document.createElement("h3"); title.textContent = alert.title;
         const caseId = document.createElement("p"); caseId.className = "case-id"; caseId.textContent = alert.case_id;
-        const tags = document.createElement("div"); tags.className = "tags"; addTag(tags, alert.classification); if (alert.simulated) addTag(tags, "SIMULATED", "simulated"); if (alert.hexstrike_blocked) addTag(tags, "BLOCKED — NOT RUN", "blocked");
+        const tags = document.createElement("div"); tags.className = "tags"; addTag(tags, alert.display_label); if (alert.simulated) addTag(tags, "SIMULATED", "simulated"); if (alert.hexstrike_blocked) addTag(tags, "BLOCKED — NOT RUN", "blocked");
         top.append(severity, evidence); content.append(top, title, caseId, tags); button.append(content); target.append(button);
       });
     }
     function renderDetail() {
       const target = $("#detail"); target.replaceChildren(); const alert = state.data.alerts.find((item) => item.case_id === state.selected); if (!alert) return;
+      const governed = state.data.case_governance?.[alert.case_id];
       const heading = document.createElement("h2"); heading.textContent = alert.simulated ? "SIMULATED · " + alert.title : alert.title;
       const copy = document.createElement("p"); copy.className = "detail-copy"; copy.textContent = alert.simulated ? "합성 exercise의 우선순위 시연입니다. 실제 침해·사건 통계·실운영 성능에 사용하지 않습니다." : "보존된 증거 요약의 규칙 기반 분류입니다. 최종 보안 판정이 아닙니다.";
       const facts = document.createElement("div"); facts.className = "facts";
-      [["사례", alert.case_id], ["분류", alert.display_label], ["심각도", severityText(alert.severity)], ["근거", String(alert.evidence_event_count) + "개 이벤트"], ["보존 범위", alert.evidence_scope], ["실행 상태", alert.hexstrike_blocked ? "blocked_not_run" : "replay_only"]].forEach(([label, value]) => { const item = document.createElement("div"); item.className = "fact"; const name = document.createElement("span"); name.textContent = label; const text = document.createElement("strong"); text.textContent = display(value); item.append(name, text); facts.append(item); });
+      const fields = [["사례", alert.case_id], ["분류", governed?.display_label ?? alert.display_label], ["심각도", severityText(alert.severity)], ["근거", String(alert.evidence_event_count) + "개 이벤트"], ["보존 범위", alert.evidence_scope], ["실행 상태", alert.hexstrike_blocked ? "blocked_not_run" : "replay_only"]];
+      if (governed) fields.push(
+        ["자료 출처", governed.synthetic ? "합성 데모" : "실제 관측"],
+        ["라벨 상태", governed.label_status === "synthetic_approved" ? "합성 승인" : "보안팀 검토 대기"],
+        ["라벨 신뢰도", severityText(governed.confidence)],
+        ["데이터 분할", governed.split === "synthetic_demo" ? "합성 데모 전용" : "미지정"],
+      );
+      fields.forEach(([label, value]) => { const item = document.createElement("div"); item.className = "fact"; const name = document.createElement("span"); name.textContent = label; const text = document.createElement("strong"); text.textContent = display(value); item.append(name, text); facts.append(item); });
       const recommendation = document.createElement("p"); recommendation.className = "recommendation"; recommendation.textContent = "관제사 권장: " + alert.recommended_action;
       target.append(heading, copy, facts, recommendation);
+      if (governed) {
+        const label = document.createElement("h3");
+        label.textContent = "검증된 근거 경로";
+        const paths = document.createElement("ul");
+        paths.className = "evidence-paths";
+        for (const path of governed.evidence_paths) {
+          const row = document.createElement("li");
+          const name = document.createElement("code");
+          const segments = path.split("/");
+          for (const segment of segments.slice(0, -1)) {
+            name.append(segment + "/", document.createElement("wbr"));
+          }
+          name.append(segments.at(-1));
+          row.append(name);
+          paths.append(row);
+        }
+        target.append(label, paths);
+      } else {
+        const status = document.createElement("p");
+        status.textContent = state.data.case_intake_status === "unavailable"
+          ? "인계 패키지를 검증하지 못했습니다. 보존된 사례 요약을 표시합니다."
+          : "인계 목록에 없는 사례입니다. 보존된 사례 요약과 타임라인을 표시합니다.";
+        target.append(status);
+      }
       if (alert.hexstrike_blocked) { const warning = document.createElement("p"); warning.className = "warning"; warning.textContent = "HexStrike는 정책 게이트에서 차단된 상태입니다. 이 페이지는 실행 근거나 런타임 관측을 표시하지 않습니다."; target.append(warning); }
     }
     function renderTimeline() {

@@ -1,0 +1,190 @@
+{
+  "best_pure": "extend-four",
+  "highest_ap": "blend",
+  "lexical_sha256": "70c9a0e7ac950f963de715a1d64476c83cd6a7bde86e5a3889d1c77e54c3d1e9",
+  "model_sha256": {
+    "extend-four": "a7e4a5304cc17c7d0f8c92c08a0079aa29d28274ed78cb1732578976ff97d62e",
+    "fresh-six": "fb68716c1e3bdc62f84855cbc981812251e5f15bf6cbd69d39a78418ffee66af",
+    "original-codebert": "57a84faf9acf5022bd0df8bcb280b9bca25086e8652dcdbba291eb8a7df3a5c2",
+    "resume-four": "e254906bf027762a7ff8f20314cdea9af01bc811cddcd7e2602fc3a4d7a0786a"
+  },
+  "selected": "extend-four",
+  "split_audit_sha256": "b012d21c5ab180c0d09244b2b03b4107bea9efa7e62a9c9f5fd1e0f3579a410f",
+  "training_manifest_sha256": {
+    "extend-four": "5a84ec0cd3a71cc9a6b3976d5c28d5ecc63b4b67d7e5ba8cf034b0b4967d5f78",
+    "fresh-six": "93d45f6b26bffa3e2baab4827a427e3a16179b905904bf514611d45e5a5246d6",
+    "original-codebert": "34a4ce6c90d94d675e994212494d3962ac5b4c84e2b9ca7bd0bdf02eba9413e9",
+    "resume-four": "0a3e20f3189fb96fa554572da1365456496aef53e9fb81f148c2da67d4179419"
+  },
+  "validation": {
+    "blend": {
+      "ap": 0.8045463832620527,
+      "known_labels": 42,
+      "score_max": 0.9821428571428571,
+      "score_min": 0.07142857142857142,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 8,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G028-04",
+        "SYN-V2-G032-04",
+        "SYN-V2-G035-06",
+        "SYN-V2-G007-05",
+        "SYN-V2-G007-06",
+        "SYN-V2-G028-06",
+        "SYN-V2-G004-06",
+        "SYN-V2-G032-06",
+        "SYN-V2-G035-02",
+        "SYN-V2-G028-07"
+      ]
+    },
+    "extend-four": {
+      "ap": 0.8045302206530391,
+      "known_labels": 42,
+      "score_max": 0.9981365203857422,
+      "score_min": 0.22765794396400452,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 9,
+        "unknown": 0
+      },
+      "top10_ids": [
+        "SYN-V2-G035-06",
+        "SYN-V2-G028-06",
+        "SYN-V2-G028-04",
+        "SYN-V2-G032-04",
+        "SYN-V2-G007-06",
+        "SYN-V2-G004-04",
+        "SYN-V2-G007-05",
+        "SYN-V2-G004-06",
+        "SYN-V2-G007-04",
+        "SYN-V2-G007-03"
+      ]
+    },
+    "fresh-six": {
+      "ap": 0.7623022115895284,
+      "known_labels": 42,
+      "score_max": 0.4616927206516266,
+      "score_min": 0.4551493227481842,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 8,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G028-04",
+        "SYN-V2-G035-06",
+        "SYN-V2-G032-04",
+        "SYN-V2-G007-06",
+        "SYN-V2-G028-06",
+        "SYN-V2-G029-03",
+        "SYN-V2-G035-04",
+        "SYN-V2-G035-08",
+        "SYN-V2-G004-04",
+        "SYN-V2-G029-04"
+      ]
+    },
+    "lexical": {
+      "ap": 0.7427057089160953,
+      "known_labels": 42,
+      "score_max": 0.8613877779022566,
+      "score_min": 0.20052658787595948,
+      "scored": 56,
+      "top10": {
+        "benign": 2,
+        "review": 7,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G028-04",
+        "SYN-V2-G007-05",
+        "SYN-V2-G032-04",
+        "SYN-V2-G035-02",
+        "SYN-V2-G007-06",
+        "SYN-V2-G035-06",
+        "SYN-V2-G004-06",
+        "SYN-V2-G028-02",
+        "SYN-V2-G028-06",
+        "SYN-V2-G028-07"
+      ]
+    },
+    "original-codebert": {
+      "ap": 0.7215870652262628,
+      "known_labels": 42,
+      "score_max": 0.6032748222351074,
+      "score_min": 0.567247748374939,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 7,
+        "unknown": 2
+      },
+      "top10_ids": [
+        "SYN-V2-G007-06",
+        "SYN-V2-G032-04",
+        "SYN-V2-G035-06",
+        "SYN-V2-G007-08",
+        "SYN-V2-G028-04",
+        "SYN-V2-G028-06",
+        "SYN-V2-G028-02",
+        "SYN-V2-G004-04",
+        "SYN-V2-G004-06",
+        "SYN-V2-G029-08"
+      ]
+    },
+    "original-light": {
+      "ap": 0.7452992913652106,
+      "known_labels": 42,
+      "score_max": 0.6744767627001741,
+      "score_min": 0.35440879330855374,
+      "scored": 56,
+      "top10": {
+        "benign": 2,
+        "review": 7,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G028-04",
+        "SYN-V2-G007-06",
+        "SYN-V2-G007-05",
+        "SYN-V2-G032-04",
+        "SYN-V2-G035-06",
+        "SYN-V2-G035-02",
+        "SYN-V2-G004-06",
+        "SYN-V2-G028-07",
+        "SYN-V2-G028-02",
+        "SYN-V2-G028-06"
+      ]
+    },
+    "resume-four": {
+      "ap": 0.7749819933829547,
+      "known_labels": 42,
+      "score_max": 0.6740317344665527,
+      "score_min": 0.4606649577617645,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 8,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G028-04",
+        "SYN-V2-G035-06",
+        "SYN-V2-G032-04",
+        "SYN-V2-G028-06",
+        "SYN-V2-G007-06",
+        "SYN-V2-G004-04",
+        "SYN-V2-G004-06",
+        "SYN-V2-G035-04",
+        "SYN-V2-G004-03",
+        "SYN-V2-G007-08"
+      ]
+    }
+  },
+  "validation_sha256": "d44d12aee0fb9e15c117b6d879d193f9f32618a50e7a38fbb80529a38c729abc"
+}

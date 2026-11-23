@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
+from collections.abc import Mapping
 import json
 from pathlib import Path
 from random import Random
-from typing import Literal, TypeVar
+from typing import Literal, TypedDict, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -122,6 +123,17 @@ def known_labels(cases: list[Case]) -> set[Label]:
     return {case.label for case in cases if case.status == "eligible" and case.label != "unknown"}
 
 
+def verify_disjoint_splits(splits: Mapping[Split, list[Case]]) -> None:
+    all_cases = [case for cases in splits.values() for case in cases]
+    split_by_id = {case.case_id: split for split, cases in splits.items() for case in cases}
+    if len(split_by_id) != len(all_cases):
+        raise DatasetError("duplicate case_id in split files")
+    for group in connected_groups(all_cases):
+        members = {split_by_id[case.case_id] for case in group}
+        if len(members) > 1:
+            raise DatasetError(f"overlapping case groups in {', '.join(sorted(members))}")
+
+
 def split_cases(cases: list[Case]) -> dict[Split, list[Case]]:
     groups = connected_groups(sorted(cases, key=lambda case: case.case_id))
     Random(101).shuffle(groups)
@@ -154,6 +166,26 @@ def read_split(path: Path, split: Split) -> tuple[list[Case], bool]:
             or audit["splits"][split]["sha256"] != sha256_file(path)):
         raise DatasetError(f"unverified or ineligible {split} split")
     return read_jsonl(path, Case), audit["fixture"]
+
+
+class SplitCount(TypedDict):
+    rows: int
+    groups: int
+    eligible_labels: dict[str, int]
+
+
+def audit_splits(directory: Path) -> dict[Split, SplitCount]:
+    splits = {split: read_split(directory / f"{split}.jsonl", split)[0] for split in SPLITS}
+    verify_disjoint_splits(splits)
+    summary: dict[Split, SplitCount] = {}
+    for split, cases in splits.items():
+        if known_labels(cases) != {"benign", "review"}:
+            raise DatasetError(f"both eligible classes are required in {split}")
+        eligible_labels = Counter(case.label for case in cases
+                                  if case.status == "eligible" and case.label != "unknown")
+        summary[split] = {"rows": len(cases), "groups": len(connected_groups(cases)),
+                          "eligible_labels": dict(eligible_labels)}
+    return summary
 
 
 def prepare(args: argparse.Namespace) -> None:
@@ -197,7 +229,16 @@ def main() -> None:
         command.add_argument(f"--{name}", type=Path, required=True)
     command.add_argument("--base", type=Path)
     command.add_argument("--fixture", action="store_true")
-    prepare(parser.parse_args())
+    audit = commands.add_parser("audit")
+    audit.add_argument("--splits", type=Path, required=True)
+    args = parser.parse_args()
+    if args.command == "prepare":
+        prepare(args)
+        return
+    try:
+        print(json.dumps(audit_splits(args.splits), indent=2))
+    except DatasetError as exc:
+        parser.exit(1, f"{exc}\n")
 
 
 if __name__ == "__main__":

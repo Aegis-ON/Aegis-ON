@@ -74,7 +74,7 @@ class WindowsValidationTests(unittest.TestCase):
         self.addCleanup(setattr,api,'service',old_service)
         api.service=DetectionService()
         with patch.dict('os.environ',{'AEGIS_API_TOKEN':'synthetic-token','AEGIS_ANALYST_NAME':'analyst'},clear=False):
-            with TestClient(api.app) as client:
+            with TestClient(api.app, base_url='https://testserver') as client:
                 self.assertEqual(client.post('/api/v1/sysmon/analyze',json=fixture).status_code,401)
                 r=client.post('/api/v1/sysmon/analyze',json=fixture,headers={'Authorization':'Bearer synthetic-token'})
         self.assertEqual(r.status_code,200)

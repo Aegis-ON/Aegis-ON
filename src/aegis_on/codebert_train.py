@@ -12,7 +12,7 @@ from sklearn.metrics import average_precision_score
 from transformers import AutoTokenizer, RobertaForSequenceClassification, set_seed
 
 from .codebert_classifier import LightClassifier, fit_rows, train_light
-from .codebert_data import DatasetError, connected_groups, read_split, write_json
+from .codebert_data import DatasetError, read_split, verify_disjoint_splits, write_json
 from .codebert_input import BASE_SHA256, sha256_file
 
 
@@ -82,10 +82,7 @@ def train(args: argparse.Namespace) -> None:
         raise DatasetError("fixture flag must match the input audit; custom epoch counts are fixture-only")
     if not 1 <= args.epochs <= 5:
         raise DatasetError("epochs must be in [1, 5]")
-    train_ids = {row.case_id for row in train_cases}
-    if any(len({row.case_id in train_ids for row in group}) > 1
-           for group in connected_groups(train_cases + val_cases)):
-        raise DatasetError("overlapping train and validation groups")
+    verify_disjoint_splits({"train": train_cases, "validation": val_cases})
     base_hash = sha256_file(args.base / "model.safetensors")
     if not fixture and base_hash != BASE_SHA256:
         raise DatasetError("CodeBERT base weight checksum mismatch")

@@ -53,6 +53,30 @@ class ConsoleRouteTests(unittest.TestCase):
         hexstrike = next(row for row in data['alerts'] if row['hexstrike_blocked'])
         self.assertEqual(hexstrike['classification'], 'policy_blocked')
 
+    def test_replay_cases_include_checked_evidence_for_the_selected_case_id(self):
+        response = self.client.get('/api/v1/replay/summary', headers={'Authorization': 'Bearer route-test-token'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['cache-control'], 'no-store')
+        packet = response.json()
+        cases = packet['case_governance']
+        self.assertEqual(len(cases), 7)
+        self.assertLessEqual(set(cases), {item['case_id'] for item in packet['alerts']})
+        simulated_id = 'CASE-SYNTHETIC-CONFIRMED-INCIDENT-20261122-01'
+        self.assertEqual(cases[simulated_id]['display_label'], 'simulated_confirmed_security_incident')
+        self.assertIn(f'synthetic_cases/{simulated_id}/timeline.json', cases[simulated_id]['evidence_paths'])
+
+    def test_replay_summary_remains_readable_when_intake_is_unavailable(self):
+        missing = Path(self.tmp.name) / 'missing-intake'
+        with patch('aegis_on.replay_cases.CASE_INTAKE_ROOT', missing):
+            response = self.client.get('/api/v1/replay/summary', headers={'Authorization': 'Bearer route-test-token'})
+
+        self.assertEqual(response.status_code, 200)
+        packet = response.json()
+        self.assertEqual(packet['case_intake_status'], 'unavailable')
+        self.assertEqual(packet['case_governance'], {})
+        self.assertEqual(len(packet['alerts']), 10)
+
     def test_only_bundled_assets_are_served(self):
         for asset, content_type in [('app.js', 'javascript'), ('app.css', 'text/css')]:
             response = self.client.get('/assets/aegis/' + asset)

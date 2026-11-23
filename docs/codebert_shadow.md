@@ -11,12 +11,15 @@ Sysmon Event ID 1의 명령줄에서 추가 조사 가능성을 추정한다. �
 
 ## 학습과 평가
 
+아이디어톤 합성 로그로 진행한 추가 학습과 AP 비교는 [CodeBERT AP 개선 실험](codebert_ap_improvement.md)에 정리했다.
+
 저장소 루트에서 학습용 Python 환경에 `requirements.txt`와 `requirements-codebert-train.txt`를 설치한다. 다음 경로는 로컬 작업 디렉터리를 예시로 사용한다. 출력 디렉터리는 매 실행에서 새 경로를 사용한다.
 
 ```sh
 export PYTHONPATH=src
 python -m aegis_on.codebert_data prepare --events run/events.jsonl --labels run/labels.jsonl \
   --base run/base --out run/splits
+python -m aegis_on.codebert_data audit --splits run/splits
 python -m aegis_on.codebert_train --base run/base --train run/splits/train.jsonl \
   --validation run/splits/validation.jsonl --out run/model
 python -m aegis_on.codebert_evaluate candidates --events run/events.jsonl \
@@ -31,7 +34,7 @@ python -m aegis_on.codebert_export --model run/model --test run/splits/test.json
   --candidates run/test-cards.json --policy run/policy.json --evaluation run/evaluation.json --out run/onnx
 ```
 
-분할은 시나리오, 실행, 명령 계열, 정규화 명령줄 또는 조사 건을 공유하는 모든 행을 함께 배정한다. 최종 평가 데이터는 학습이나 정책 보정에 사용하지 않는다. 출처와 분할 결과는 `source-audit.json`, `split-audit.json`에서 확인한다.
+분할은 시나리오, 실행, 명령 계열, 정규화 명령줄 또는 조사 건을 공유하는 모든 행을 함께 배정한다. `audit` 명령은 세 분할의 체크섬, 사례 ID 중복, 그룹 겹침, 사용 가능한 정상·조사 필요 라벨을 검사한다. 검사에 성공하면 분할별 행·그룹·라벨 수를 출력한다. 최종 평가 데이터는 학습이나 정책 보정에 사용하지 않는다. 출처와 분할 결과는 `source-audit.json`, `split-audit.json`에서 확인한다.
 
 후보 생성은 기존 탐지 파이프라인을 실행한다. 담당자가 독립적으로 확인한 자산 중요도나, 자산·계정·시간이 일치하는 승인 작업 기록이 있다면 해당 카드의 `verified_critical_asset`, `approved_work_match`를 평가 전 설정할 수 있다. 운영 API의 맥락 점수는 이 정보의 제공원이 연결될 때까지 0이다. AI 점수가 없거나 모델 오류가 발생한 배치에서는 기존 순위를 반환한다.
 
