@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from stat import S_ISDIR, S_ISREG
 from typing import Final, TypedDict
 
@@ -38,6 +39,15 @@ class InventoryIssue(TypedDict):
 class PackageInventory(TypedDict):
     files: list[FileEntry]
     issues: list[InventoryIssue]
+
+
+@dataclass(frozen=True, slots=True)
+class PackageIntegrityError(ValueError):
+    path: str
+    reason: str
+
+    def __str__(self) -> str:
+        return f"{self.path}: {self.reason}"
 
 
 def inventory_package(root: Path, layout: PackageLayout) -> PackageInventory:
@@ -79,6 +89,40 @@ def inventory_package(root: Path, layout: PackageLayout) -> PackageInventory:
         "files": sorted(files, key=lambda entry: entry["path"]),
         "issues": sorted(issues, key=lambda issue: (issue["path"], issue["reason"])),
     }
+
+
+def verified_paths(root: Path, layout: PackageLayout) -> frozenset[str]:
+    inventory = inventory_package(root, layout)
+    if inventory["issues"]:
+        issue = inventory["issues"][0]
+        raise PackageIntegrityError(issue["path"], issue["reason"])
+    sums_name = "SHA256SUMS.txt"
+    files = {entry["path"]: entry["sha256"] for entry in inventory["files"]}
+    if sums_name not in files:
+        raise PackageIntegrityError(sums_name, "missing checksum list")
+    del files[sums_name]
+    expected: dict[str, str] = {}
+    try:
+        lines = (root / sums_name).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise PackageIntegrityError(sums_name, "unreadable checksum list") from exc
+    for number, line in enumerate(lines, start=1):
+        match = re.fullmatch(r"([0-9a-f]{64})  (.+)", line)
+        if match is None:
+            raise PackageIntegrityError(sums_name, f"invalid checksum entry on line {number}")
+        digest, spelling = match.groups()
+        path = PurePosixPath(spelling)
+        name = path.as_posix()
+        if path.is_absolute() or ".." in path.parts or "\\" in spelling or name in expected:
+            raise PackageIntegrityError(sums_name, f"invalid or duplicate path on line {number}")
+        expected[name] = digest
+    difference = files.keys() ^ expected.keys()
+    if difference:
+        raise PackageIntegrityError(min(difference), "file inventory differs from checksum list")
+    for name, digest in expected.items():
+        if files[name] != digest:
+            raise PackageIntegrityError(name, "SHA-256 mismatch")
+    return frozenset(expected)
 
 
 def main() -> int:
