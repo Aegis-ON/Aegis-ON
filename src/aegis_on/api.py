@@ -34,6 +34,7 @@ from .sysmon import parse_sysmon
 from .auth_log import normalize_auth
 from .history_store import SQLiteHistory, HistoryError, BatchConflict
 from .endpoint_views import build_endpoint_groups
+from .replay_cases import replay_summary_response
 from .auth_sessions import AuthSessions, AuthConfigurationError, AuthStorageError
 from .collector_auth import CollectorRegistry, CollectorExists, CollectorNotFound, CollectorStateConflict
 
@@ -52,7 +53,6 @@ DEMO_SCENARIOS = {
     "b": "data/scenario_b.json",
     "c": "data/scenario_c.json",
 }
-REPLAY_SOC_FIXTURE = Path(__file__).resolve().parents[2] / "data" / "replay_soc_fixture.json"
 
 
 @app.exception_handler(RequestValidationError)
@@ -281,13 +281,8 @@ def health() -> dict[str, str]:
 
 
 @app.get('/api/v1/replay/summary')
-def replay_summary(analyst: str = Depends(authenticated_analyst)) -> FileResponse:
-    """Return a read-only, bundled replay summary; never collect or execute rules."""
-    return FileResponse(
-        REPLAY_SOC_FIXTURE,
-        media_type='application/json',
-        headers={'Cache-Control': 'no-store'},
-    )
+def replay_summary(analyst: str = Depends(authenticated_analyst)) -> JSONResponse:
+    return replay_summary_response()
 
 
 def _attack_model_status() -> dict[str, Any]:
