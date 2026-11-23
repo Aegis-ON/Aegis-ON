@@ -1,0 +1,56 @@
+{
+  "case_id": "CASE-ARTEX-20261121-01",
+  "timezone": "UTC",
+  "events": [
+    {
+      "sequence": 1,
+      "time_utc": "2026-11-21T11:14:29.857991Z",
+      "kind": "web_access",
+      "source": "SRC-ARTEX-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "request_id": "REQ-ARTEX-001"
+    },
+    {
+      "sequence": 2,
+      "time_utc": "2026-11-21T11:14:29.867706Z",
+      "kind": "web_access",
+      "source": "SRC-ARTEX-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "request_id": "REQ-ARTEX-002"
+    },
+    {
+      "sequence": 3,
+      "time_utc": "2026-11-21T11:14:29.876547Z",
+      "kind": "web_access",
+      "source": "SRC-ARTEX-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/login",
+      "status": 200,
+      "request_id": "REQ-ARTEX-003",
+      "interpretation_limit": "GET access only; no authentication result is present."
+    },
+    {
+      "sequence": 4,
+      "time_utc": "2026-11-21T11:14:29.883902Z",
+      "kind": "web_access",
+      "source": "SRC-ARTEX-01",
+      "target": "SERVICE-WEB-01",
+      "method": "GET",
+      "path": "/api/status",
+      "status": 200,
+      "request_id": "REQ-ARTEX-004"
+    }
+  ],
+  "context_coverage": {
+    "before": "An earlier same-day baseline service record is preserved in the normal-candidate case, but it is not immediate temporal context.",
+    "after": "No later service record was available in the preserved access-log excerpt.",
+    "endpoint_events": "Not exported for the case window; do not infer absence."
+  }
+}

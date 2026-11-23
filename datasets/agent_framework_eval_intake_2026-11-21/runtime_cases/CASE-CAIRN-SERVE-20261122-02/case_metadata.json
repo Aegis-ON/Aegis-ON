@@ -1,0 +1,83 @@
+{
+  "case_id": "CASE-CAIRN-SERVE-20261122-02",
+  "case_kind": "isolated_cairn_serve_startup_loopback_observation_and_safe_stop",
+  "learning_case_eligibility": "eligible_for_startup_lifecycle_and_loopback_health_telemetry_only; not eligible for worker_or_behavioral_evaluation",
+  "framework": {
+    "name": "Cairn",
+    "official_source": "https://github.com/oritera/Cairn",
+    "source_commit": "8e7e0ea67552383851dfcabfba0c4e9c8d007878",
+    "source_provisioning": "A fixed official-source copy was transferred from an existing Docker-managed Linux volume through a read-only volume mount into a new Docker-managed Linux runtime volume. No Windows host path was mounted or modified.",
+    "runtime_command": "cairn serve",
+    "runtime_command_started": true,
+    "runtime_command_completion": "graceful operator-requested stop; Docker exit code 0"
+  },
+  "time_utc": {
+    "runtime_create": "2026-11-22T05:26:04.043203488Z",
+    "runtime_start": "2026-11-22T05:26:04.331142000Z",
+    "runtime_stop": "2026-11-22T05:29:11.799182626Z",
+    "runtime_die": "2026-11-22T05:29:11.806673155Z",
+    "precision_limit": "Only Docker event timestamps are represented; interactive command-entry times are not inferred."
+  },
+  "lockfile_regeneration": {
+    "original_lock_alias": "CAIRN-LOCK-BASELINE-01",
+    "original_sha256": "362b62604cd5f251410f59a92fbf06d7b5684a78e4aaa26d681de007312ab475",
+    "new_lock_alias": "CAIRN-LOCK-REGENERATED-01",
+    "new_sha256": "abbbea70121dbab40710c9f5c52ff66683001702a102c5bc0ff9d544ad809c09",
+    "storage_separation": "The baseline lock remained in the new volume's immutable source copy. The regenerated lock was written only to the separate runtime-copy tree.",
+    "regeneration_basis": "The official fixed-commit pyproject.toml was preserved unchanged in both copies.",
+    "regeneration_reason": "The prior frozen lock referenced unavailable artifacts. The official pyproject.toml also named an unavailable Aliyun default index, so lock generation used the one-shot UV --default-index https://pypi.org/simple option without modifying the pyproject.toml.",
+    "change_summary": "uv lock --upgrade resolved a fresh dependency graph from the preserved project requirements through PyPI. The regenerated lock was then used by the runtime-copy sync only.",
+    "host_source_modified": false,
+    "prior_case_preserved": "CASE-CAIRN-SERVE-20261122-01"
+  },
+  "runtime_boundary": {
+    "host": "LAB-HOST-01",
+    "runtime_volume": "DOCKER-MANAGED-VOLUME-CAIRN-02",
+    "runtime_container": "FRAMEWORK-CAIRN-RUNTIME-02",
+    "network": "DOCKER-INT-NET-01",
+    "network_internal_observed": true,
+    "published_ports": [],
+    "docker_socket_mounted": false,
+    "host_path_mounts": [],
+    "readonly_root_filesystem": true,
+    "tmpfs": ["/tmp", "/root"],
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824,
+    "credentials_or_tokens_provided": false
+  },
+  "observed_runtime": {
+    "startup_log": "Uvicorn started and reported a loopback-only listener at LOOPBACK-SVC-CAIRN-01:8000.",
+    "process_snapshot": "One Python process running the Cairn serve command was observed by docker top; raw PID values are not retained.",
+    "inspect_collection": "docker inspect verified read-only rootfs, empty host binds, no published port bindings, cap-drop configuration, no-new-privileges, tmpfs, PID limit, and memory limit.",
+    "health": {
+      "method": "read-only GET / from one-shot clients sharing the runtime network namespace",
+      "server_observation": "Two loopback GET / requests were logged by the service with HTTP 200.",
+      "client_capture_limit": "The two Alpine clients reached the service but could not create their default output file on a read-only root filesystem. A third Python client had a command-string syntax error before making a request. No client was retried after this bounded collection."
+    },
+    "not_performed": [
+      "dispatcher start",
+      "worker start",
+      "security tool execution",
+      "target access",
+      "external LLM or API call",
+      "host port publication",
+      "Docker socket mount"
+    ]
+  },
+  "outcome": {
+    "framework_start_observed": true,
+    "safe_stop_observed": true,
+    "exit_code": 0,
+    "label": "isolated_startup_lifecycle_and_loopback_health_only"
+  },
+  "evidence_files": ["container_stdout_stderr.jsonl", "process_snapshot.json", "container_boundary.json", "timeline.json"],
+  "redaction": {
+    "container_ids": "stable aliases only",
+    "network_addresses": "not recorded",
+    "mac_addresses": "not recorded",
+    "host_paths": "not recorded",
+    "secrets_present": false
+  }
+}

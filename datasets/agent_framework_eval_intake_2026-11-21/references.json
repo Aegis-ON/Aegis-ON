@@ -1,0 +1,11 @@
+{
+  "retrieved_utc": "2026-11-21T16:50:00Z",
+  "sources": [
+    {"name": "Google Threat Intelligence: ARTEX and Friends", "url": "https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks", "use": "ARTEX upstream withdrawal and autonomous multi-agent context"},
+    {"name": "CyberStrikeAI official repository", "url": "https://github.com/AIPentest/CyberStrikeAI", "use": "source, license, architecture and integration surface"},
+    {"name": "Cairn official repository", "url": "https://github.com/oritera/Cairn", "use": "source, license, worker execution modes and authorization warning"},
+    {"name": "PentAGI official repository", "url": "https://github.com/vxcontrol/pentagi", "use": "source, license and self-hosted agent architecture"},
+    {"name": "HexStrike AI official repository", "url": "https://github.com/0x4m4/hexstrike-ai", "use": "source and MCP tool-bridge description"},
+    {"name": "GitHub Advisory GHSA-crrg-2r24-3g67", "url": "https://github.com/advisories/GHSA-crrg-2r24-3g67", "use": "HexStrike AI execution gate due to disclosed remote command injection"}
+  ]
+}

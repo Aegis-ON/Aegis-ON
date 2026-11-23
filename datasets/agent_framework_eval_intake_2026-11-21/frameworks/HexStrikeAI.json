@@ -1,0 +1,21 @@
+{
+  "framework": "HexStrike AI",
+  "official_source": "https://github.com/0x4m4/hexstrike-ai",
+  "license": "MIT",
+  "execution_status": "blocked_not_run",
+  "reported_architecture": "MCP server that can connect agents to a large set of cybersecurity tools",
+  "security_gate": "Execution blocked. On 2026-11-22, official GitHub advisory GHSA-crrg-2r24-3g67 still listed affected and patched versions as Unknown, and the official releases index listed no releases. No official fixed commit, release, image digest, or attributable Execute Endpoint code change was established; a disposable isolated VM must not be created or used until that evidence exists.",
+  "gate_review_record": "attempts/HexStrikeAI_gate_review_20261122.json",
+  "synthetic_fixture": {
+    "case_id": "CASE-HEXSTRIKE-GATE-20261122-01",
+    "record_path": "synthetic_cases/CASE-HEXSTRIKE-GATE-20261122-01",
+    "case_kind": "synthetic_schema_fixture_not_observed",
+    "learning_case_eligibility": "parser_and_correlation_testing_only",
+    "framework_runtime_observed": false,
+    "synthetic": true,
+    "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version",
+    "use_restriction": "Not evidence of a HexStrike runtime and not eligible for framework behavior or attack evaluation."
+  },
+  "required_case_metadata_if_gate_is_lifted": ["fixed commit hash", "vulnerability disposition", "MCP client identity", "tool allow-list", "code or script policy decision", "scope assertion"],
+  "expected_telemetry_if_gate_is_lifted": ["MCP request and response audit", "tool subprocess tree", "script policy decision", "target HTTP/access log", "container egress decision"]
+}

@@ -1,0 +1,14 @@
+{
+  "utc_time": "2026-11-21T17:38:03Z",
+  "source": "docker top aegis-eval-target-20261122 -eo pid,ppid,comm,args",
+  "container": "SYNTHETIC-HTTP-01",
+  "processes": [
+    {
+      "process_identifier": "CONTAINER-PROC-01",
+      "pid": 453,
+      "ppid": 429,
+      "command": "python -m http.server 8080",
+      "note": "PID is from the Docker Desktop Linux VM process view; it is not a Windows host PID."
+    }
+  ]
+}

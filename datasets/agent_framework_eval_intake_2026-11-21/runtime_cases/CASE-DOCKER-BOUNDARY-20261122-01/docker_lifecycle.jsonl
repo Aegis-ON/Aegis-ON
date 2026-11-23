@@ -1,0 +1,7 @@
+{"utc_time":"2026-11-21T17:25:43Z","event_type":"container_create","container":"SYNTHETIC-HTTP-01","image":"python:3.12-alpine","source":"docker events"}
+{"utc_time":"2026-11-21T17:25:43Z","event_type":"container_start","container":"SYNTHETIC-HTTP-01","image":"python:3.12-alpine","source":"docker events"}
+{"utc_time":"2026-11-21T17:38:03Z","event_type":"container_create","container":"CONTAINER-CLIENT-01","image":"python:3.12-alpine","source":"docker events"}
+{"utc_time":"2026-11-21T17:38:03Z","event_type":"container_attach","container":"CONTAINER-CLIENT-01","image":"python:3.12-alpine","source":"docker events"}
+{"utc_time":"2026-11-21T17:38:03Z","event_type":"container_start","container":"CONTAINER-CLIENT-01","image":"python:3.12-alpine","source":"docker events"}
+{"utc_time":"2026-11-21T17:38:03Z","event_type":"container_die","container":"CONTAINER-CLIENT-01","image":"python:3.12-alpine","exit_code":0,"source":"docker events"}
+{"utc_time":"2026-11-21T17:39:55Z","event_type":"container_die","container":"SYNTHETIC-HTTP-01","image":"python:3.12-alpine","exit_code":137,"source":"docker inspect after intentional stop"}

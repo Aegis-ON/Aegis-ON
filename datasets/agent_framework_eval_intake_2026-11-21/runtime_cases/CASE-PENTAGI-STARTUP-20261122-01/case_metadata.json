@@ -1,0 +1,54 @@
+{
+  "case_id": "CASE-PENTAGI-STARTUP-20261122-01",
+  "case_kind": "actual_isolated_framework_startup",
+  "learning_case_eligibility": "telemetry_validation_only_pending_security_review",
+  "framework": {
+    "name": "PentAGI",
+    "official_source": "https://github.com/vxcontrol/pentagi",
+    "source_commit": "cffed9485aa1cca70762cd08a57ac62a80406258",
+    "reported_version": "2.2.0-ce.hcffed94",
+    "image_reference": "vxcontrol/pentagi:latest",
+    "registry_manifest_digest_checked_after_run": "sha256:17402c51e5631f493a3c161a94ba277b31a4f96bba23a518cd13c85c240bc760",
+    "tag_is_mutable": true,
+    "provenance_limit": "The saved runtime terminal observation recorded the image revision and version; export the host's full image inspect record before promoting this case beyond telemetry validation."
+  },
+  "time_utc": {
+    "started": "2026-11-21T17:34:05.388189153Z",
+    "finished": "2026-11-21T17:34:05.660911628Z",
+    "source": "docker inspect"
+  },
+  "environment": {
+    "host": "LAB-HOST-01",
+    "container": "FRAMEWORK-PENTAGI-01",
+    "network": "DOCKER-INT-NET-01",
+    "network_internal": true,
+    "published_ports": [],
+    "mounts": [],
+    "docker_socket_mounted": false,
+    "read_only_root_filesystem": true,
+    "capabilities_dropped": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824,
+    "external_egress": "not available through internal Docker network",
+    "credentials_or_tokens_provided": false
+  },
+  "execution_scope": {
+    "scenario_id": "PENTAGI-ISOLATED-STARTUP-01",
+    "allowed_action": "framework startup only",
+    "not_performed": ["database provisioning", "API or GraphQL exposure", "flow creation", "agent task execution", "security tool execution", "target web access", "external LLM call"]
+  },
+  "outcome": {
+    "container_status": "exited",
+    "exit_code": 1,
+    "reason": "internal dependency boundary held: pgvector hostname lookup failed before API or agent work",
+    "label": "startup_dependency_deny_expected"
+  },
+  "evidence_files": ["container_stdout_stderr.jsonl", "docker_lifecycle.jsonl", "container_boundary.json", "timeline.json"],
+  "redaction": {
+    "container_id": "CONTAINER-ID-01",
+    "installation_id": "LAB-INSTANCE-01",
+    "resolver_ip": "CONTAINER-DNS-01",
+    "secrets_present": false
+  }
+}

@@ -1,0 +1,12 @@
+[
+  {"utc_time":null,"stage":"official_source_cloned","evidence":"fixed commit checked out inside Docker-managed Linux volume; interactive terminal did not export a timestamp"},
+  {"utc_time":null,"stage":"lockfile_hashed_before_adjustment","sha256":"90c5a3cc9405e27e47bc9ae5e5681ab86c63e2a23afb7768fcf1b7aa1dc80ffb"},
+  {"utc_time":null,"stage":"lockfile_index_adjusted_in_volume","change":"mirrors.aliyun.com to pypi.org only; host source unchanged"},
+  {"utc_time":null,"stage":"lockfile_hashed_after_adjustment","sha256":"362b62604cd5f251410f59a92fbf06d7b5684a78e4aaa26d681de007312ab475"},
+  {"utc_time":null,"stage":"uv_sync_started","command":"uv sync --frozen","evidence":"one-shot dependency-sync container"},
+  {"utc_time":null,"stage":"uv_sync_failed_before_framework_start","reason":"locked watchfiles 1.1.1 CPython 3.13 artifact returned HTTP 404 from pypi.org","exit_code":1},
+  {"utc_time":"2026-11-22T05:03:47.425172927Z","stage":"uv_sync_retry_started","image":"ghcr.io/astral-sh/uv:python3.12-trixie","command":"uv sync --frozen","evidence":"Docker event start"},
+  {"utc_time":"2026-11-22T05:03:48.391154570Z","stage":"uv_sync_retry_failed_before_framework_start","reason":"locked h11 0.16.0 artifact returned HTTP 404 from pypi.org","exit_code":1,"evidence":"Docker event die"},
+  {"utc_time":null,"stage":"cairn_serve_not_started","reason":"dependency sync did not complete; no runtime container, worker, dispatcher, health request, or target interaction was created"},
+  {"utc_time":null,"stage":"safe_stop_and_retention","sync_container":"exited with code 1","provisioning_container":"stopped by operator and retained","deleted":false}
+]

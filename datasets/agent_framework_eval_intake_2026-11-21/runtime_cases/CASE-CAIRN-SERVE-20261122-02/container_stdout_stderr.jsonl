@@ -1,0 +1,6 @@
+{"utc_time":null,"stream":"stdout","event":"server_process_started","message":"Cairn reported that its server process started."}
+{"utc_time":null,"stream":"stdout","event":"application_startup_complete","message":"Cairn reported application startup complete."}
+{"utc_time":null,"stream":"stdout","event":"loopback_listener","message":"Uvicorn reported a loopback-only listener at LOOPBACK-SVC-CAIRN-01:8000."}
+{"utc_time":null,"stream":"stdout","event":"loopback_get","message":"The service logged GET / with HTTP 200 from a same-network-namespace health client."}
+{"utc_time":null,"stream":"stdout","event":"loopback_get","message":"The service logged a second GET / with HTTP 200 from a same-network-namespace health client."}
+{"utc_time":null,"stream":"stdout","event":"graceful_shutdown","message":"The service logged shutdown start, application shutdown completion, and server process completion after docker stop."}

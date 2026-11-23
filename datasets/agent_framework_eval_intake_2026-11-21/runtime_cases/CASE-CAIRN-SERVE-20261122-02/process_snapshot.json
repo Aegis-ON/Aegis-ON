@@ -1,0 +1,14 @@
+{
+  "source": "docker top while the runtime was running",
+  "container": "FRAMEWORK-CAIRN-RUNTIME-02",
+  "process_count_observed": 1,
+  "processes": [
+    {
+      "user": "root",
+      "pid": "CONTAINER-PID-REDACTED",
+      "ppid": "CONTAINER-PPID-REDACTED",
+      "command": "python <runtime-volume>/Cairn/cairn/.venv/bin/cairn serve"
+    }
+  ],
+  "note": "Docker Desktop Linux-VM PIDs are not host PIDs and were redacted from the shared package."
+}

@@ -1,0 +1,53 @@
+{
+  "observed_date": "2026-11-22",
+  "source": ["operator-observed Docker CLI terminal output", "docker ps -a", "docker logs", "docker top", "docker inspect", "docker events"],
+  "preparation_boundary": {
+    "official_clone_location": "Docker-managed Linux volume only",
+    "host_source_modified": false,
+    "host_path_mounts": [],
+    "docker_socket_mounted": false,
+    "published_ports": [],
+    "credentials_or_tokens_provided": false,
+    "lockfile_substitution": "mirrors.aliyun.com to pypi.org in the volume copy only"
+  },
+  "dependency_sync_attempts": [
+    {
+      "container": "FRAMEWORK-CAIRN-SYNC-01",
+      "image": "ghcr.io/astral-sh/uv:python3.13-trixie",
+      "command": "uv sync --frozen",
+      "network": "standard Docker bridge only for dependency retrieval",
+      "result": "exited with code 1 before framework start",
+      "failure_class": "locked CPython 3.13 watchfiles artifact returned HTTP 404 from pypi.org"
+    },
+    {
+      "container": "FRAMEWORK-CAIRN-SYNC-02",
+      "image": "ghcr.io/astral-sh/uv:python3.12-trixie",
+      "command": "uv sync --frozen",
+      "network": "standard Docker bridge only for dependency retrieval",
+      "result": "exited with code 1 before framework start",
+      "failure_class": "locked h11 0.16.0 artifact returned HTTP 404 from pypi.org",
+      "docker_events": {
+        "start": "2026-11-22T14:03:47.425172927+09:00",
+        "die": "2026-11-22T14:03:48.391154570+09:00",
+        "exit_code": 1
+      },
+      "docker_top": "not running"
+    }
+  ],
+  "runtime_boundary": {
+    "runtime_container_created": false,
+    "internal_network_attached": false,
+    "read_only_root_filesystem": "not applicable; no runtime container existed",
+    "tmpfs": [],
+    "cap_drop": [],
+    "no_new_privileges": "not applicable; no runtime container existed",
+    "pids_limit": "not applicable; no runtime container existed",
+    "memory_limit": "not applicable; no runtime container existed",
+    "loopback_health": "not attempted because cairn serve never started"
+  },
+  "final_collection": {
+    "docker_ps_collected": true,
+    "runtime_logs_top_inspect_events": "not applicable to Cairn runtime because no runtime container was created; logs, top, inspect, and events were collected for the retained Python 3.12 sync attempt",
+    "safe_stop": "the provisioning container was stopped after the first failed sync; both one-shot sync containers were already exited and retained; no container or volume was deleted"
+  }
+}

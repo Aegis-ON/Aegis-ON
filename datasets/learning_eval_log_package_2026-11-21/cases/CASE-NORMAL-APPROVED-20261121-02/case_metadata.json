@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-NORMAL-APPROVED-20261121-02",
+  "observation_class": "operator-approved, controlled laboratory monitoring request",
+  "normal_work_summary": "A deliberate synthetic service health check was run against the isolated target to provide an approved normal comparison event.",
+  "approval_evidence": "Authorized as part of this Aegis-ON learning and evaluation collection; scope was limited to the isolated synthetic HTTP service.",
+  "tool": {"name": "containerized curl health check", "version": "not collected"},
+  "target": {"type": "synthetic HTTP service", "shared_identifier": "SERVICE-WEB-01"},
+  "endpoint_observation_target": {"type": "Windows Sysmon source host", "shared_identifier": "HOST-WIN-01"},
+  "observed_start_utc": "2026-11-21T16:47:44.139028Z",
+  "observed_end_utc": "2026-11-21T16:47:44.139028Z",
+  "execution_scope": {"restriction": "GET /health only; no authentication, enumeration, exploitation, or external target access"},
+  "evidence_sources": ["target service access log", "controlled execution timeline", "direct Windows Sysmon query"],
+  "sysmon_export_status": "queried directly from Windows Sysmon; Event ID 1 and 3 each returned zero records for the analysis window",
+  "label": {"status": "unassigned", "proposed_class": "approved normal comparison", "instruction": "Security staff must retain final label authority."}
+}

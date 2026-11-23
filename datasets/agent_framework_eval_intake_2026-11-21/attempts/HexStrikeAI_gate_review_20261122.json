@@ -1,0 +1,40 @@
+{
+  "record_type": "security_gate_review_not_an_execution_case",
+  "framework": "HexStrike AI",
+  "official_source": "https://github.com/0x4m4/hexstrike-ai",
+  "reviewed_utc": "2026-11-22T05:37:25Z",
+  "execution_status": "blocked_not_run",
+  "gate": {
+    "advisory": "GHSA-crrg-2r24-3g67",
+    "cve": "CVE-2026-90619",
+    "affected_through_commit": "d689933ff579d839c676c82b231f8e98326c5f04",
+    "reported_issue": "Execute endpoint code or script path permits remote command injection",
+    "known_patched_version": null,
+    "disposition": "No confirmed fixed release or commit was available during review; the advisory still lists affected and patched versions as unknown."
+  },
+  "official_evidence": {
+    "advisory_url": "https://github.com/advisories/GHSA-crrg-2r24-3g67",
+    "advisory_observation": "Affected versions: Unknown; patched versions: Unknown. The advisory identifies hexstrike_server.py Execute Endpoint code/script input as the reported command-injection path and identifies no updated release details.",
+    "official_repository_url": "https://github.com/0x4m4/hexstrike-ai",
+    "official_release_index_url": "https://github.com/0x4m4/hexstrike-ai/releases",
+    "official_release_index_observation": "No official releases were listed during this review.",
+    "fixed_commit_or_release": null,
+    "fixed_image_digest": null,
+    "vulnerable_input_path_code_change_proof": null,
+    "reason_fixed_artifact_is_not_recorded": "Neither the advisory nor the official release index provides an official fixed commit, release, image digest, or attributable code change for the Execute Endpoint issue."
+  },
+  "required_before_any_execution": [
+    "verified fixed commit or release with advisory disposition",
+    "independent disposable VM created specifically for the run",
+    "no host or Docker socket mount",
+    "internal-only network and no external egress",
+    "documented tool allow-list and scope assertion"
+  ],
+  "result": "Gate remains blocked. No HexStrike clone, image pull, VM provisioning, container creation, or execution was performed in this collection run.",
+  "review_scope": [
+    "official GitHub advisory",
+    "official repository landing page",
+    "official repository releases index"
+  ],
+  "review_source": "https://github.com/advisories/GHSA-crrg-2r24-3g67"
+}

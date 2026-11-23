@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "principle": "A scenario becomes a learning or evaluation case only after its scope, provenance, and telemetry completeness are recorded.",
+  "scenarios": [
+    {
+      "scenario_id": "NORMAL-HEALTH-01",
+      "classification": "approved normal comparison",
+      "action": "Single GET /health from a dedicated normal-monitor container to SERVICE-WEB-01",
+      "allowed": true,
+      "required_logs": ["container lifecycle", "target access log", "Windows or Linux process telemetry", "network telemetry"],
+      "prohibited": ["authentication testing", "endpoint enumeration", "external egress"]
+    },
+    {
+      "scenario_id": "FRAMEWORK-BOOT-01",
+      "classification": "framework startup and scope-enforcement evaluation",
+      "action": "Start a pinned framework image with a mock model endpoint and verify it refuses a target outside SERVICE-WEB-01",
+      "allowed": true,
+      "required_logs": ["image digest", "scope decision", "framework audit log", "container lifecycle", "egress deny event"],
+      "prohibited": ["real LLM API keys", "external network access", "security tool execution"]
+    },
+    {
+      "scenario_id": "FRAMEWORK-BUILD-ATTEST-01",
+      "classification": "provenance-only build attempt",
+      "action": "Build a pinned framework snapshot in a disposable builder container with no host mounts other than read-only source or a Docker-managed work volume.",
+      "allowed": true,
+      "required_logs": ["pinned commit", "builder image digest", "build command class", "start and finish UTC", "compiler or dependency result"],
+      "prohibited": ["framework task execution", "target access", "host Docker socket", "credential injection"],
+      "learning_case_eligibility": "ineligible unless a framework process subsequently starts with complete telemetry"
+    },
+    {
+      "scenario_id": "PENTAGI-ISOLATED-STARTUP-01",
+      "classification": "framework startup and dependency-deny evaluation",
+      "action": "Start a pinned PentAGI image only on an internal Docker network without host ports, mounts, Docker socket, tokens, or an LLM endpoint. Permit the expected unavailable-database failure only.",
+      "allowed": true,
+      "required_logs": ["image revision or digest", "container lifecycle", "container stdout or stderr", "network topology", "resource and capability restrictions"],
+      "prohibited": ["database provisioning", "API or GraphQL exposure", "flow creation", "agent task execution", "external egress"],
+      "learning_case_eligibility": "telemetry validation only; security-team review required before any behavioral label"
+    },
+    {
+      "scenario_id": "HEXSTRIKE-GATE-SYNTHETIC-01",
+      "classification": "synthetic schema fixture not observed",
+      "action": "Static parser and correlation fixture representing a security-gate denial before any runtime activity.",
+      "allowed": true,
+      "synthetic": true,
+      "framework_runtime_observed": false,
+      "provenance": "GHSA-crrg-2r24-3g67 security gate with no verified fixed version",
+      "required_logs": ["synthetic policy-denial record", "synthetic boundary-policy record", "fixed UTC fixture clock", "stable aliases"],
+      "prohibited": ["framework runtime activity", "container or VM creation", "network activity", "MCP call", "web request", "behavior or attack labeling"],
+      "learning_case_eligibility": "parser_and_correlation_testing_only"
+    },
+    {
+      "scenario_id": "SYNTHETIC-CONFIRMED-INCIDENT-DEMO-01",
+      "classification": "synthetic confirmed-incident monitoring demonstration",
+      "action": "Static non-executed metadata that combines synthetic process-chain, policy-disallowed connection, web-authentication, and correlation-alert signals.",
+      "allowed": true,
+      "synthetic": true,
+      "framework_runtime_observed": false,
+      "ground_truth_source": "synthetic_exercise_scenario",
+      "final_label": "confirmed_security_incident",
+      "display_label": "simulated_confirmed_security_incident",
+      "eligible_for_training": "synthetic_only",
+      "eligible_for_production_validation": false,
+      "review_status": "synthetic_scenario_approved",
+      "not_actual_incident": true,
+      "required_logs": ["synthetic Sysmon Event ID 1 record", "synthetic Sysmon Event ID 3 record", "synthetic web-authentication record", "synthetic correlation alert"],
+      "prohibited": ["process execution", "network request", "actual authentication attempt", "actual incident claim", "production-performance claim"],
+      "learning_case_eligibility": "monitoring_demo_only"
+    },
+    {
+      "scenario_id": "UNSAFE-OFFENSIVE-01",
+      "classification": "not collected",
+      "action": "Exploit, credential attack, persistence, or targeting beyond the synthetic service",
+      "allowed": false,
+      "required_logs": [],
+      "prohibited": ["all execution"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "utc_time": "2026-11-22T03:49:29.608Z",
+  "source": ["approved docker run invocation", "operator-observed docker logs", "operator-observed docker ps"],
+  "network": {
+    "name": "DOCKER-INT-NET-01",
+    "driver": "bridge",
+    "internal": true,
+    "published_ports": [],
+    "external_egress": false,
+    "service_binding": "LOOPBACK-SVC-01:8080",
+    "separate_client_result": "connection refused through container name; expected for loopback-only listener"
+  },
+  "isolation": {
+    "read_only_root_filesystem": true,
+    "tmpfs": ["/tmp", "/root", "/data"],
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824,
+    "host_path_mounts": [],
+    "docker_managed_volume_writable": true,
+    "docker_socket_mounted": false
+  },
+  "final_lifecycle_collection": {
+    "docker_logs_collected": true,
+    "docker_top_result": "container not running",
+    "docker_inspect_collected": true,
+    "docker_events_collected": true,
+    "loopback_health": "not attempted after observed exit; no restart performed",
+    "safe_stop": "container already exited and was retained; no delete operation was performed"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "case_id": "CASE-ARTEX-20261121-01",
+  "observation_class": "controlled, isolated laboratory web traffic",
+  "tool": {
+    "name": "ARTEX agent environment",
+    "version": "not confirmed from preserved evidence"
+  },
+  "target": {
+    "type": "synthetic HTTP service",
+    "shared_identifier": "SERVICE-WEB-01"
+  },
+  "endpoint_observation_target": {
+    "type": "Windows Sysmon source host",
+    "shared_identifier": "HOST-WIN-01"
+  },
+  "observed_start_utc": "2026-11-21T11:14:29.857991Z",
+  "observed_end_utc": "2026-11-21T11:14:29.883902Z",
+  "execution_scope": {
+    "scope_registration": "manual laboratory scope registration",
+    "scope_record": "task 1, scope item 0",
+    "restriction": "only the isolated synthetic HTTP service was in scope"
+  },
+  "evidence_sources": [
+    "target service access log",
+    "controlled execution timeline",
+    "manual scope registration record"
+  ],
+  "sysmon_export_status": "queried directly from Windows Sysmon; Event ID 1 and 3 each returned zero records for the analysis window",
+  "label": {
+    "status": "unassigned",
+    "owner": "AI 담당 및 보안팀",
+    "instruction": "Correlate with original evidence before assigning any label."
+  }
+}

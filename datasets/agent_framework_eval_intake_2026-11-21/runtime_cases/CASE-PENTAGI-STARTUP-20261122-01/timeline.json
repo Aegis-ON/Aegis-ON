@@ -1,0 +1,7 @@
+[
+  {"utc_time":"2026-11-21T17:34:05.388189153Z","stage":"container_started","evidence":"docker inspect and docker events"},
+  {"utc_time":"2026-11-21T17:34:05Z","stage":"framework_start_banner","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-21T17:34:05Z","stage":"read_only_writes_denied","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-21T17:34:05Z","stage":"pgvector_dependency_denied","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-21T17:34:05.660911628Z","stage":"container_exited","exit_code":1,"evidence":"docker inspect and docker events"}
+]
