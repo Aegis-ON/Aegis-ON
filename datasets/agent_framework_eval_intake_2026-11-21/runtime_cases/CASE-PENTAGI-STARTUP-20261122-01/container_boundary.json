@@ -1,0 +1,22 @@
+{
+  "utc_time": "2026-11-21T17:34:05Z",
+  "source": ["docker run invocation", "docker inspect", "docker network inspect"],
+  "network": {
+    "name": "DOCKER-INT-NET-01",
+    "driver": "bridge",
+    "internal": true,
+    "published_ports": [],
+    "external_egress": false
+  },
+  "isolation": {
+    "read_only_root_filesystem": true,
+    "tmpfs": ["/tmp"],
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "pids_limit": 128,
+    "memory_limit_bytes": 1073741824,
+    "mounts": [],
+    "docker_socket_mounted": false
+  },
+  "container_endpoint": "removed_after_exit; raw IP and MAC withheld"
+}

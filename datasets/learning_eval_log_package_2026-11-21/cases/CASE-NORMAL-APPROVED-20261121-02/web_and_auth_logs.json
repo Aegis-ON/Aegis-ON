@@ -1,0 +1,10 @@
+{
+  "case_id": "CASE-NORMAL-APPROVED-20261121-02",
+  "log_type": "synthetic HTTP access log",
+  "timezone": "UTC",
+  "records": [
+    {"utc": "2026-11-21T16:47:44.139028Z", "source_identifier": "SRC-MON-APPROVED-01", "service": "SERVICE-WEB-01", "method": "GET", "path": "/health", "status": 200, "request_id": "REQ-NORMAL-APPROVED-001"}
+  ],
+  "authentication": {"separate_authentication_log": false, "result": "not applicable; endpoint was not an authentication transaction"},
+  "comparison_note": "This was a deliberately approved health check in the same isolated service environment. It is fit as a normal comparison candidate, while the final label remains reserved for the security team."
+}

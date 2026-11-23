@@ -1,0 +1,10 @@
+[
+  {"utc_time":"2026-11-22T03:49:29.291Z","stage":"docker_container_created","evidence":"operator-observed docker events; stable identifiers redacted"},
+  {"utc_time":"2026-11-22T03:49:29.531Z","stage":"docker_container_started","evidence":"operator-observed docker events; stable identifiers redacted"},
+  {"utc_time":"2026-11-22T03:49:29.608Z","stage":"framework_start_banner","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-22T03:49:29.608Z","stage":"loopback_http_listener_started","listener":"LOOPBACK-SVC-01:8080","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-22T03:49:29.608Z","stage":"process_isolation_ready","backend":"process_group_watchdog","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-22T03:51:50.700Z","stage":"application_initialization_failed","reason":"Pi runtime build exited with status 1","evidence":"container stdout/stderr"},
+  {"utc_time":"2026-11-22T03:51:50.848Z","stage":"docker_container_died","exit_code":1,"runtime_seconds":141,"evidence":"operator-observed docker events; stable identifiers redacted"},
+  {"utc_time":null,"stage":"final_collection_result","docker_top":"container not running","final_inspect":"collected and redacted","loopback_health":"not attempted after observed exit; container was not restarted","safe_stop":"already stopped; retained without deletion"}
+]

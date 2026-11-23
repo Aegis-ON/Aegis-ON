@@ -1,0 +1,35 @@
+{
+  "case_id": "CASE-DOCKER-BOUNDARY-20261122-01",
+  "case_kind": "approved_normal_comparison",
+  "operation": "One GET / from a restricted Python probe to a synthetic Python HTTP server on an internal Docker bridge.",
+  "time_utc": {
+    "target_started": "2026-11-21T17:25:43Z",
+    "request": "2026-11-21T17:38:03Z",
+    "probe_finished": "2026-11-21T17:38:03Z",
+    "target_finished": "2026-11-21T17:39:55Z"
+  },
+  "environment": {
+    "host": "LAB-HOST-01",
+    "network": "DOCKER-INT-NET-01",
+    "network_internal": true,
+    "target": "SYNTHETIC-HTTP-01",
+    "probe": "CONTAINER-CLIENT-01",
+    "target_image": "python:3.12-alpine",
+    "probe_image": "python:3.12-alpine",
+    "target_published_ports": [],
+    "probe_published_ports": [],
+    "target_read_only_root_filesystem": true,
+    "probe_read_only_root_filesystem": true,
+    "probe_capabilities_dropped": ["ALL"],
+    "probe_docker_socket_mounted": false
+  },
+  "outcome": {
+    "http_status": 200,
+    "request_path": "/",
+    "probe_exit_code": 0,
+    "target_exit_code": 137,
+    "note": "The target was intentionally stopped after collection; no container was deleted."
+  },
+  "learning_case_eligibility": "approved normal comparison pending security-team timeline review",
+  "evidence_files": ["target_access_log.jsonl", "process_snapshot.json", "docker_lifecycle.jsonl", "container_boundary.json", "timeline.json"]
+}

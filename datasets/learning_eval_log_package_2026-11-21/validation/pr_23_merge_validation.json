@@ -1,0 +1,9 @@
+{
+  "validation_id": "PR-23-MERGE-20261121-01",
+  "repository": "Aegis-ON/Aegis-ON",
+  "pull_request": 23,
+  "title": "Fix Windows Sysmon collector checkpoint and heartbeat",
+  "state": "MERGED",
+  "merged_at_utc": "2026-11-21T17:15:56Z",
+  "merge_commit": "b279596ffaf0fecb05bd0acd3115a799ae818fae"
+}

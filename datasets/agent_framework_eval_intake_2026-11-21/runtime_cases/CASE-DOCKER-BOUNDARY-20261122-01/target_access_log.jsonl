@@ -1,0 +1,1 @@
+{"utc_time":"2026-11-21T17:38:03Z","source":"container stdout access log","source_identifier":"CONTAINER-CLIENT-01","target":"SYNTHETIC-HTTP-01","method":"GET","request_path":"/","http_version":"HTTP/1.1","status":200,"request_id":null,"authentication_result":"not_applicable"}

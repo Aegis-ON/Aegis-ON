@@ -1,0 +1,13 @@
+{
+  "case_id": "CASE-NORMAL-CANDIDATE-20261121-01",
+  "event_id": 3,
+  "event_name": "Network Connect",
+  "collection_status": "queried_zero_events",
+  "source_host": "HOST-WIN-01",
+  "requested_window_utc": {"start": "2026-11-21T09:47:00Z", "end": "2026-11-21T09:52:00Z"},
+  "required_fields": ["UtcTime", "host_identifier", "EventRecordID", "ProcessGuid", "Image", "SourceIp", "DestinationIp", "DestinationPort"],
+  "events": [],
+  "query_verification": {"queried_at_utc": "2026-11-21T16:45:48Z", "source_log": "Microsoft-Windows-Sysmon/Operational", "method": "Get-WinEvent Event ID 3, maximum 5000 records, then UTC TimeCreated inclusive-range filter", "result_count": 0},
+  "reason": "The direct Windows query returned zero records in this five-minute window.",
+  "interpretation_limit": "Event ID 3 is configuration-dependent and active include rules were limited to testCurl.exe; zero records do not establish an endpoint-side baseline for this web-only observation."
+}

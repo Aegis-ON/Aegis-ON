@@ -1,0 +1,9 @@
+{
+  "framework": "ARTEX",
+  "official_source_status": "original public upstream withdrawn; no executable fork is trusted by this package",
+  "execution_status": "not_run",
+  "existing_local_evidence": "CASE-ARTEX-20261121-01 in Aegis-ON_Learning-Eval_Log_Package_2026-11-21",
+  "required_case_metadata": ["repository URL or local artifact provenance", "commit or image digest", "scope assertion", "model provider mode", "agent role/task ID"],
+  "expected_telemetry": ["agent process tree", "container lifecycle", "target HTTP request sequence", "tool invocation result", "egress decision"],
+  "execution_gate": "Only source-built, reviewed code with a fixed commit and no external target route may be evaluated."
+}

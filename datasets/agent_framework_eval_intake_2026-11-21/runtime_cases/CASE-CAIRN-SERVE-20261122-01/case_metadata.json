@@ -1,0 +1,69 @@
+{
+  "case_id": "CASE-CAIRN-SERVE-20261122-01",
+  "case_kind": "isolated_runtime_preparation_with_two_frozen_sync_failures_before_framework_start",
+  "learning_case_eligibility": "not_eligible_for_runtime_or_behavioral_evaluation",
+  "framework": {
+    "name": "Cairn",
+    "official_source": "https://github.com/oritera/Cairn",
+    "source_commit": "8e7e0ea67552383851dfcabfba0c4e9c8d007878",
+    "source_provisioning": "official repository cloned only inside a Docker-managed Linux volume; the host source was not mounted or modified",
+    "sync_images": ["ghcr.io/astral-sh/uv:python3.13-trixie", "ghcr.io/astral-sh/uv:python3.12-trixie"],
+    "attempted_runtime_command": "cairn serve",
+    "runtime_command_started": false
+  },
+  "time_utc": {
+    "observed_date": "2026-11-22",
+    "retry_sync_start": "2026-11-22T05:03:47.425172927Z",
+    "retry_sync_exit": "2026-11-22T05:03:48.391154570Z",
+    "precision_limit": "Only the Docker-event timestamps for the Python 3.12 retry were exported; earlier interactive steps have no inferred timestamp."
+  },
+  "lockfile_adjustment": {
+    "path_within_docker_managed_volume": "cairn/uv.lock",
+    "original_sha256": "90c5a3cc9405e27e47bc9ae5e5681ab86c63e2a23afb7768fcf1b7aa1dc80ffb",
+    "adjusted_sha256": "362b62604cd5f251410f59a92fbf06d7b5684a78e4aaa26d681de007312ab475",
+    "sole_change": "mirrors.aliyun.com was replaced with pypi.org only in the runtime-volume copy",
+    "host_source_modified": false
+  },
+  "environment": {
+    "host": "LAB-HOST-01",
+    "source_volume": "DOCKER-MANAGED-VOLUME-CAIRN-01",
+    "sync_containers": ["FRAMEWORK-CAIRN-SYNC-01", "FRAMEWORK-CAIRN-SYNC-02"],
+    "provisioning_container": "FRAMEWORK-CAIRN-PROVISION-01",
+    "sync_network": "standard Docker bridge used only for the allowed dependency fetch; no framework runtime was attached",
+    "published_ports": [],
+    "docker_socket_mounted": false,
+    "host_path_mounts": [],
+    "credentials_or_tokens_provided": false
+  },
+  "execution_scope": {
+    "allowed_action": "official-source preparation and uv sync only",
+    "not_performed": [
+      "cairn serve",
+      "dispatcher start",
+      "worker start",
+      "security tool execution",
+      "target access",
+      "external LLM or API call",
+      "host port publication",
+      "Docker socket mount"
+    ]
+  },
+  "outcome": {
+    "framework_start_observed": false,
+    "sync_result": "two_frozen_sync_attempts_failed_before_framework_start",
+    "retries": [
+      "The CPython 3.13 image created a virtual environment, then the lock's watchfiles 1.1.1 CPython 3.13 artifact returned HTTP 404 from pypi.org.",
+      "The separately approved official CPython 3.12 image created a virtual environment, then the lock's h11 0.16.0 artifact returned HTTP 404 from pypi.org."
+    ],
+    "runtime_isolation_not_observed": "No cairn serve container was created, so internal-network attachment, read-only root filesystem, tmpfs, capability drop, no-new-privileges, PID or memory limits, process snapshot, runtime inspect/events, and loopback health cannot be asserted.",
+    "container_status_after_collection": "both one-shot sync containers had exited with code 1; the source-provisioning container was explicitly stopped and retained; no container or volume was deleted",
+    "label": "dependency_sync_failure_not_runtime_or_behavioral"
+  },
+  "evidence_files": ["container_stdout_stderr.jsonl", "timeline.json", "container_boundary.json"],
+  "redaction": {
+    "container_ids": "stable aliases only",
+    "network_addresses": "not recorded",
+    "host_paths": "not recorded",
+    "secrets_present": false
+  }
+}

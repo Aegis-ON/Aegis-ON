@@ -1,0 +1,15 @@
+{
+  "framework": "Cairn",
+  "official_source": "https://github.com/oritera/Cairn",
+  "license": "AGPL-3.0",
+  "execution_status": "isolated_runtime_startup_loopback_observation_and_safe_stop_completed",
+  "observed_source_commit": "8e7e0ea67552383851dfcabfba0c4e9c8d007878",
+  "observed_date": "2026-11-22",
+  "prior_attempt_record": "attempts/Cairn_build_attempt_20261122.json",
+  "runtime_cases": ["runtime_cases/CASE-CAIRN-SERVE-20261122-01", "runtime_cases/CASE-CAIRN-SERVE-20261122-02"],
+  "execution_result": "CASE-CAIRN-SERVE-20261122-01 preserves two frozen-sync failures. For CASE-CAIRN-SERVE-20261122-02, a separate Docker-managed runtime-copy tree regenerated a lock from the unchanged fixed-commit pyproject.toml through a one-shot PyPI default-index option. The isolated Cairn server started on container loopback, logged two same-namespace GET / responses with HTTP 200, and then stopped gracefully with exit code 0. No dispatcher, worker, Docker socket mount, host port, target access, external LLM/API call, or credential was used.",
+  "reported_architecture": "fact-intent graph with autonomous workers; supports container or local worker execution",
+  "required_case_metadata": ["pinned commit", "worker backend", "worker container digest", "dispatch configuration hash", "workspace mount list", "scope assertion"],
+  "expected_telemetry": ["fact and intent graph events", "dispatcher event", "worker lifecycle", "workspace mount audit", "target HTTP/access log", "egress decision"],
+  "execution_gate": "Do not use local mode on a user workstation. Use only worker containers with a read-only synthetic workspace and no Docker socket mount."
+}

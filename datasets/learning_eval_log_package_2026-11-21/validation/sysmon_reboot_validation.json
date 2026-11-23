@@ -1,0 +1,9 @@
+{
+  "validation_id": "WINDOWS-SYSMON-REBOOT-20261121-01",
+  "host": "HOST-WIN-01",
+  "action": "controlled Windows reboot followed by service and event-log verification",
+  "service": {"name": "Sysmon64", "start_type": "AUTO_START", "state_after_reboot": "RUNNING"},
+  "sysmon": {"version": "15.22", "schema_version": "4.91", "event_id": 4, "utc_time": "2026-11-21T07:48:04.162Z", "state": "Started"},
+  "configuration": {"status": "loaded after reboot", "rule_scope_note": "Process Create and Network Connect include rules remain limited to the dedicated testCurl executable."},
+  "result": "success"
+}

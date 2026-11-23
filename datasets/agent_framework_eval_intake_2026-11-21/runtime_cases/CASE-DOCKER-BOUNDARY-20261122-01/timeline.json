@@ -1,0 +1,7 @@
+[
+  {"utc_time":"2026-11-21T17:25:43Z","stage":"synthetic_target_started","evidence":"docker lifecycle"},
+  {"utc_time":"2026-11-21T17:38:03Z","stage":"restricted_probe_started","evidence":"docker lifecycle"},
+  {"utc_time":"2026-11-21T17:38:03Z","stage":"internal_http_get","path":"/","status":200,"evidence":"target access log"},
+  {"utc_time":"2026-11-21T17:38:03Z","stage":"restricted_probe_exited","exit_code":0,"evidence":"docker lifecycle"},
+  {"utc_time":"2026-11-21T17:39:55Z","stage":"target_intentionally_stopped","exit_code":137,"evidence":"docker inspect"}
+]

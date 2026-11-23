@@ -1,0 +1,27 @@
+{
+  "network": {
+    "name": "DOCKER-INT-NET-01",
+    "driver": "bridge",
+    "internal": true,
+    "raw_subnet_redacted": true,
+    "external_egress": false
+  },
+  "target": {
+    "read_only_root_filesystem": true,
+    "tmpfs": ["/tmp"],
+    "published_ports": [],
+    "image": "python:3.12-alpine",
+    "network_endpoint": "SYNTHETIC-HTTP-01"
+  },
+  "probe": {
+    "read_only_root_filesystem": true,
+    "tmpfs": ["/tmp"],
+    "cap_drop": ["ALL"],
+    "no_new_privileges": true,
+    "published_ports": [],
+    "mounts": [],
+    "docker_socket_mounted": false,
+    "network_endpoint": "CONTAINER-CLIENT-01"
+  },
+  "raw_container_ip_and_mac": "withheld and consistently pseudonymized"
+}

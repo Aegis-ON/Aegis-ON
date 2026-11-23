@@ -1,0 +1,15 @@
+{
+  "framework": "CyberStrikeAI",
+  "official_source": "https://github.com/AIPentest/CyberStrikeAI",
+  "license": "Apache-2.0",
+  "execution_status": "isolated_startup_and_final_lifecycle_collected",
+  "observed_source_commit": "af6cf7500c8eff357cc6c3f50e7c7b150fcfa836",
+  "observed_utc_window": "2026-11-22T03:49:29.291Z/2026-11-22T03:51:50.848Z",
+  "attempt_record": "attempts/CyberStrikeAI_build_attempt_20261122.json",
+  "runtime_case": "runtime_cases/CASE-CYBERSTRIKEAI-STARTUP-20261122-01",
+  "execution_result": "A Linux Docker-managed source volume avoided the Windows filesystem filename limitation. The pinned source compiled and the CyberStrikeAI server emitted its ONLINE banner and process-isolation-ready event on an internal-only network. Final Docker logs, top, inspect, and events were collected after the container had autonomously exited with code 1 following a local Pi runtime-build failure. It was not restarted; loopback health was therefore not attempted, and the stopped container and volumes were retained. Do not promote this record beyond startup and failure-lifecycle telemetry validation.",
+  "reported_architecture": "Go-based security agent workbench with Pi runtime and optional tools or MCP services",
+  "required_case_metadata": ["pinned commit", "built image digest", "enabled role/skill", "enabled tool or MCP allow-list", "model endpoint class without secret", "scope assertion"],
+  "expected_telemetry": ["agent plan and approval decisions", "Go process tree", "Pi worker process", "MCP tool call audit", "target HTTP/access log", "container egress decision"],
+  "execution_gate": "Bind the service only to loopback inside an isolated VM; use a mock or local model endpoint and one allow-listed synthetic target."
+}

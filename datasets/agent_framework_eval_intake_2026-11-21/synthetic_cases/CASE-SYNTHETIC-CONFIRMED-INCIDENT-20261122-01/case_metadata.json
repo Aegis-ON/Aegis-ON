@@ -1,0 +1,44 @@
+{
+  "case_id": "CASE-SYNTHETIC-CONFIRMED-INCIDENT-20261122-01",
+  "case_kind": "synthetic_confirmed_incident_demo_fixture",
+  "synthetic": true,
+  "framework_runtime_observed": false,
+  "ground_truth_source": "synthetic_exercise_scenario",
+  "final_label": "confirmed_security_incident",
+  "display_label": "simulated_confirmed_security_incident",
+  "eligible_for_training": "synthetic_only",
+  "eligible_for_production_validation": false,
+  "review_status": "synthetic_scenario_approved",
+  "not_actual_incident": true,
+  "fixture_time_basis": "Fixed UTC fixture clock; not an observation timestamp.",
+  "fixture_created_utc": "2026-11-22T00:10:00Z",
+  "stable_aliases": {
+    "host": "LAB-HOST-01",
+    "user": "USER-ALIAS-01",
+    "process": "PROCESS-ALIAS-01",
+    "source": "SOURCE-ALIAS-01",
+    "service": "SERVICE-WEB-01",
+    "request_id": "REQ-SYN-INC-01"
+  },
+  "purpose": "Aegis-ON monitoring-screen, correlation, and alert-priority demonstration only.",
+  "actual_activity_observed": {
+    "process_execution": false,
+    "network_connection": false,
+    "web_request": false,
+    "authentication_attempt": false
+  },
+  "prohibited_uses": [
+    "Actual incident statistics",
+    "Production detection-performance claims",
+    "Actual training ground truth",
+    "Evidence of a real compromise"
+  ],
+  "related_records": [
+    "timeline.json",
+    "synthetic_sysmon_event_1.jsonl",
+    "synthetic_sysmon_event_3.jsonl",
+    "synthetic_web_auth_log.jsonl",
+    "synthetic_correlation_alert.json",
+    "evidence_memo.md"
+  ]
+}

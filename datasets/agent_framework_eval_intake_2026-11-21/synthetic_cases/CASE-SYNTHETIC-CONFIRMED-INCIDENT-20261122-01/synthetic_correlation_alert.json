@@ -1,0 +1,30 @@
+{
+  "case_id": "CASE-SYNTHETIC-CONFIRMED-INCIDENT-20261122-01",
+  "observed_utc": "2026-11-22T00:10:04Z",
+  "synthetic": true,
+  "framework_runtime_observed": false,
+  "ground_truth_source": "synthetic_exercise_scenario",
+  "final_label": "confirmed_security_incident",
+  "display_label": "simulated_confirmed_security_incident",
+  "eligible_for_training": "synthetic_only",
+  "eligible_for_production_validation": false,
+  "review_status": "synthetic_scenario_approved",
+  "not_actual_incident": true,
+  "severity": "high",
+  "operator_disposition": "simulated_confirmed_security_incident",
+  "correlation_window_utc": {
+    "start": "2026-11-22T00:10:01Z",
+    "end": "2026-11-22T00:10:03Z"
+  },
+  "correlation_keys": {
+    "host_alias": "LAB-HOST-01",
+    "request_id": "REQ-SYN-INC-01"
+  },
+  "input_signals": [
+    "synthetic_sysmon_event_1",
+    "synthetic_sysmon_event_3",
+    "synthetic_web_auth_log"
+  ],
+  "alert_statement": "Static correlation fixture for monitoring demonstration; not an actual security incident or production finding.",
+  "actual_activity_observed": false
+}
