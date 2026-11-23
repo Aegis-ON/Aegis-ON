@@ -1,55 +1,235 @@
 <!doctype html>
-<html lang="ko" data-type="software" data-radius="sharp" data-buttons="solid" data-motion="reduced">
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="page-type" content="software">
-  <meta name="site-kind" content="software">
-  <meta name="description" content="Aegis-ON read-only local replay security monitoring view">
-  <meta name="theme-color" content="#07101a">
+  <meta name="description" content="Aegis-ON 읽기 전용 local replay 관제">
+  <meta name="theme-color" content="#08090b">
   <title>Aegis-ON · Replay 관제</title>
   <style>
-    :root{--base:#07101a;--rail:#0b1723;--surface:#0e1c2b;--surface-2:#102539;--line:#25425a;--ink:#e8f1f5;--muted:#95aabb;--cyan:#73e4ef;--amber:#f3c766;--red:#f28b92;--green:#82dfaf;--blue:#95b8ff}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 600px at 82% -20%,#1b3551 0%,var(--base) 57%);color:var(--ink);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}button,a{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.skip{position:absolute;left:-10000px;top:12px}.skip:focus{left:12px;background:#fff;color:#000;padding:8px;z-index:10}.shell{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}.rail{padding:22px 14px;background:linear-gradient(180deg,#0b1827,#08121d);border-right:1px solid var(--line);display:flex;flex-direction:column}.brand{display:block;padding:0 10px 30px;color:var(--ink);font-weight:800;letter-spacing:.04em;text-decoration:none}.brand small{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.04em}.nav-label{padding:0 10px 8px;color:#7890a2;font-size:11px;font-weight:800;letter-spacing:.04em}.nav{display:grid;gap:4px}.nav a{padding:9px 10px;border:1px solid transparent;border-radius:5px;color:#b9cbd7;text-decoration:none}.nav a:hover,.nav a:focus-visible{background:#16334a}.nav a.active{background:#173e55;border-color:#2e6680;color:#e8fcff}.rail-foot{margin-top:auto;border-top:1px solid var(--line);padding:14px 10px 0;color:var(--muted);font-size:12px}.main{min-width:0}.top{min-height:60px;padding:0 28px;border-bottom:1px solid var(--line);background:#091521e8;display:flex;align-items:center;justify-content:space-between;gap:12px}.crumb{color:var(--muted);font-size:12px}.crumb strong{color:var(--ink)}.snapshot{display:inline-flex;gap:7px;align-items:center;border:1px solid #6a5427;background:#302718;color:#ffe5a5;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800}.snapshot:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber)}.content{max-width:1540px;margin:auto;padding:28px}.heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:18px}.heading h1{margin:0 0 4px;font-size:27px;line-height:1.15}.heading p{margin:0;color:var(--muted);font-size:13px}.heading-note{max-width:390px;margin:0;color:#bdd0dc;font-size:12px;border-left:2px solid var(--cyan);padding-left:10px}.button-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.action{border:1px solid #335d75;background:#11283a;color:#d3f5f7;border-radius:5px;padding:7px 10px;text-decoration:none;font-size:12px;font-weight:700}.action:hover{background:#1a4054}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.metric,.panel{background:linear-gradient(135deg,var(--surface-2),var(--surface));border:1px solid var(--line);border-radius:7px}.metric{min-height:105px;padding:15px}.metric label{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin:7px 0 4px;font-size:27px;line-height:1;color:var(--cyan)}.metric.warn strong{color:var(--amber)}.metric small{color:#adbfcb;font-size:12px}.toolbar{padding:11px 13px;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.filters{display:flex;gap:6px;flex-wrap:wrap}.filter{padding:6px 9px;border:1px solid transparent;border-radius:4px;background:#102438;color:#b8cad7;font-size:12px}.filter[aria-pressed="true"]{background:#194158;border-color:#4b91a5;color:#e4fcff}.status{color:var(--muted);font-size:12px}.grid{display:grid;grid-template-columns:minmax(390px,1.15fr) minmax(320px,.85fr);gap:14px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid var(--line)}.panel-head h2{margin:0;font-size:14px}.panel-head h2:before{content:"";display:inline-block;width:3px;height:14px;background:var(--cyan);vertical-align:-2px;margin-right:8px}.panel-head small{color:var(--muted);font-size:12px}.queue{padding:7px}.alert{display:block;width:100%;padding:12px 10px;border:0;border-bottom:1px solid #1d3850;background:transparent;color:inherit;text-align:left;border-radius:5px}.alert:last-child{border-bottom:0}.alert:hover,.alert.selected{background:#17354b}.alert-top{display:flex;justify-content:space-between;gap:9px;align-items:center}.severity{font-size:12px;font-weight:800;letter-spacing:.04em}.severity:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px}.high{color:var(--red)}.medium{color:var(--amber)}.low{color:var(--blue)}.informational{color:var(--green)}.alert h3{margin:6px 0 3px;font-size:13px}.alert p{margin:0;color:var(--muted);font-size:12px}.badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.badge{display:inline-flex;border:1px solid #376278;background:#102a40;color:#c8f4f6;border-radius:3px;padding:2px 5px;font-size:11px;font-weight:800}.badge.sim{background:#39272a;border-color:#9c615f;color:#ffd0ca}.badge.blocked{background:#39261d;border-color:#a77448;color:#ffe0af}.detail{padding:16px;min-height:390px}.kicker{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:.04em}.detail h2{font-size:20px;line-height:1.25;margin:7px 0}.detail p{margin:0 0 13px;color:#b9cad5;font-size:13px}.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fact{padding:9px;background:#091726;border:1px solid #24425a;border-radius:5px}.fact label{display:block;color:var(--muted);font-size:11px}.fact span{display:block;margin-top:3px;font-size:12px;word-break:break-word}.action-note{margin-top:14px;padding-left:9px;border-left:2px solid var(--amber);color:#c7dbe4;font-size:12px}.warning{margin-top:12px;color:#ffe2a4;font-size:12px}.bottom{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:14px;margin-top:14px}.timeline{padding:7px 16px}.timeline-row{display:grid;grid-template-columns:166px 9px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:48px;border-bottom:1px solid #1c354c}.timeline-row:last-child{border-bottom:0}.timeline time{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#aac1d1}.dot{width:7px;height:7px;border:1px solid var(--cyan);border-radius:50%}.timeline strong{font-size:12px}.timeline small{display:block;color:var(--muted);font-size:12px}.kind{border:1px solid #315b72;color:#b2dfeb;border-radius:3px;padding:2px 5px;font-size:11px}.governance{padding:16px}.governance section{padding:10px 0;border-bottom:1px solid var(--line)}.governance section:last-child{border-bottom:0}.governance label{display:block;color:var(--muted);font-size:11px}.governance strong{display:block;margin:3px 0;font-size:13px}.governance p{margin:0;color:#b2c6d3;font-size:12px}.empty{padding:24px;color:var(--muted);font-size:13px}.footer{margin-top:14px;color:#8ba3b4;font-size:12px;display:flex;justify-content:space-between;gap:12px}@media(max-width:1000px){.shell{grid-template-columns:1fr}.rail{display:none}.grid,.bottom{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.top{padding:0 15px}.crumb{display:none}.content{padding:21px 14px}.heading{display:block}.heading-note{margin-top:13px}.metrics{grid-template-columns:1fr 1fr}.toolbar{display:block}.status{margin-top:8px}.timeline-row{grid-template-columns:112px 8px minmax(0,1fr)}.kind{display:none}.facts{grid-template-columns:1fr}.footer{display:block}.footer span{display:block;margin:4px 0}}
+    :root {
+      color-scheme: dark;
+      --canvas: #08090b; --surface: #101215; --raised: #181c20; --line: #30363c;
+      --text: #edf0f2; --muted: #b0b8c1; --focus: #a9d4ed; --high: #ffb5b1;
+      --medium: #f0cf96; --low: #aed9c2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+      font-size: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { background: var(--canvas); color: var(--text); line-height: 1.5; }
+    button, a { font: inherit; }
+    button { cursor: pointer; }
+    ::selection { background: #36505f; color: #fff; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .skip { position: absolute; top: 12px; left: -10000px; z-index: 10; padding: 8px 10px; background: #fff; color: #000; text-decoration: none; }
+    .skip:focus { left: 12px; }
+
+    .app { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; gap: 24px; height: 100vh; padding: 24px 14px; overflow-y: auto; background: #0b0d0f; border-right: 1px solid var(--line); }
+    .brand { padding: 0 8px; color: var(--text); font-size: 17px; font-weight: 700; letter-spacing: .02em; text-decoration: none; }
+    .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: normal; }
+    .nav { display: flex; flex-direction: column; gap: 3px; }
+    .nav a { display: flex; align-items: center; min-height: 48px; padding: 11px 14px; border-radius: 4px; color: #d6dde2; font-size: 15px; font-weight: 550; line-height: 1.35; text-decoration: none; }
+    .nav a:hover, .nav a:focus-visible { background: #252b30; color: #fff; }
+    .nav a[aria-current="page"] { background: #30373d; color: #fff; font-weight: 700; }
+    .nav a:focus-visible { outline-offset: -3px; }
+    .sidebar-footer { margin-top: auto; padding: 14px 8px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+
+    .main { min-width: 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 58px; padding: 10px 26px; border-bottom: 1px solid var(--line); background: #0b0d0f; }
+    .topbar h1 { margin: 0; font-size: 20px; line-height: 1.3; }
+    .snapshot { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border: 1px solid #765f31; border-radius: 999px; color: var(--medium); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .snapshot::before { width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--medium); content: ""; }
+    .content { width: min(100%, 1720px); margin-inline: auto; padding: 24px 26px 48px; }
+    .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+    .page-header h2 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -.02em; }
+    .page-header p { max-width: 68ch; margin: 6px 0 0; color: var(--muted); }
+    .limit { max-width: 42ch; margin: 0; color: #d9c69c; font-size: 12px; text-align: right; }
+    .status { margin: 0 0 16px; padding: 10px 12px; overflow-wrap: anywhere; border: 1px solid var(--line); background: var(--surface); }
+    .status.error { border-color: #7b5050; color: var(--high); }
+
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-bottom: 12px; border: 1px solid var(--line); background: var(--line); }
+    .metric { min-width: 0; padding: 14px 16px; background: var(--surface); }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .metric strong { display: block; margin-top: 5px; color: #f5f7f8; font-size: 27px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .metric small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .metric.alert strong { color: var(--high); }
+    .workspace, .bottom { display: grid; grid-template-columns: minmax(360px, 1.05fr) minmax(320px, .95fr); gap: 24px; }
+    .bottom { grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); }
+    .panel { min-width: 0; padding: 16px 0; border-top: 1px solid var(--line); }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .panel h2 { margin: 0; font-size: 16px; line-height: 1.35; }
+    .panel-head small { color: var(--muted); font-size: 12px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 8px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter, .reload { min-height: 36px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; }
+    .filter:hover, .reload:hover { background: #252b30; }
+    .filter[aria-pressed="true"] { border-color: #6b8ea5; background: #23323c; color: #fff; }
+
+    .queue, .timeline, .governance { border-top: 1px solid var(--line); }
+    .case { display: block; width: 100%; padding: 13px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; }
+    .case:hover, .case[aria-pressed="true"] { background: var(--raised); }
+    .case-inner { padding: 0 10px; }
+    .case-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .severity { font-size: 12px; font-weight: 700; }
+    .severity.high { color: var(--high); } .severity.medium { color: var(--medium); } .severity.low { color: #a9d4ed; } .severity.informational { color: var(--low); }
+    .evidence, .case-id { color: var(--muted); font-size: 12px; }
+    .evidence { white-space: nowrap; }
+    .case h3 { margin: 5px 0 2px; color: var(--text); font-size: 14px; line-height: 1.35; }
+    .case-id { margin: 0; overflow-wrap: anywhere; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .tag { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 6px; border: 1px solid #4b5c66; border-radius: 3px; color: #d6dde2; font-size: 11px; font-weight: 700; }
+    .tag.simulated { border-color: #875958; color: #ffbfbc; } .tag.blocked { border-color: #80673d; color: var(--medium); }
+
+    .detail { min-height: 350px; padding: 16px; border: 1px solid var(--line); background: var(--surface); }
+    .detail h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.3; }
+    .detail-copy { max-width: 60ch; margin: 0 0 16px; color: var(--muted); }
+    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+    .fact { min-width: 0; padding: 10px 11px; background: #0b0d0f; }
+    .fact span { display: block; color: var(--muted); font-size: 11px; }
+    .fact strong { display: block; margin-top: 3px; font-size: 12px; overflow-wrap: anywhere; }
+    .recommendation { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: #e4d3a8; font-size: 13px; }
+    .warning { margin: 12px 0 0; color: var(--medium); font-size: 12px; }
+    .empty { margin: 0; padding: 22px 0; color: var(--muted); font-size: 13px; }
+    .timeline-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 54px; border-bottom: 1px solid var(--line); }
+    .timeline time { color: #c8d6df; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .timeline strong { display: block; font-size: 13px; } .timeline small { display: block; color: var(--muted); font-size: 12px; }
+    .source { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .governance section { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .governance span { display: block; color: var(--muted); font-size: 11px; }
+    .governance strong { display: block; margin-top: 3px; font-size: 13px; }
+    .governance p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    footer { margin-top: 12px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 960px) { .workspace, .bottom { grid-template-columns: 1fr; gap: 12px; } .detail { min-height: auto; } }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; gap: 12px; padding: 14px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav { flex-direction: row; overflow-x: auto; padding-bottom: 2px; } .nav a { flex: 0 0 auto; min-height: 44px; padding: 9px 12px; font-size: 14px; }
+      .sidebar-footer { display: none; } .topbar, .content { padding-right: 16px; padding-left: 16px; }
+      .page-header { display: block; } .limit { max-width: none; margin-top: 10px; text-align: left; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 480px) {
+      .topbar { align-items: flex-start; flex-direction: column; gap: 8px; } .metrics, .facts { grid-template-columns: 1fr; }
+      .toolbar { align-items: flex-start; flex-direction: column; } .timeline-row { grid-template-columns: 1fr; gap: 2px; padding: 10px 0; } .source { display: none; }
+    }
   </style>
 </head>
 <body>
   <a class="skip" href="#replay-main">본문으로 건너뛰기</a>
-  <div class="shell">
-    <aside class="rail" aria-label="Aegis-ON 관제 메뉴">
-      <a class="brand" href="/console">AEGIS-ON<small>SECURITY OBSERVABILITY</small></a>
-      <div class="nav-label">CONSOLE</div>
-      <nav class="nav"><a href="/console">관제 개요</a><a href="/console/endpoints">관제 자산</a><a href="/console/events">이벤트</a><a href="/console/detections">탐지</a><a href="/console/history">분석 이력</a><a class="active" href="/console/replay" aria-current="page">Replay 관제</a></nav>
-      <div class="rail-foot">읽기 전용 local replay<br>실시간 수집·차단 없음</div>
+  <div class="app">
+    <aside class="sidebar" aria-label="Aegis-ON 관제 메뉴">
+      <a class="brand" href="/console">AEGIS-ON<small>보안 관제</small></a>
+      <nav class="nav" aria-label="주 메뉴">
+        <a href="/console">관제 개요</a><a href="/console/endpoints">관제 자산</a><a href="/console/events">이벤트</a><a href="/console/detections">탐지</a><a href="/console/history">분석 이력</a><a href="/console/replay" aria-current="page">Replay 관제</a>
+      </nav>
+      <div class="sidebar-footer">읽기 전용 local replay<br>실시간 수집·차단 없음</div>
     </aside>
-    <div class="main">
-      <header class="top"><div class="crumb">CONSOLE / <strong>REPLAY</strong></div><div class="snapshot">LOCAL REPLAY · STATIC SNAPSHOT</div></header>
-      <main class="content" id="replay-main">
-        <section class="heading"><div><h1>Replay 관제</h1><p>보존된 JSON/JSONL 증거를 정규화한 가명화 요약을 읽기 전용으로 표시합니다.</p><div class="button-row"><a class="action" href="/console">기본 관제로 돌아가기</a><button class="action" id="reload" type="button">Snapshot 다시 읽기</button></div></div><p class="heading-note">실시간 SOC·실제 차단·실제 침해 통계가 아닙니다. 원본 시간과 화면을 여는 시각을 혼동하지 않습니다.</p></section>
-        <section class="metrics" aria-label="replay 요약"><article class="metric"><label>Replay 사례</label><strong id="case-count">—</strong><small id="case-copy">보존된 사례 요약</small></article><article class="metric"><label>정규화 이벤트</label><strong id="event-count">—</strong><small>정적 snapshot 기준</small></article><article class="metric warn"><label>규칙 기반 경보</label><strong id="alert-count">—</strong><small>AI 모델 아님</small></article><article class="metric"><label>지도학습 상태</label><strong id="training-state">—</strong><small>보안팀 최종 검토 대기</small></article></section>
-        <section class="panel toolbar"><div class="filters" aria-label="replay 사례 필터"><button class="filter" type="button" data-filter="all" aria-pressed="true">전체</button><button class="filter" type="button" data-filter="normal">정상</button><button class="filter" type="button" data-filter="operational_anomaly">운영 이상</button><button class="filter" type="button" data-filter="policy_blocked">정책 차단</button><button class="filter" type="button" data-filter="simulated">모의 확정사고</button></div><div class="status" id="status" role="status">인증된 replay summary를 읽는 중입니다.</div></section>
-        <section class="grid"><section class="panel"><header class="panel-head"><h2>우선순위 큐</h2><small>deterministic replay baseline</small></header><div class="queue" id="queue"></div></section><section class="panel"><div class="detail" id="detail"><p class="empty">왼쪽 사례를 선택하면 상관 키와 보존 범위를 표시합니다.</p></div></section></section>
-        <section class="bottom"><section class="panel"><header class="panel-head"><h2>사례 타임라인</h2><small>원본 UTC 표시 · 없는 시간은 만들지 않음</small></header><div class="timeline" id="timeline"></div></section><section class="panel"><header class="panel-head"><h2>AI 인계 · 참조 경계</h2><small>read-only governance</small></header><div class="governance"><section><label>지도학습</label><strong id="governance-training">—</strong><p>실제 양성 ground truth·보안팀 검토·독립 holdout 전에는 성능 수치를 내지 않습니다.</p></section><section><label>공개 탐지 참조</label><strong id="reference-state">—</strong><p>카탈로그는 수집 필드와 조사 가설용입니다. 외부 룰·IOC를 내려받거나 실행하지 않습니다.</p></section><section><label>합성 사고</label><strong>SIMULATED 전용</strong><p>모의 확정사고는 데모 우선순위용이며 실제 침해·통계·production validation에서 제외됩니다.</p></section><section><label>HexStrike</label><strong>BLOCKED — NOT RUN</strong><p>정책 fixture만 표시하며 clone·image pull·VM·컨테이너·런타임 실행을 하지 않습니다.</p></section></div></section></section>
-        <footer class="footer"><span>이 화면은 보존된 local replay 요약을 표시합니다.</span><span>원본 증거 파일은 변경·삭제하지 않습니다.</span></footer>
-      </main>
-    </div>
+    <main id="replay-main" class="main" tabindex="-1">
+      <header class="topbar"><h1>Replay 관제</h1><span class="snapshot">LOCAL REPLAY · STATIC SNAPSHOT</span></header>
+      <div class="content">
+        <section class="page-header" aria-labelledby="replay-heading">
+          <div><h2 id="replay-heading">보존된 사례 검토</h2><p>정규화한 가명화 증거 요약을 우선순위 순서로 표시합니다. 이 화면은 분석가의 검토 흐름을 위한 읽기 전용 replay입니다.</p></div>
+          <p class="limit">실시간 SOC·실제 차단·실제 침해 통계가 아닙니다. 원본 증거와 화면 상태를 혼동하지 않습니다.</p>
+        </section>
+        <p id="status" class="status" role="status">인증된 replay summary를 읽는 중입니다.</p>
+        <section class="metrics" aria-label="Replay 요약">
+          <div class="metric"><span>Replay 사례</span><strong id="case-count">—</strong><small id="case-copy">보존된 사례 요약</small></div>
+          <div class="metric"><span>정규화 이벤트</span><strong id="event-count">—</strong><small>정적 snapshot 기준</small></div>
+          <div class="metric alert"><span>규칙 기반 경보</span><strong id="alert-count">—</strong><small>AI 모델 아님</small></div>
+          <div class="metric"><span>지도학습 상태</span><strong id="training-state">—</strong><small>보안팀 최종 검토 대기</small></div>
+        </section>
+        <section class="workspace" aria-label="우선순위 검토">
+          <section class="panel">
+            <div class="panel-head"><h2>우선순위 검토 큐</h2><button id="reload" class="reload" type="button">Snapshot 다시 읽기</button></div>
+            <div class="toolbar"><div class="filters" role="group" aria-label="사례 필터">
+              <button class="filter" type="button" data-filter="all" aria-pressed="true">전체</button><button class="filter" type="button" data-filter="normal" aria-pressed="false">정상</button><button class="filter" type="button" data-filter="operational_anomaly" aria-pressed="false">운영 이상</button><button class="filter" type="button" data-filter="policy_blocked" aria-pressed="false">정책 차단</button><button class="filter" type="button" data-filter="simulated" aria-pressed="false">모의 확정사고</button>
+            </div></div>
+            <div id="queue" class="queue"></div>
+          </section>
+          <section class="panel"><div class="panel-head"><h2>선택한 사례</h2><small>증거 요약과 권장 검토</small></div><div id="detail" class="detail"><p class="empty">검토할 사례를 선택하면 근거와 보존 범위를 표시합니다.</p></div></section>
+        </section>
+        <section class="bottom">
+          <section class="panel"><div class="panel-head"><h2>사례 타임라인</h2><small>원본 UTC만 표시</small></div><div id="timeline" class="timeline"></div></section>
+          <section class="panel"><div class="panel-head"><h2>AI 인계 · 참조 경계</h2><small>read-only governance</small></div>
+            <div class="governance">
+              <section><span>지도학습</span><strong id="governance-training">—</strong><p>실제 양성 ground truth·보안팀 검토·독립 holdout 전에는 성능 수치를 내지 않습니다.</p></section>
+              <section><span>공개 탐지 참조</span><strong id="reference-state">—</strong><p>카탈로그는 수집 필드와 조사 가설용입니다. 외부 룰·IOC를 내려받거나 실행하지 않습니다.</p></section>
+              <section><span>합성 사고</span><strong>SIMULATED 전용</strong><p>모의 확정사고는 데모 우선순위용이며 실제 침해·통계·production validation에서 제외됩니다.</p></section>
+              <section><span>HexStrike</span><strong>BLOCKED — NOT RUN</strong><p>정책 fixture만 표시하며 clone·image pull·VM·컨테이너·런타임 실행을 하지 않습니다.</p></section>
+            </div>
+          </section>
+        </section>
+        <footer>이 화면은 보존된 local replay 요약을 표시합니다. 원본 증거 파일은 변경·삭제하지 않습니다.</footer>
+      </div>
+    </main>
   </div>
   <script>
     const $ = (selector) => document.querySelector(selector);
     const state = { data: null, selected: null, filter: "all" };
+    const severityRank = { high: 0, medium: 1, low: 2, informational: 3 };
     const display = (value, fallback = "기록 없음") => value === undefined || value === null || value === "" ? fallback : String(value);
-    const severityText = (value) => ({ high: "HIGH", medium: "MEDIUM", low: "LOW", informational: "INFO" }[value] || display(value).toUpperCase());
+    const severityText = (value) => ({ high: "높음", medium: "중간", low: "낮음", informational: "정보" }[value] || display(value));
     const shortUtc = (value) => value ? value.replace("T", " ").replace("Z", " UTC") : "시간 미기록";
-    const badge = (text, className = "") => { const node = document.createElement("span"); node.className = `badge ${className}`; node.textContent = text; return node; };
-    const alerts = () => state.data.alerts.filter((alert) => state.filter === "all" || (state.filter === "normal" && ["normal_approved", "normal_authorized_runtime"].includes(alert.classification)) || (state.filter === "simulated" && alert.simulated) || alert.classification === state.filter);
-    function renderQueue() { const target = $("#queue"); target.replaceChildren(); const rows = alerts(); if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "선택한 분류의 replay 사례가 없습니다."; target.append(empty); return; } if (!rows.some((row) => row.case_id === state.selected)) state.selected = rows[0].case_id; rows.forEach((alert) => { const button = document.createElement("button"); button.type = "button"; button.className = `alert${alert.case_id === state.selected ? " selected" : ""}`; button.addEventListener("click", () => { state.selected = alert.case_id; render(); }); const top = document.createElement("div"); top.className = "alert-top"; const severity = document.createElement("span"); severity.className = `severity ${alert.severity}`; severity.textContent = severityText(alert.severity); const scope = document.createElement("span"); scope.className = "status"; scope.textContent = `${alert.evidence_event_count}개 근거 이벤트`; top.append(severity, scope); const title = document.createElement("h3"); title.textContent = alert.title; const sub = document.createElement("p"); sub.textContent = alert.case_id; const badges = document.createElement("div"); badges.className = "badges"; badges.append(badge(alert.classification)); if (alert.simulated) badges.append(badge("SIMULATED", "sim")); if (alert.hexstrike_blocked) badges.append(badge("BLOCKED — NOT RUN", "blocked")); button.append(top, title, sub, badges); target.append(button); }); }
-    function renderDetail() { const target = $("#detail"); target.replaceChildren(); const alert = state.data.alerts.find((item) => item.case_id === state.selected); if (!alert) return; const kick = document.createElement("div"); kick.className = "kicker"; kick.textContent = alert.simulated ? "SIMULATED · REPLAY BASELINE" : "READ-ONLY REPLAY BASELINE"; const heading = document.createElement("h2"); heading.textContent = alert.simulated ? `SIMULATED · ${alert.title}` : alert.title; const copy = document.createElement("p"); copy.textContent = alert.simulated ? "합성 exercise의 우선순위 시연입니다. 실제 침해·사건 통계·실운영 성능에 사용하지 않습니다." : "보존된 증거 요약의 규칙 기반 분류입니다. 최종 보안 판정이 아닙니다."; const facts = document.createElement("div"); facts.className = "facts"; [["사례", alert.case_id], ["분류", alert.display_label], ["심각도", severityText(alert.severity)], ["근거", `${alert.evidence_event_count}개 이벤트`], ["보존 범위", alert.evidence_scope], ["실행 상태", alert.hexstrike_blocked ? "blocked_not_run" : "replay_only"]].forEach(([name, value]) => { const item = document.createElement("div"); item.className = "fact"; const label = document.createElement("label"); label.textContent = name; const span = document.createElement("span"); span.textContent = display(value); item.append(label, span); facts.append(item); }); const action = document.createElement("div"); action.className = "action-note"; action.textContent = `관제사 권장: ${alert.recommended_action}`; target.append(kick, heading, copy, facts, action); if (alert.hexstrike_blocked) { const warning = document.createElement("p"); warning.className = "warning"; warning.textContent = "HexStrike는 정책 게이트에서 차단된 상태입니다. 이 페이지는 실행 근거나 런타임 관측을 표시하지 않습니다."; target.append(warning); } }
-    function renderTimeline() { const target = $("#timeline"); target.replaceChildren(); const rows = state.data.timelines[state.selected] || []; if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "보존된 타임라인 행이 없습니다."; target.append(empty); return; } rows.forEach((event) => { const row = document.createElement("div"); row.className = "timeline-row"; const time = document.createElement("time"); time.textContent = shortUtc(event.observed_utc); const dot = document.createElement("span"); dot.className = "dot"; const body = document.createElement("div"); const title = document.createElement("strong"); title.textContent = event.summary; const sub = document.createElement("small"); sub.textContent = "사례별 보존 이벤트 요약"; body.append(title, sub); const kind = document.createElement("span"); kind.className = "kind"; kind.textContent = event.source_type; row.append(time, dot, body, kind); target.append(row); }); }
+    const addTag = (target, text, extra) => { const tag = document.createElement("span"); tag.className = "tag" + (extra ? " " + extra : ""); tag.textContent = text; target.append(tag); };
+    const filteredAlerts = () => {
+      if (!state.data) return [];
+      return state.data.alerts.filter((alert) => state.filter === "all" || (state.filter === "normal" && ["normal_approved", "normal_authorized_runtime"].includes(alert.classification)) || (state.filter === "simulated" && alert.simulated) || alert.classification === state.filter).slice().sort((left, right) => (severityRank[left.severity] ?? 9) - (severityRank[right.severity] ?? 9));
+    };
+    function renderQueue() {
+      const target = $("#queue"); target.replaceChildren(); const rows = filteredAlerts();
+      if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "선택한 분류의 replay 사례가 없습니다."; target.append(empty); return; }
+      if (!rows.some((row) => row.case_id === state.selected)) state.selected = rows[0].case_id;
+      rows.forEach((alert) => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "case"; button.setAttribute("aria-pressed", String(alert.case_id === state.selected)); button.setAttribute("aria-label", alert.case_id + " 사례 검토 열기"); button.addEventListener("click", () => { state.selected = alert.case_id; render(); });
+        const content = document.createElement("div"); content.className = "case-inner";
+        const top = document.createElement("div"); top.className = "case-top";
+        const severity = document.createElement("span"); severity.className = "severity " + alert.severity; severity.textContent = severityText(alert.severity);
+        const evidence = document.createElement("span"); evidence.className = "evidence"; evidence.textContent = String(alert.evidence_event_count) + "개 근거 이벤트";
+        const title = document.createElement("h3"); title.textContent = alert.title;
+        const caseId = document.createElement("p"); caseId.className = "case-id"; caseId.textContent = alert.case_id;
+        const tags = document.createElement("div"); tags.className = "tags"; addTag(tags, alert.classification); if (alert.simulated) addTag(tags, "SIMULATED", "simulated"); if (alert.hexstrike_blocked) addTag(tags, "BLOCKED — NOT RUN", "blocked");
+        top.append(severity, evidence); content.append(top, title, caseId, tags); button.append(content); target.append(button);
+      });
+    }
+    function renderDetail() {
+      const target = $("#detail"); target.replaceChildren(); const alert = state.data.alerts.find((item) => item.case_id === state.selected); if (!alert) return;
+      const heading = document.createElement("h2"); heading.textContent = alert.simulated ? "SIMULATED · " + alert.title : alert.title;
+      const copy = document.createElement("p"); copy.className = "detail-copy"; copy.textContent = alert.simulated ? "합성 exercise의 우선순위 시연입니다. 실제 침해·사건 통계·실운영 성능에 사용하지 않습니다." : "보존된 증거 요약의 규칙 기반 분류입니다. 최종 보안 판정이 아닙니다.";
+      const facts = document.createElement("div"); facts.className = "facts";
+      [["사례", alert.case_id], ["분류", alert.display_label], ["심각도", severityText(alert.severity)], ["근거", String(alert.evidence_event_count) + "개 이벤트"], ["보존 범위", alert.evidence_scope], ["실행 상태", alert.hexstrike_blocked ? "blocked_not_run" : "replay_only"]].forEach(([label, value]) => { const item = document.createElement("div"); item.className = "fact"; const name = document.createElement("span"); name.textContent = label; const text = document.createElement("strong"); text.textContent = display(value); item.append(name, text); facts.append(item); });
+      const recommendation = document.createElement("p"); recommendation.className = "recommendation"; recommendation.textContent = "관제사 권장: " + alert.recommended_action;
+      target.append(heading, copy, facts, recommendation);
+      if (alert.hexstrike_blocked) { const warning = document.createElement("p"); warning.className = "warning"; warning.textContent = "HexStrike는 정책 게이트에서 차단된 상태입니다. 이 페이지는 실행 근거나 런타임 관측을 표시하지 않습니다."; target.append(warning); }
+    }
+    function renderTimeline() {
+      const target = $("#timeline"); target.replaceChildren(); const rows = state.data.timelines[state.selected] || [];
+      if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "보존된 타임라인 행이 없습니다."; target.append(empty); return; }
+      rows.forEach((event) => { const row = document.createElement("div"); row.className = "timeline-row"; const time = document.createElement("time"); time.textContent = shortUtc(event.observed_utc); const body = document.createElement("div"); const title = document.createElement("strong"); title.textContent = event.summary; const copy = document.createElement("small"); copy.textContent = "사례별 보존 이벤트 요약"; const source = document.createElement("span"); source.className = "source"; source.textContent = event.source_type; body.append(title, copy); row.append(time, body, source); target.append(row); });
+    }
+    function renderSummary() {
+      const summary = state.data.summary; const reference = state.data.detection_reference;
+      $("#case-count").textContent = summary.case_count; $("#case-copy").textContent = "실제 " + summary.actual_case_count + " · 합성 " + summary.synthetic_case_count; $("#event-count").textContent = summary.event_count; $("#alert-count").textContent = summary.alert_count; $("#training-state").textContent = "보류"; $("#governance-training").textContent = summary.supervised_evaluation_status; $("#reference-state").textContent = String(reference.catalog_entry_count) + "개 가설 · " + reference.mode;
+    }
     function render() { renderQueue(); renderDetail(); renderTimeline(); }
-    function renderSummary() { const { summary, detection_reference: reference } = state.data; $("#case-count").textContent = summary.case_count; $("#case-copy").textContent = `실제 ${summary.actual_case_count} · 합성 ${summary.synthetic_case_count}`; $("#event-count").textContent = summary.event_count; $("#alert-count").textContent = summary.alert_count; $("#training-state").textContent = "보류"; $("#governance-training").textContent = summary.supervised_evaluation_status; $("#reference-state").textContent = `${reference.catalog_entry_count}개 가설 · ${reference.mode}`; }
-    async function load() { const status = $("#status"); status.textContent = "인증된 local replay summary를 읽는 중입니다."; try { const response = await fetch("/api/v1/replay/summary", { credentials: "same-origin", cache: "no-store" }); if (response.status === 401) { window.location.assign("/login"); return; } if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); if (!data.replay_mode || data.live_collection || !Array.isArray(data.alerts) || !data.summary) throw new Error("안전한 replay fixture 계약을 만족하지 않습니다."); state.data = data; renderSummary(); render(); status.textContent = "보존된 local replay snapshot을 표시합니다. 실시간 수집·차단은 수행하지 않습니다."; } catch (error) { state.data = null; $("#queue").replaceChildren(); const message = document.createElement("p"); message.className = "empty"; message.textContent = "Replay summary를 읽지 못했습니다. 로그인 상태와 로컬 서버 설정을 확인하세요."; $("#queue").append(message); status.textContent = "Replay summary 연결 오류"; console.error(error); } }
+    async function load() {
+      const status = $("#status"); status.classList.remove("error"); status.textContent = "인증된 replay summary를 읽는 중입니다.";
+      try {
+        const response = await fetch("/api/v1/replay/summary", { credentials: "same-origin", cache: "no-store" });
+        if (response.status === 401) { window.location.assign("/login"); return; }
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data.replay_mode || data.live_collection || data.external_rule_execution || !Array.isArray(data.alerts) || !data.summary) throw new Error("안전한 replay fixture 계약을 만족하지 않습니다.");
+        state.data = data; renderSummary(); render(); status.textContent = "보존된 local replay snapshot을 표시합니다. 실시간 수집·차단·외부 룰/IOC 실행은 수행하지 않습니다.";
+      } catch (error) {
+        state.data = null; $("#queue").replaceChildren(); $("#detail").replaceChildren(); $("#timeline").replaceChildren();
+        const message = document.createElement("p"); message.className = "empty"; message.textContent = "Replay summary를 읽지 못했습니다. 로그인 상태와 로컬 서버 설정을 확인한 뒤 다시 읽으세요."; $("#queue").append(message);
+        status.classList.add("error"); status.textContent = "Replay summary 연결 오류"; console.error(error);
+      }
+    }
     document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => { state.filter = button.dataset.filter; document.querySelectorAll(".filter").forEach((item) => item.setAttribute("aria-pressed", String(item === button))); if (state.data) render(); }));
-    $("#reload").addEventListener("click", load); load();
+    $("#reload").addEventListener("click", load);
+    load();
   </script>
 </body>
 </html>
