@@ -1236,6 +1236,7 @@ function Console({ path }) {
     ["이벤트", "/console/events"],
     ["탐지", "/console/detections"],
     ["분석 이력", "/console/history"],
+    ["Replay 관제", "/console/replay"],
   ];
   return (
     <div className="soc-app">

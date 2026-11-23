@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Aegis-ON 읽기 전용 local replay 관제">
+  <meta name="theme-color" content="#08090b">
+  <title>Aegis-ON · Replay 관제</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --canvas: #08090b; --surface: #101215; --raised: #181c20; --line: #30363c;
+      --text: #edf0f2; --muted: #b0b8c1; --focus: #a9d4ed; --high: #ffb5b1;
+      --medium: #f0cf96; --low: #aed9c2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+      font-size: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { background: var(--canvas); color: var(--text); line-height: 1.5; }
+    button, a { font: inherit; }
+    button { cursor: pointer; }
+    ::selection { background: #36505f; color: #fff; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .skip { position: absolute; top: 12px; left: -10000px; z-index: 10; padding: 8px 10px; background: #fff; color: #000; text-decoration: none; }
+    .skip:focus { left: 12px; }
+
+    .app { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; gap: 24px; height: 100vh; padding: 24px 14px; overflow-y: auto; background: #0b0d0f; border-right: 1px solid var(--line); }
+    .brand { padding: 0 8px; color: var(--text); font-size: 17px; font-weight: 700; letter-spacing: .02em; text-decoration: none; }
+    .brand small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: normal; }
+    .nav { display: flex; flex-direction: column; gap: 3px; }
+    .nav a { display: flex; align-items: center; min-height: 48px; padding: 11px 14px; border-radius: 4px; color: #d6dde2; font-size: 15px; font-weight: 550; line-height: 1.35; text-decoration: none; }
+    .nav a:hover, .nav a:focus-visible { background: #252b30; color: #fff; }
+    .nav a[aria-current="page"] { background: #30373d; color: #fff; font-weight: 700; }
+    .nav a:focus-visible { outline-offset: -3px; }
+    .sidebar-footer { margin-top: auto; padding: 14px 8px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+
+    .main { min-width: 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 58px; padding: 10px 26px; border-bottom: 1px solid var(--line); background: #0b0d0f; }
+    .topbar h1 { margin: 0; font-size: 20px; line-height: 1.3; }
+    .snapshot { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 9px; border: 1px solid #765f31; border-radius: 999px; color: var(--medium); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .snapshot::before { width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--medium); content: ""; }
+    .content { width: min(100%, 1720px); margin-inline: auto; padding: 24px 26px 48px; }
+    .page-header { margin-bottom: 20px; }
+    .page-header h2 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -.02em; }
+    .status { margin: 0 0 16px; padding: 10px 12px; overflow-wrap: anywhere; border: 1px solid var(--line); background: var(--surface); }
+    .status.error { border-color: #7b5050; color: var(--high); }
+
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-bottom: 12px; border: 1px solid var(--line); background: var(--line); }
+    .metric { min-width: 0; padding: 14px 16px; background: var(--surface); }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .metric strong { display: block; margin-top: 5px; color: #f5f7f8; font-size: 27px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .metric small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .metric.alert strong { color: var(--high); }
+    .workspace, .bottom { display: grid; grid-template-columns: minmax(360px, 1.05fr) minmax(320px, .95fr); gap: 24px; }
+    .bottom { grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); }
+    .panel { min-width: 0; padding: 16px 0; border-top: 1px solid var(--line); }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .panel h2 { margin: 0; font-size: 16px; line-height: 1.35; }
+    .panel-head small { color: var(--muted); font-size: 12px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 8px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter, .reload { min-height: 36px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; }
+    .filter:hover, .reload:hover { background: #252b30; }
+    .filter[aria-pressed="true"] { border-color: #6b8ea5; background: #23323c; color: #fff; }
+
+    .queue, .timeline, .governance { border-top: 1px solid var(--line); }
+    .case { display: block; width: 100%; padding: 13px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; }
+    .case:hover, .case[aria-pressed="true"] { background: var(--raised); }
+    .case-inner { padding: 0 10px; }
+    .case-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .severity { font-size: 12px; font-weight: 700; }
+    .severity.high { color: var(--high); } .severity.medium { color: var(--medium); } .severity.low { color: #a9d4ed; } .severity.informational { color: var(--low); }
+    .evidence, .case-id { color: var(--muted); font-size: 12px; }
+    .evidence { white-space: nowrap; }
+    .case h3 { margin: 5px 0 2px; color: var(--text); font-size: 14px; line-height: 1.35; }
+    .case-id { margin: 0; overflow-wrap: anywhere; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .tag { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 6px; border: 1px solid #4b5c66; border-radius: 3px; color: #d6dde2; font-size: 11px; font-weight: 700; }
+    .tag.simulated { border-color: #875958; color: #ffbfbc; } .tag.blocked { border-color: #80673d; color: var(--medium); }
+
+    .detail { min-height: 350px; padding: 16px; border: 1px solid var(--line); background: var(--surface); }
+    .detail h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.3; }
+    .detail-copy { max-width: 60ch; margin: 0 0 16px; color: var(--muted); }
+    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+    .fact { min-width: 0; padding: 10px 11px; background: #0b0d0f; }
+    .fact span { display: block; color: var(--muted); font-size: 11px; }
+    .fact strong { display: block; margin-top: 3px; font-size: 12px; overflow-wrap: anywhere; }
+    .recommendation { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: #e4d3a8; font-size: 13px; }
+    .warning { margin: 12px 0 0; color: var(--medium); font-size: 12px; }
+    .empty { margin: 0; padding: 22px 0; color: var(--muted); font-size: 13px; }
+    .timeline-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 54px; border-bottom: 1px solid var(--line); }
+    .timeline time { color: #c8d6df; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .timeline strong { display: block; font-size: 13px; } .timeline small { display: block; color: var(--muted); font-size: 12px; }
+    .source { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .governance section { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .governance span { display: block; color: var(--muted); font-size: 11px; }
+    .governance strong { display: block; margin-top: 3px; font-size: 13px; }
+    .governance p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    footer { margin-top: 12px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 960px) { .workspace, .bottom { grid-template-columns: 1fr; gap: 12px; } .detail { min-height: auto; } }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; gap: 12px; padding: 14px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav { flex-direction: row; overflow-x: auto; padding-bottom: 2px; } .nav a { flex: 0 0 auto; min-height: 44px; padding: 9px 12px; font-size: 14px; }
+      .sidebar-footer { display: none; } .topbar, .content { padding-right: 16px; padding-left: 16px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 480px) {
+      .topbar { align-items: flex-start; flex-direction: column; gap: 8px; } .metrics, .facts { grid-template-columns: 1fr; }
+      .toolbar { align-items: flex-start; flex-direction: column; } .timeline-row { grid-template-columns: 1fr; gap: 2px; padding: 10px 0; } .source { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#replay-main">본문으로 건너뛰기</a>
+  <div class="app">
+    <aside class="sidebar" aria-label="Aegis-ON 관제 메뉴">
+      <a class="brand" href="/console">AEGIS-ON<small>보안 관제</small></a>
+      <nav class="nav" aria-label="주 메뉴">
+        <a href="/console">관제 개요</a><a href="/console/endpoints">관제 자산</a><a href="/console/events">이벤트</a><a href="/console/detections">탐지</a><a href="/console/history">분석 이력</a><a href="/console/replay" aria-current="page">Replay 관제</a>
+      </nav>
+      <div class="sidebar-footer">읽기 전용 local replay<br>실시간 수집·차단 없음</div>
+    </aside>
+    <main id="replay-main" class="main" tabindex="-1">
+      <header class="topbar"><h1>Replay 관제</h1><span class="snapshot">LOCAL REPLAY · STATIC SNAPSHOT</span></header>
+      <div class="content">
+        <section class="page-header" aria-labelledby="replay-heading"><h2 id="replay-heading">보존된 사례 검토</h2></section>
+        <p id="status" class="status" role="status">인증된 replay summary를 읽는 중입니다.</p>
+        <section class="metrics" aria-label="Replay 요약">
+          <div class="metric"><span>Replay 사례</span><strong id="case-count">—</strong><small id="case-copy">보존된 사례 요약</small></div>
+          <div class="metric"><span>정규화 이벤트</span><strong id="event-count">—</strong><small>정적 snapshot 기준</small></div>
+          <div class="metric alert"><span>규칙 기반 경보</span><strong id="alert-count">—</strong><small>AI 모델 아님</small></div>
+          <div class="metric"><span>지도학습 상태</span><strong id="training-state">—</strong><small>보안팀 최종 검토 대기</small></div>
+        </section>
+        <section class="workspace" aria-label="우선순위 검토">
+          <section class="panel">
+            <div class="panel-head"><h2>우선순위 검토 큐</h2><button id="reload" class="reload" type="button">Snapshot 다시 읽기</button></div>
+            <div class="toolbar"><div class="filters" role="group" aria-label="사례 필터">
+              <button class="filter" type="button" data-filter="all" aria-pressed="true">전체</button><button class="filter" type="button" data-filter="normal" aria-pressed="false">정상</button><button class="filter" type="button" data-filter="operational_anomaly" aria-pressed="false">운영 이상</button><button class="filter" type="button" data-filter="policy_blocked" aria-pressed="false">정책 차단</button><button class="filter" type="button" data-filter="simulated" aria-pressed="false">모의 확정사고</button>
+            </div></div>
+            <div id="queue" class="queue"></div>
+          </section>
+          <section class="panel"><div class="panel-head"><h2>선택한 사례</h2><small>증거 요약과 권장 검토</small></div><div id="detail" class="detail"><p class="empty">검토할 사례를 선택하면 근거와 보존 범위를 표시합니다.</p></div></section>
+        </section>
+        <section class="bottom">
+          <section class="panel"><div class="panel-head"><h2>사례 타임라인</h2><small>원본 UTC만 표시</small></div><div id="timeline" class="timeline"></div></section>
+          <section class="panel"><div class="panel-head"><h2>AI 인계 · 참조 경계</h2><small>read-only governance</small></div>
+            <div class="governance">
+              <section><span>지도학습</span><strong id="governance-training">—</strong><p>실제 양성 ground truth·보안팀 검토·독립 holdout 전에는 성능 수치를 내지 않습니다.</p></section>
+              <section><span>공개 탐지 참조</span><strong id="reference-state">—</strong><p>카탈로그는 수집 필드와 조사 가설용입니다. 외부 룰·IOC를 내려받거나 실행하지 않습니다.</p></section>
+              <section><span>합성 사고</span><strong>SIMULATED 전용</strong><p>모의 확정사고는 데모 우선순위용이며 실제 침해·통계·production validation에서 제외됩니다.</p></section>
+              <section><span>HexStrike</span><strong>BLOCKED — NOT RUN</strong><p>정책 fixture만 표시하며 clone·image pull·VM·컨테이너·런타임 실행을 하지 않습니다.</p></section>
+            </div>
+          </section>
+        </section>
+        <footer>이 화면은 보존된 local replay 요약을 표시합니다. 원본 증거 파일은 변경·삭제하지 않습니다.</footer>
+      </div>
+    </main>
+  </div>
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const state = { data: null, selected: null, filter: "all" };
+    const severityRank = { high: 0, medium: 1, low: 2, informational: 3 };
+    const display = (value, fallback = "기록 없음") => value === undefined || value === null || value === "" ? fallback : String(value);
+    const severityText = (value) => ({ high: "높음", medium: "중간", low: "낮음", informational: "정보" }[value] || display(value));
+    const shortUtc = (value) => value ? value.replace("T", " ").replace("Z", " UTC") : "시간 미기록";
+    const addTag = (target, text, extra) => { const tag = document.createElement("span"); tag.className = "tag" + (extra ? " " + extra : ""); tag.textContent = text; target.append(tag); };
+    const filteredAlerts = () => {
+      if (!state.data) return [];
+      return state.data.alerts.filter((alert) => state.filter === "all" || (state.filter === "normal" && ["normal_approved", "normal_authorized_runtime"].includes(alert.classification)) || (state.filter === "simulated" && alert.simulated) || alert.classification === state.filter).slice().sort((left, right) => (severityRank[left.severity] ?? 9) - (severityRank[right.severity] ?? 9));
+    };
+    function renderQueue() {
+      const target = $("#queue"); target.replaceChildren(); const rows = filteredAlerts();
+      if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "선택한 분류의 replay 사례가 없습니다."; target.append(empty); return; }
+      if (!rows.some((row) => row.case_id === state.selected)) state.selected = rows[0].case_id;
+      rows.forEach((alert) => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "case"; button.setAttribute("aria-pressed", String(alert.case_id === state.selected)); button.setAttribute("aria-label", alert.case_id + " 사례 검토 열기"); button.addEventListener("click", () => { state.selected = alert.case_id; render(); });
+        const content = document.createElement("div"); content.className = "case-inner";
+        const top = document.createElement("div"); top.className = "case-top";
+        const severity = document.createElement("span"); severity.className = "severity " + alert.severity; severity.textContent = severityText(alert.severity);
+        const evidence = document.createElement("span"); evidence.className = "evidence"; evidence.textContent = String(alert.evidence_event_count) + "개 근거 이벤트";
+        const title = document.createElement("h3"); title.textContent = alert.title;
+        const caseId = document.createElement("p"); caseId.className = "case-id"; caseId.textContent = alert.case_id;
+        const tags = document.createElement("div"); tags.className = "tags"; addTag(tags, alert.classification); if (alert.simulated) addTag(tags, "SIMULATED", "simulated"); if (alert.hexstrike_blocked) addTag(tags, "BLOCKED — NOT RUN", "blocked");
+        top.append(severity, evidence); content.append(top, title, caseId, tags); button.append(content); target.append(button);
+      });
+    }
+    function renderDetail() {
+      const target = $("#detail"); target.replaceChildren(); const alert = state.data.alerts.find((item) => item.case_id === state.selected); if (!alert) return;
+      const heading = document.createElement("h2"); heading.textContent = alert.simulated ? "SIMULATED · " + alert.title : alert.title;
+      const copy = document.createElement("p"); copy.className = "detail-copy"; copy.textContent = alert.simulated ? "합성 exercise의 우선순위 시연입니다. 실제 침해·사건 통계·실운영 성능에 사용하지 않습니다." : "보존된 증거 요약의 규칙 기반 분류입니다. 최종 보안 판정이 아닙니다.";
+      const facts = document.createElement("div"); facts.className = "facts";
+      [["사례", alert.case_id], ["분류", alert.display_label], ["심각도", severityText(alert.severity)], ["근거", String(alert.evidence_event_count) + "개 이벤트"], ["보존 범위", alert.evidence_scope], ["실행 상태", alert.hexstrike_blocked ? "blocked_not_run" : "replay_only"]].forEach(([label, value]) => { const item = document.createElement("div"); item.className = "fact"; const name = document.createElement("span"); name.textContent = label; const text = document.createElement("strong"); text.textContent = display(value); item.append(name, text); facts.append(item); });
+      const recommendation = document.createElement("p"); recommendation.className = "recommendation"; recommendation.textContent = "관제사 권장: " + alert.recommended_action;
+      target.append(heading, copy, facts, recommendation);
+      if (alert.hexstrike_blocked) { const warning = document.createElement("p"); warning.className = "warning"; warning.textContent = "HexStrike는 정책 게이트에서 차단된 상태입니다. 이 페이지는 실행 근거나 런타임 관측을 표시하지 않습니다."; target.append(warning); }
+    }
+    function renderTimeline() {
+      const target = $("#timeline"); target.replaceChildren(); const rows = state.data.timelines[state.selected] || [];
+      if (!rows.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "보존된 타임라인 행이 없습니다."; target.append(empty); return; }
+      rows.forEach((event) => { const row = document.createElement("div"); row.className = "timeline-row"; const time = document.createElement("time"); time.textContent = shortUtc(event.observed_utc); const body = document.createElement("div"); const title = document.createElement("strong"); title.textContent = event.summary; const copy = document.createElement("small"); copy.textContent = "사례별 보존 이벤트 요약"; const source = document.createElement("span"); source.className = "source"; source.textContent = event.source_type; body.append(title, copy); row.append(time, body, source); target.append(row); });
+    }
+    function renderSummary() {
+      const summary = state.data.summary; const reference = state.data.detection_reference;
+      $("#case-count").textContent = summary.case_count; $("#case-copy").textContent = "실제 " + summary.actual_case_count + " · 합성 " + summary.synthetic_case_count; $("#event-count").textContent = summary.event_count; $("#alert-count").textContent = summary.alert_count; $("#training-state").textContent = "보류"; $("#governance-training").textContent = summary.supervised_evaluation_status; $("#reference-state").textContent = String(reference.catalog_entry_count) + "개 가설 · " + reference.mode;
+    }
+    function render() { renderQueue(); renderDetail(); renderTimeline(); }
+    async function load() {
+      const status = $("#status"); status.classList.remove("error"); status.textContent = "인증된 replay summary를 읽는 중입니다.";
+      try {
+        const response = await fetch("/api/v1/replay/summary", { credentials: "same-origin", cache: "no-store" });
+        if (response.status === 401) { window.location.assign("/login"); return; }
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data.replay_mode || data.live_collection || data.external_rule_execution || !Array.isArray(data.alerts) || !data.summary) throw new Error("안전한 replay fixture 계약을 만족하지 않습니다.");
+        state.data = data; renderSummary(); render(); status.textContent = "보존된 local replay snapshot을 표시합니다. 실시간 수집·차단·외부 룰/IOC 실행은 수행하지 않습니다.";
+      } catch (error) {
+        state.data = null; $("#queue").replaceChildren(); $("#detail").replaceChildren(); $("#timeline").replaceChildren();
+        const message = document.createElement("p"); message.className = "empty"; message.textContent = "Replay summary를 읽지 못했습니다. 로그인 상태와 로컬 서버 설정을 확인한 뒤 다시 읽으세요."; $("#queue").append(message);
+        status.classList.add("error"); status.textContent = "Replay summary 연결 오류"; console.error(error);
+      }
+    }
+    document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => { state.filter = button.dataset.filter; document.querySelectorAll(".filter").forEach((item) => item.setAttribute("aria-pressed", String(item === button))); if (state.data) render(); }));
+    $("#reload").addEventListener("click", load);
+    load();
+  </script>
+</body>
+</html>

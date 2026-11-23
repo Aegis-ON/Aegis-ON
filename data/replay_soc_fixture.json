@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0",
+  "product": "Aegis-ON local replay security-monitoring view",
+  "replay_mode": true,
+  "live_collection": false,
+  "external_rule_execution": false,
+  "source_notice": "Bundled, pseudonymized summary of the frozen local replay. The original evidence packages are not read, modified, or deleted by this application.",
+  "summary": {
+    "case_count": 10,
+    "event_count": 102,
+    "alert_count": 10,
+    "actual_case_count": 8,
+    "synthetic_case_count": 2,
+    "alerts_by_severity": {
+      "high": 1,
+      "medium": 6,
+      "low": 1,
+      "informational": 2
+    },
+    "supervised_evaluation_status": "insufficient_for_supervised_model_evaluation"
+  },
+  "detection_reference": {
+    "mode": "reference_only_not_evaluated",
+    "catalog_entry_count": 6,
+    "coverage_row_count": 5,
+    "default_alert_disposition": "needs_investigation",
+    "source_revision": "not_pinned_in_application_fixture",
+    "rule_or_ioc_downloaded": false,
+    "automatic_label_promotion": false
+  },
+  "alerts": [
+    {
+      "case_id": "CASE-SYNTHETIC-CONFIRMED-INCIDENT-20261122-01",
+      "severity": "high",
+      "classification": "confirmed_security_incident",
+      "display_label": "simulated_confirmed_security_incident",
+      "title": "모의 확정 보안사고",
+      "synthetic": true,
+      "simulated": true,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 9,
+      "recommended_action": "SIMULATED exercise로만 우선순위를 시연하고 실제 통계에서 제외한다.",
+      "evidence_scope": "synthetic Sysmon·웹/인증·상관 메타데이터"
+    },
+    {
+      "case_id": "CASE-ARTEX-20261121-01",
+      "severity": "medium",
+      "classification": "needs_investigation",
+      "display_label": "needs_investigation_pending_security_review",
+      "title": "라벨 검토 필요",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 8,
+      "recommended_action": "AI 담당과 보안팀이 타임라인·승인 기록을 대조한다.",
+      "evidence_scope": "통제된 웹 관측과 사건 타임라인"
+    },
+    {
+      "case_id": "CASE-NORMAL-CANDIDATE-20261121-01",
+      "severity": "medium",
+      "classification": "needs_investigation",
+      "display_label": "needs_investigation_pending_security_review",
+      "title": "라벨 검토 필요",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 2,
+      "recommended_action": "AI 담당과 보안팀이 타임라인·승인 기록을 대조한다.",
+      "evidence_scope": "정상 후보 웹 관측과 타임라인"
+    },
+    {
+      "case_id": "CASE-NORMAL-APPROVED-20261121-02",
+      "severity": "medium",
+      "classification": "needs_investigation",
+      "display_label": "needs_investigation_pending_security_review",
+      "title": "라벨 검토 필요",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 2,
+      "recommended_action": "AI 담당과 보안팀이 타임라인·승인 기록을 대조한다.",
+      "evidence_scope": "승인 모니터링 관측과 타임라인"
+    },
+    {
+      "case_id": "CASE-CAIRN-SERVE-20261122-01",
+      "severity": "medium",
+      "classification": "operational_anomaly",
+      "display_label": "operational_anomaly",
+      "title": "운영 초기화·의존성 이상",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 15,
+      "recommended_action": "수명주기와 격리 경계를 확인하고 공격으로 해석하지 않는다.",
+      "evidence_scope": "격리 런타임 의존성 동기화 실패 기록"
+    },
+    {
+      "case_id": "CASE-PENTAGI-STARTUP-20261122-01",
+      "severity": "medium",
+      "classification": "operational_anomaly",
+      "display_label": "operational_anomaly",
+      "title": "운영 초기화·의존성 이상",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 14,
+      "recommended_action": "수명주기와 격리 경계를 확인하고 공격으로 해석하지 않는다.",
+      "evidence_scope": "격리 런타임 초기화 실패 기록"
+    },
+    {
+      "case_id": "CASE-CYBERSTRIKEAI-STARTUP-20261122-01",
+      "severity": "medium",
+      "classification": "operational_anomaly",
+      "display_label": "operational_anomaly",
+      "title": "운영 초기화·의존성 이상",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 13,
+      "recommended_action": "수명주기와 격리 경계를 확인하고 공격으로 해석하지 않는다.",
+      "evidence_scope": "격리 런타임 수명주기 기록"
+    },
+    {
+      "case_id": "CASE-HEXSTRIKE-GATE-20261122-01",
+      "severity": "low",
+      "classification": "policy_blocked",
+      "display_label": "synthetic_policy_blocked",
+      "title": "정책 게이트 차단",
+      "synthetic": true,
+      "simulated": false,
+      "hexstrike_blocked": true,
+      "evidence_event_count": 6,
+      "recommended_action": "차단 근거를 보존하고 HexStrike 실행을 계속 금지한다.",
+      "evidence_scope": "합성 정책 감사 메타데이터만"
+    },
+    {
+      "case_id": "CASE-DOCKER-BOUNDARY-20261122-01",
+      "severity": "informational",
+      "classification": "normal_approved",
+      "display_label": "normal_approved",
+      "title": "승인 정상 비교 replay",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 14,
+      "recommended_action": "증거 경로와 보안팀 검토 상태를 확인한다.",
+      "evidence_scope": "Docker 내부망 정상 비교와 경계 메타데이터"
+    },
+    {
+      "case_id": "CASE-CAIRN-SERVE-20261122-02",
+      "severity": "informational",
+      "classification": "normal_authorized_runtime",
+      "display_label": "normal_authorized_runtime",
+      "title": "승인 제한 런타임 replay",
+      "synthetic": false,
+      "simulated": false,
+      "hexstrike_blocked": false,
+      "evidence_event_count": 19,
+      "recommended_action": "제한된 수명주기 관찰이며 행동 라벨로 승격하지 않는다.",
+      "evidence_scope": "Cairn 격리 startup·loopback health·graceful stop 메타데이터"
+    }
+  ],
+  "timelines": {
+    "CASE-SYNTHETIC-CONFIRMED-INCIDENT-20261122-01": [
+      {"observed_utc": "2026-11-22T00:10:00Z", "source_type": "timeline", "summary": "synthetic_fixture_declared"},
+      {"observed_utc": "2026-11-22T00:10:04Z", "source_type": "correlation_alert", "summary": "correlation_alert"}
+    ],
+    "CASE-ARTEX-20261121-01": [
+      {"observed_utc": "2026-11-21T11:14:29.857991Z", "source_type": "web_auth", "summary": "web_auth"},
+      {"observed_utc": "2026-11-21T11:14:29.883902Z", "source_type": "web_auth", "summary": "web_auth"}
+    ],
+    "CASE-NORMAL-CANDIDATE-20261121-01": [
+      {"observed_utc": "2026-11-21T09:49:11.013041Z", "source_type": "timeline", "summary": "web_access"},
+      {"observed_utc": "2026-11-21T09:49:11.013041Z", "source_type": "web_auth", "summary": "web_auth"}
+    ],
+    "CASE-NORMAL-APPROVED-20261121-02": [
+      {"observed_utc": "2026-11-21T16:47:44.139028Z", "source_type": "timeline", "summary": "approved_monitoring_request"},
+      {"observed_utc": "2026-11-21T16:47:44.139028Z", "source_type": "web_auth", "summary": "web_auth"}
+    ],
+    "CASE-CAIRN-SERVE-20261122-01": [
+      {"observed_utc": "2026-11-22T05:03:47.425172927Z", "source_type": "timeline", "summary": "dependency_sync_started"},
+      {"observed_utc": "2026-11-22T05:03:48.391154570Z", "source_type": "timeline", "summary": "dependency_sync_failed"}
+    ],
+    "CASE-PENTAGI-STARTUP-20261122-01": [
+      {"observed_utc": "2026-11-21T17:34:05.388189153Z", "source_type": "timeline", "summary": "startup_attempt"},
+      {"observed_utc": "2026-11-21T17:34:05Z", "source_type": "timeline", "summary": "startup_failure_recorded"}
+    ],
+    "CASE-CYBERSTRIKEAI-STARTUP-20261122-01": [
+      {"observed_utc": "2026-11-22T03:49:29.291Z", "source_type": "timeline", "summary": "startup_attempt"},
+      {"observed_utc": "2026-11-22T03:51:50.848Z", "source_type": "timeline", "summary": "graceful_stop"}
+    ],
+    "CASE-HEXSTRIKE-GATE-20261122-01": [
+      {"observed_utc": "2026-11-22T00:00:00Z", "source_type": "timeline", "summary": "synthetic_fixture_declared"},
+      {"observed_utc": "2026-11-22T00:00:03Z", "source_type": "policy_audit", "summary": "policy_gate_denied_before_execution"}
+    ],
+    "CASE-DOCKER-BOUNDARY-20261122-01": [
+      {"observed_utc": "2026-11-21T17:25:43Z", "source_type": "docker_lifecycle", "summary": "container_start"},
+      {"observed_utc": "2026-11-21T17:39:55Z", "source_type": "timeline", "summary": "approved_comparison_complete"}
+    ],
+    "CASE-CAIRN-SERVE-20261122-02": [
+      {"observed_utc": "2026-11-22T05:26:04.043203488Z", "source_type": "timeline", "summary": "isolated_startup"},
+      {"observed_utc": "2026-11-22T05:29:11.806673155Z", "source_type": "timeline", "summary": "graceful_stop"}
+    ]
+  }
+}
