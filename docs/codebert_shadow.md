@@ -11,6 +11,8 @@ Sysmon Event ID 1의 명령줄에서 추가 조사 가능성을 추정한다. �
 
 ## 학습과 평가
 
+아이디어톤 합성 로그로 진행한 추가 학습과 AP 비교는 [CodeBERT AP 개선 실험](codebert_ap_improvement.md)에 정리했다.
+
 저장소 루트에서 학습용 Python 환경에 `requirements.txt`와 `requirements-codebert-train.txt`를 설치한다. 다음 경로는 로컬 작업 디렉터리를 예시로 사용한다. 출력 디렉터리는 매 실행에서 새 경로를 사용한다.
 
 ```sh

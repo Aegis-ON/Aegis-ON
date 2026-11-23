@@ -1,0 +1,79 @@
+{
+  "models": {
+    "extend-four": {
+      "ap": 0.7399013998897856,
+      "known_labels": 42,
+      "score_max": 0.9973897337913513,
+      "score_min": 0.21933326125144958,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 9,
+        "unknown": 0
+      },
+      "top10_ids": [
+        "SYN-V2-G030-06",
+        "SYN-V2-G030-05",
+        "SYN-V2-G019-05",
+        "SYN-V2-G037-04",
+        "SYN-V2-G013-06",
+        "SYN-V2-G022-06",
+        "SYN-V2-G014-06",
+        "SYN-V2-G017-06",
+        "SYN-V2-G022-03",
+        "SYN-V2-G022-04"
+      ]
+    },
+    "original-codebert": {
+      "ap": 0.6459992203529547,
+      "known_labels": 42,
+      "score_max": 0.60530024766922,
+      "score_min": 0.5633954405784607,
+      "scored": 56,
+      "top10": {
+        "benign": 2,
+        "review": 7,
+        "unknown": 1
+      },
+      "top10_ids": [
+        "SYN-V2-G022-03",
+        "SYN-V2-G022-04",
+        "SYN-V2-G022-06",
+        "SYN-V2-G030-05",
+        "SYN-V2-G030-06",
+        "SYN-V2-G017-06",
+        "SYN-V2-G017-05",
+        "SYN-V2-G017-02",
+        "SYN-V2-G019-05",
+        "SYN-V2-G017-08"
+      ]
+    },
+    "original-light": {
+      "ap": 0.7749224582255436,
+      "known_labels": 42,
+      "score_max": 0.6660541559855454,
+      "score_min": 0.41613853297689724,
+      "scored": 56,
+      "top10": {
+        "benign": 1,
+        "review": 9,
+        "unknown": 0
+      },
+      "top10_ids": [
+        "SYN-V2-G030-06",
+        "SYN-V2-G030-05",
+        "SYN-V2-G017-05",
+        "SYN-V2-G037-05",
+        "SYN-V2-G019-05",
+        "SYN-V2-G037-04",
+        "SYN-V2-G022-04",
+        "SYN-V2-G022-03",
+        "SYN-V2-G014-04",
+        "SYN-V2-G017-06"
+      ]
+    }
+  },
+  "previously_observed_fixture": true,
+  "selected_before_scoring_test": "extend-four",
+  "test_sha256": "5e5dd9e29364a190d4ef968343d38996d58d441cbf9dcb66357742b825cc2126"
+}
